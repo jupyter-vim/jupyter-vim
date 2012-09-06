@@ -429,7 +429,62 @@ def run_these_lines():
     prompt = "lines %d-%d "% (r.start+1,r.end+1)
     print_prompt(prompt,msg_id)
 
+@with_subchannel
+def run_this_cell():
+    b = vim.current.buffer
+    (cur_line, cur_col) = vim.current.window.cursor    
+    cur_line -= 1
+    
+    # Search upwards for lines starting with ##
+    upper_bound = cur_line
+    while upper_bound > 0 and not vim.current.buffer[upper_bound].strip().startswith('##'):
+        upper_bound -= 1
 
+    # Skip past the first ## if it exists
+    if vim.current.buffer[upper_bound].strip().startswith('##'):
+        upper_bound += 1
+
+    # Search downwards for lines starting with ##
+    lower_bound = min(upper_bound+1, len(vim.current.buffer)-1)
+
+    while lower_bound < len(vim.current.buffer)-1 and not vim.current.buffer[lower_bound].strip().startswith('##'):
+        lower_bound += 1
+
+    # Move before the last ## if it exists
+    if vim.current.buffer[lower_bound].strip().startswith('##'):
+        lower_bound -= 1
+
+    # Make sure bounds are within buffer limits
+    upper_bound = max(0, min(upper_bound, len(vim.current.buffer)-1))
+    lower_bound = max(0, min(lower_bound, len(vim.current.buffer)-1))
+
+    # Make sure of proper ordering of bounds
+    lower_bound = max(upper_bound, lower_bound)
+
+    # Calculate minimum indentation level of entire cell
+    shiftwidth = vim.eval('&shiftwidth')
+    count = lambda x: int(vim.eval('indent(%d)/%s' % (x,shiftwidth)))
+
+    min_indent = count(upper_bound+1)
+    for i in range(upper_bound+1, lower_bound):
+        indent = count(i)
+        if i < min_indent:
+            min_indent = i
+
+    # Perform dedent
+    if min_indent > 0:
+        vim.command('%d,%d%s' % (upper_bound+1, lower_bound+1, '<'*min_indent))
+
+    # Execute cell
+    lines = "\n".join(vim.current.buffer[upper_bound:lower_bound+1])
+    msg_id = send(lines)
+    prompt = "lines %d-%d "% (upper_bound+1,lower_bound+1)
+    print_prompt(prompt, msg_id)
+
+    # Re-indent
+    if min_indent > 0:
+        vim.command("silent undo")
+    
 def set_pid():
     """
     Explicitly ask the ipython kernel for its pid
@@ -486,7 +541,7 @@ def dedent_run_these_lines():
     vim.command("'<,'>" + "<"*count)
     run_these_lines()
     vim.command("silent undo")
-    
+
 #def set_this_line():
 #    # not sure if there's a way to do this, since we have multiple clients
 #    send("get_ipython().shell.set_next_input(\'%s\')" % vim.current.line.replace("\'","\\\'"))
@@ -587,6 +642,7 @@ if g:ipy_perform_mappings != 0
     "pi custom
     map <silent> <C-Return> :python run_this_file()<CR>
     map <silent> <C-s> :python run_this_line()<CR>
+    map <silent> <C-M-s> :python run_this_cell()<CR>
     imap <silent> <C-s> <C-O>:python run_this_line()<CR>
     map <silent> <M-s> :python dedent_run_this_line()<CR>
     vmap <silent> <C-S> :python run_these_lines()<CR>

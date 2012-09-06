@@ -100,6 +100,14 @@ Then, go to the qtconsole and run this line::
 
 You can also send whole files to IPython's ``%run`` magic using ``<F5>``.
 
+Finally, you can define Matlab-like cells using ``##`` markers and execute it
+by moving the cursor somewhere within the cell and pressing ``<Ctrl-Alt-S>``::
+
+    ## Print some messages
+    print 'You can define cells,'
+    print 'just like in Matlab!'
+    ##
+
 **NEW in IPython 0.12**!
 If you're trying to do run code fragments that have leading whitespace, use
 ``<Alt-S>`` instead - it will dedent a single line, and remove the leading
