@@ -26,26 +26,26 @@ If you can launch ``ipython qtconsole`` or ``ipython kernel``, and
 -----------------
 Quickstart Guide:
 -----------------
-Start ``ipython qtconsole`` [*]_ and copy the connection string.
-Source ``ipy.vim`` file, which provides new IPython command::
+Start ``ipython qtconsole`` [*]_. Source ``ipy.vim`` file, which provides new
+IPython command::
 
   :source ipy.vim
   (or copy it to ~/.vim/ftplugin/python to load automatically)
 
-  :IPythonClipboard
-  (or :IPythonXSelection if you're using X11 without having to copy)
+  :IPython
 
-The :IPython command allows you to put the full connection string. For IPython
-0.11, it would look like this::
+The ``:IPython`` command allows you to put the full connection string. For
+IPython 0.11, it would look like this::
 
   :IPython --existing --shell=41882 --iopub=43286 --stdin=34987 --hb=36697
 
-and for IPython 0.12, like this::
+and for IPython 0.12 and later, like this::
 
   :IPython --existing kernel-85997.json
 
-The ``:IPythonClipboard`` command just uses the ``+`` register to get the
-connection string, whereas ``:IPythonXSelection`` uses the ``*`` register.
+There also exists to convenience commands: ``:IPythonClipboard`` just uses the
+``+`` register to get the connection string, whereas ``:IPythonXSelection``
+uses the ``*`` register and passes it to ``:IPython``.
 
 **NEW in IPython 0.12**!
 Since IPython 0.12, you can simply use::
@@ -172,11 +172,41 @@ the line ``let g:ipy_completefunc = 'local'`` in one's vimrc will activate the
 IPython-based completion only for current buffer. Setting `g:ipy_completefunc`
 to anything other than `'local'` or `'global'` disables it altogether.
 
+**NEW since IPython 0.13**
+
+**Sending ? and ?? now works just like IPython**
+This is only supported for single lines that end with ? and ??, which works
+just the same as it does in IPython (The ?? variant will show the code, not
+just the docstring
+
+**Sending arbitrary signal to IPython kernel**
+`:IPythonInterrupt` now supports sending of arbitrary signals. There's a
+convenience alias for sending SIGTERM via `:IPythonTerminate`, but you can
+also send any signal by just passing an argument to `:IPythonInterrupt`.
+Here's an example. First, send this code (or just run it in your kernel)::
+
+    import signal
+    def greeting_user(signum, stack):
+        import sys
+        sys.stdout.flush()
+        print "Hello, USER!"
+        sys.stdout.flush()
+    signal.signal(signal.SIGUSR1, greeting_user)
+
+Now, proceed to connect up using vim-ipython and run `:IPythonInterrupt 10` -
+where 10 happens to be signal.SIGUSR1 in the POSIX world. This functionality,
+along with the sourcing of profile-dependent code on startup (
+``vi `ipython locate profile default`/startup/README`` ), brings the forgotten
+world of inter-process communication through signals to your favorite text
+editor and REPL combination.
+
+
 ---------------
-Current issues:
+Known issues:
 ---------------
 - For now, vim-ipython only connects to an ipython session in progress.
-- The ipdb integration is not yet re-implemented.
+- The ipdb integration is not yet re-implemented. Pending 
+  [IPython PR #3089](https://github.com/ipython/ipython/pull/3089)
 - If you're running inside ``screen``, read about the ``<CTRL-S>`` issue `here
   <http://munkymorgy.blogspot.com/2008/07/screen-ctrl-s-bug.html>`_, and add
   this line to your ``.bashrc`` to fix it::
@@ -214,6 +244,12 @@ Current issues:
   ``monitor_subchannel`` is set. This is a bug in minibufexpl.vim and the workaround
   is described in vim-ipython issue #7.
 
+- the vim-ipython buffer is set to filetype=python, which provides syntax
+  highlighting, but that syntax highlighting will be broken if a stack trace
+  is returned which contains one half of a quote delimiter.
+
+- vim-ipython is currently for Python2.X only.
+
 ----------------------------
 Thanks and Bug Participation
 ----------------------------
@@ -222,7 +258,8 @@ you've been missed, don't hesitate to contact me, or better yet, submit a
 pull request with your attribution.
 
 * @minrk for guiding me through the IPython kernel manager protocol, and
-  support of connection_file-based IPython connection (#13)
+  support of connection_file-based IPython connection (#13), and keeping
+  vim-ipython working across IPython API changes.
 * @nakamuray and @tcheneau for reporting and providing a fix for when vim is
   compiled without a gui (#1)
 * @unpingco for reporting Windows bugs (#3,#4), providing better multiline
@@ -243,6 +280,9 @@ pull request with your attribution.
 * @dstahlke for setting syntax of doc window to ReST
 * @jtratner for docs with quotes (#30)
 * @pielgrzym for setting completefunc locally to a buffer (#32)
+* @flacjacket for pointing out and providing fix for IPython API change
+* @memeplex for fixing the identifier grabbing on e.g. non-PEP8 compliant code
+* @pydave for IPythonTerminate (sending SIGTERM using our hack)
 
 Similar Projects
 ----------------
@@ -256,6 +296,9 @@ Similar Projects
   output (Nico Raffo)
 * `ipyqtmacvim`_ - plugin to send commands from MacVim to IPython Qt console
   (Justin Kitzes)
+* `tslime_ipython`_ - "cell" execution , with cells defined by marks
+* `vipy`_ - used vim-ipython as a starting point and ran with it in a slightly
+  different direction. (John David Giese)
 
 
 .. _vim-slime: https://github.com/jpalardy/vim-slime
@@ -264,6 +307,8 @@ Similar Projects
 .. _vimux: https://github.com/benmills/vimux
 .. _vimux-pyutils: https://github.com/julienr/vimux-pyutils
 .. _ipyqtmacvim: https://github.com/jkitzes/ipyqtmacvim/
+.. _tslime_ipython: https://github.com/eldridgejm/tslime_ipython
+.. _vipy: https://github.com/johndgiese/vipy
 
 
 Bottom Line
