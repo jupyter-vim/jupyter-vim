@@ -27,6 +27,11 @@ if !exists('g:ipy_perform_mappings')
     let g:ipy_perform_mappings = 1
 endif
 
+" Enable cell folding
+if !exists('g:ipy_cell_folding')
+	let g:ipy_cell_folding = 1
+endif
+
 " Register IPython completefunc
 " 'global'   -- for all of vim (default).
 " 'local'    -- only for the current buffer.
@@ -780,3 +785,21 @@ endpython
         return res
       endif
     endfun
+
+
+" Custom folding function to fold cells
+function! FoldByCell(lnum)
+	if getline(a:lnum) =~? '\v^\s*##.*$'
+		return '>1'
+	elseif getline(a:lnum+1) =~? '\v^\s*##.*$'
+		return '<1'
+	else
+		return '='
+	endif
+endfunction
+
+if g:ipy_cell_folding != 0
+	setlocal foldmethod=expr
+	setlocal foldexpr=FoldByCell(v:lnum)
+endif
+
