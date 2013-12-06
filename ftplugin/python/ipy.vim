@@ -9,11 +9,12 @@
 " -----------------
 " Quickstart Guide:
 " -----------------
-" Start ipython qtconsole and copy the connection string.
-" Source this file, which provides new IPython command
+" Start `ipython qtconsole`, `ipython console`, or  `ipython notebook` and
+" open a notebook using you web browser.  Source this file, which provides new
+" IPython command
+"
 "   :source ipy.vim
-"   :IPythonClipboard
-"   (or :IPythonXSelection if you're using X11 without having to copy)
+"   :IPython
 "
 " written by Paul Ivanov (http://pirsquared.org)
 "
@@ -70,6 +71,29 @@ except AttributeError:
     sys.stdout = WithFlush(sys.stdout)
     sys.stderr = WithFlush(sys.stderr)
 
+def vim_variable(name, default=None):
+    exists = int(vim.eval("exists('%s')" % name))
+    return vim.eval(name) if exists else default
+ 
+def vim_regex_escape(x):
+    for old, new in (("[", "\\["), ("]", "\\]"), (":", "\\:"), (".", "\."), ("*", "\\*")):
+        x = x.replace(old, new)
+    return x
+
+# status buffer settings
+status_prompt_in = vim_variable('g:ipy_status_in', 'In [%(line)d]: ')
+status_prompt_out = vim_variable('g:ipy_status_out', 'Out[%(line)d]: ')
+
+status_prompt_colors = {
+    'in_ctermfg': vim_variable('g:ipy_status_in_console_color', 'Green'),
+    'in_guifg': vim_variable('g:ipy_status_in_gui_color', 'Green'),
+    'out_ctermfg': vim_variable('g:ipy_status_out_console_color', 'Red'),
+    'out_guifg': vim_variable('g:ipy_status_out_gui_color', 'Red'),
+    'out2_ctermfg': vim_variable('g:ipy_status_out2_console_color', 'Gray'),
+    'out2_guifg': vim_variable('g:ipy_status_out2_gui_color', 'Gray'),
+}
+
+status_blank_lines = int(vim_variable('g:ipy_status_blank_lines', '1'))
 
 
 ip = '127.0.0.1'
@@ -82,12 +106,25 @@ except NameError:
     kc = None
     pid = None
 
+_install_instructions = """You *must* install IPython into the Python that
+your vim is linked against. If you are seeing this message, this usually means
+either (1) installing IPython using the system Python that vim is using, or
+(2) recompiling Vim against the Python where you already have IPython
+installed. This is only a requirement to allow Vim to speak with an IPython
+instance using IPython's own machinery. It does *not* mean that the IPython
+instance with which you communicate via vim-ipython needs to be running the
+same version of Python.
+"""
 def km_from_string(s=''):
     """create kernel manager from IPKernelApp string
     such as '--shell=47378 --iopub=39859 --stdin=36778 --hb=52668' for IPython 0.11
     or just 'kernel-12345.json' for IPython 0.12
     """
     from os.path import join as pjoin
+    try:
+        import IPython
+    except ImportError:
+        raise ImportError("Could not find IPython. " + _install_instructions)
     from IPython.config.loader import KeyValueConfigLoader
     from Queue import Empty
     try:
@@ -155,6 +192,16 @@ def km_from_string(s=''):
         kc = km
     kc.start_channels()
     send = kc.shell_channel.execute
+
+    #XXX: backwards compatability for IPython < 0.13
+    import inspect
+    sc = kc.shell_channel
+    num_oinfo_args = len(inspect.getargspec(sc.object_info).args)
+    if num_oinfo_args == 2:
+        # patch the object_info method which used to only take one argument
+        klass = sc.__class__
+        klass._oinfo_orig = klass.object_info
+        klass.object_info = lambda s,x,y: s._oinfo_orig(x)
     
     #XXX: backwards compatability for IPython < 1.0
     if not hasattr(kc, 'iopub_channel'):
@@ -175,7 +222,6 @@ def km_from_string(s=''):
     vim.command("""
         if has('balloon_eval')
             set bexpr=IPythonBalloonExpr()
-            set ballooneval
         endif
         """)
     set_pid()
@@ -249,12 +295,12 @@ def get_doc_buffer(level=0):
     vim.command('new '+word)
     vim.command('setlocal modifiable noro')
     # doc window quick quit keys: 'q' and 'escape'
-    vim.command('map <buffer> q :q<CR>')
+    vim.command('nnoremap <buffer> q :q<CR>')
     # Known issue: to enable the use of arrow keys inside the terminal when
     # viewing the documentation, comment out the next line
-    vim.command('map <buffer> <Esc> :q<CR>')
+    vim.command('nnoremap <buffer> <Esc> :q<CR>')
     # and uncomment this line (which will work if you have a timoutlen set)
-    #vim.command('map <buffer> <Esc><Esc> :q<CR>')
+    #vim.command('nnoremap <buffer> <Esc><Esc> :q<CR>')
     b = vim.current.buffer
     b[:] = None
     b[:] = doc
@@ -264,7 +310,7 @@ def get_doc_buffer(level=0):
     vim.command('resize %d'%len(b))
     #vim.command('pcl')
     #vim.command('pedit doc')
-    #vim.command('normal ') # go to previous window
+    #vim.command('normal! ') # go to previous window
     if level == 0:
         # use the ReST formatting that ships with stock vim
         vim.command('setlocal syntax=rst')
@@ -321,27 +367,33 @@ def update_subchannel_msgs(debug=False, force=False):
             vim.command("silent pedit +set\ ma vim-ipython")
             vim.command("wincmd P") #switch to preview window
             # subchannel window quick quit key 'q'
-            vim.command('map <buffer> q :q<CR>')
+            vim.command('nnoremap <buffer> q :q<CR>')
             vim.command("set bufhidden=hide buftype=nofile ft=python")
+            vim.command("setlocal nobuflisted") # don't come up in buffer lists
+            vim.command("setlocal nonumber") # no line numbers, we have in/out nums
+            vim.command("setlocal noswapfile") # no swap file (so no complaints cross-instance)
             # make shift-enter and control-enter in insert mode behave same as in ipython notebook
             # shift-enter send the current line, control-enter send the line
             # but keeps it around for further editing.
-            vim.command("imap <buffer> <s-Enter> <esc>dd:python run_command('''<C-r>\"''')<CR>i")
+            vim.command("inoremap <buffer> <s-Enter> <esc>dd:python run_command('''<C-r>\"''')<CR>i")
             # pkddA: paste, go up one line which is blank after run_command,
             # delete it, and then back to insert mode
-            vim.command("imap <buffer> <c-Enter> <esc>dd:python run_command('''<C-r>\"''')<CR>pkddA")
+            vim.command("inoremap <buffer> <c-Enter> <esc>dd:python run_command('''<C-r>\"''')<CR>pkddA")
             # ctrl-C gets sent to the IPython process as a signal on POSIX
-            vim.command("map <buffer>  :IPythonInterrupt<cr>")
-    
+            vim.command("noremap <buffer>  :IPythonInterrupt<cr>")
+
     #syntax highlighting for python prompt
     # QtConsole In[] is blue, but I prefer the oldschool green
     # since it makes the vim-ipython 'shell' look like the holidays!
-    #vim.command("hi Blue ctermfg=Blue guifg=Blue")
-    vim.command("hi Green ctermfg=Green guifg=Green")
-    vim.command("hi Red ctermfg=Red guifg=Red")
-    vim.command("syn keyword Green 'In\ []:'")
-    vim.command("syn match Green /^In \[[0-9]*\]\:/")
-    vim.command("syn match Red /^Out\[[0-9]*\]\:/")
+    colors = status_prompt_colors
+    vim.command("hi IPyPromptIn ctermfg=%s guifg=%s" % (colors['in_ctermfg'], colors['in_guifg']))
+    vim.command("hi IPyPromptOut ctermfg=%s guifg=%s" % (colors['out_ctermfg'], colors['out_guifg']))
+    vim.command("hi IPyPromptOut2 ctermfg=%s guifg=%s" % (colors['out2_ctermfg'], colors['out2_guifg']))
+    in_expression = vim_regex_escape(status_prompt_in % {'line': 999}).replace('999', '[ 0-9]*')
+    vim.command("syn match IPyPromptIn /^%s/" % in_expression)
+    out_expression = vim_regex_escape(status_prompt_out % {'line': 999}).replace('999', '[ 0-9]*')
+    vim.command("syn match IPyPromptOut /^%s/" % out_expression)
+    vim.command("syn match IPyPromptOut2 /^\\.\\.\\.* /")
     b = vim.current.buffer
     update_occured = False
     for m in msgs:
@@ -360,18 +412,20 @@ def update_subchannel_msgs(debug=False, force=False):
             # also echoing the message to the status bar
             s = strip_color_escapes(m['content']['data'])
         elif m['header']['msg_type'] == 'pyout':
-            s = "Out[%d]: " % m['content']['execution_count']
+            s = status_prompt_out % {'line': m['content']['execution_count']}
             s += m['content']['data']['text/plain']
         elif m['header']['msg_type'] == 'pyin':
             # TODO: the next line allows us to resend a line to ipython if
             # %doctest_mode is on. In the future, IPython will send the
             # execution_count on subchannel, so this will need to be updated
             # once that happens
-            if 'execution_count' in m['content']:
-                s = "\nIn [%d]: "% m['content']['execution_count']
-            else:
-                s = "\nIn [00]: "
-            s += m['content']['code'].strip()
+            line_number = m['content'].get('execution_count', 0)
+            prompt = status_prompt_in % {'line': line_number}
+            s = prompt
+            # add a continuation line (with trailing spaces if the prompt has them)
+            dots = '.' * len(prompt.rstrip())
+            dots += prompt[len(prompt.rstrip()):]
+            s += m['content']['code'].rstrip().replace('\n', '\n' + dots)
         elif m['header']['msg_type'] == 'pyerr':
             c = m['content']
             s = "\n".join(map(strip_color_escapes,c['traceback']))
@@ -389,12 +443,13 @@ def update_subchannel_msgs(debug=False, force=False):
                 b.append([l.encode(vim_encoding) for l in s.splitlines()])
         update_occured = True
     # make a newline so we can just start typing there
-    if b[-1] != '':
-        b.append([''])
+    if status_blank_lines:
+        if b[-1] != '':
+            b.append([''])
     if update_occured or force:
-        vim.command('normal G') # go to the end of the file
+        vim.command('normal! G') # go to the end of the file
     if not startedin_vimipython:
-        vim.command('normal p') # go back to where you were
+        vim.command('normal! p') # go back to where you were
     return update_occured
     
 def get_child_msg(msg_id):
@@ -429,26 +484,29 @@ def with_subchannel(f,*args):
         try:
             f(*args)
             if monitor_subchannel:
-                update_subchannel_msgs()
+                update_subchannel_msgs(force=True)
         except AttributeError: #if kc is None
             echo("not connected to IPython", 'Error')
     return f_with_update
 
 @with_subchannel
 def run_this_file():
-    msg_id = send('run %s %s' % (run_flags, repr(vim.current.buffer.name),))
-    print_prompt("In[]: run %s %s" % (run_flags, repr(vim.current.buffer.name)),msg_id)
+    msg_id = send('%%run %s %s' % (run_flags, repr(vim.current.buffer.name),))
+    print_prompt("In[]: %%run %s %s" % (run_flags, repr(vim.current.buffer.name)),msg_id)
 
 @with_subchannel
-def run_this_line():
-    if vim.current.line.strip().endswith('?'):
+def run_this_line(dedent=False):
+    line = vim.current.line
+    if dedent:
+        line = line.lstrip()
+    if line.rstrip().endswith('?'):
         # intercept question mark queries -- move to the word just before the
         # question mark and call the get_doc_buffer on it
         w = vim.current.window
         original_pos =  w.cursor
         new_pos = (original_pos[0], vim.current.line.index('?')-1)
         w.cursor = new_pos
-        if vim.current.line.strip().endswith('??'):
+        if line.rstrip().endswith('??'):
             # double question mark should display source
             # XXX: it's not clear what level=2 is for, level=1 is sufficient
             # to get the code -- follow up with IPython team on this
@@ -459,8 +517,8 @@ def run_this_line():
         vim.command('stopi')
         w.cursor = original_pos
         return
-    msg_id = send(vim.current.line)
-    print_prompt(vim.current.line, msg_id)
+    msg_id = send(line)
+    print_prompt(line, msg_id)
 
 @with_subchannel
 def run_command(cmd):
@@ -468,18 +526,27 @@ def run_command(cmd):
     print_prompt(cmd, msg_id)
 
 @with_subchannel
-def run_these_lines():
+def run_these_lines(dedent=False):
     r = vim.current.range
-    lines = "\n".join(vim.current.buffer[r.start:r.end+1])
+    if dedent:
+        lines = list(vim.current.buffer[r.start:r.end+1])
+        nonempty_lines = [x for x in lines if x.strip()]
+        if not nonempty_lines:
+            return
+        first_nonempty = nonempty_lines[0]
+        leading = len(first_nonempty) - len(first_nonempty.lstrip())
+        lines = "\n".join(x[leading:] for x in lines)
+    else:
+        lines = "\n".join(vim.current.buffer[r.start:r.end+1])
     msg_id = send(lines)
     #alternative way of doing this in more recent versions of ipython
     #but %paste only works on the local machine
     #vim.command("\"*yy")
     #send("'%paste')")
     #reselect the previously highlighted block
-    vim.command("normal gv")
+    vim.command("normal! gv")
     if not reselect:
-        vim.command("normal ")
+        vim.command("normal! ")
 
     #vim lines start with 1
     #print "lines %d-%d sent to ipython"% (r.start+1,r.end+1)
@@ -556,8 +623,10 @@ def set_pid():
     except Empty:
         echo("no reply from IPython kernel")
         return
-
-    pid = int(child['content']['user_variables']['_pid'])
+    try:
+        pid = int(child['content']['user_variables']['_pid'])
+    except TypeError: # change in IPython 1.0.dev moved this out
+        pid = int(child['content']['user_variables']['_pid']['data']['text/plain'])
     return pid
 
 
@@ -595,9 +664,7 @@ def interrupt_kernel_hack(signal_to_send=None):
         pid = None
 
 def dedent_run_this_line():
-    vim.command("left")
-    run_this_line()
-    vim.command("silent undo")
+    run_this_line(True)
 
 def dedent_run_these_lines():
     r = vim.current.range
@@ -605,7 +672,7 @@ def dedent_run_these_lines():
     count = int(vim.eval('indent(%d+1)/%s' % (r.start,shiftwidth)))
     if count > 0:
        vim.command("'<,'>" + "<"*count)
-    run_these_lines()
+    run_these_lines(True)
 
 #def set_this_line():
 #    # not sure if there's a way to do this, since we have multiple clients
@@ -683,39 +750,61 @@ au FocusGained *.*,vim-ipython :python if update_subchannel_msgs(): echo("vim-ip
 " displayed if vim-ipython buffer has been updated.
 au BufEnter vim-ipython :python if update_subchannel_msgs(): echo("vim-ipython shell updated (on buffer enter)",'Operator')
 
+" Setup plugin mappings for the most common ways to interact with ipython.
+noremap  <Plug>(IPython-RunFile)            :python run_this_file()<CR>
+noremap  <Plug>(IPython-RunLine)            :python run_this_line()<CR>
+noremap  <Plug>(IPython-RunLines)           :python run_these_lines()<CR>
+noremap  <Plug>(IPython-RunCell)            :python run_this_cell()<CR>
+noremap  <Plug>(IPython-OpenPyDoc)          :python get_doc_buffer()<CR>
+noremap  <Plug>(IPython-UpdateShell)        :python if update_subchannel_msgs(force=True): echo("vim-ipython shell updated",'Operator')<CR>
+noremap  <Plug>(IPython-ToggleReselect)     :python toggle_reselect()<CR>
+"noremap  <Plug>(IPython-StartDebugging)     :python send('%pdb')<CR>
+"noremap  <Plug>(IPython-BreakpointSet)      :python set_breakpoint()<CR>
+"noremap  <Plug>(IPython-BreakpointClear)    :python clear_breakpoint()<CR>
+"noremap  <Plug>(IPython-DebugThisFile)      :python run_this_file_pdb()<CR>
+"noremap  <Plug>(IPython-BreakpointClearAll) :python clear_all_breaks()<CR>
+noremap  <Plug>(IPython-ToggleSendOnSave)   :call <SID>toggle_send_on_save()<CR>
+noremap  <Plug>(IPython-PlotClearCurrent)   :python run_command("plt.clf()")<CR>
+noremap  <Plug>(IPython-PlotCloseAll)       :python run_command("plt.close('all')")<CR>
+noremap  <Plug>(IPython-RunLineAsTopLevel)  :python dedent_run_this_line()<CR>
+xnoremap <Plug>(IPython-RunLinesAsTopLevel) :python dedent_run_these_lines()<CR>
+
 if g:ipy_perform_mappings != 0
-    map <silent> <F5> :python run_this_file()<CR>
-    map <silent> <S-F5> :python run_this_line()<CR>
-    map <silent> <F9> :python run_these_lines()<CR>
-    map <silent> <leader>d :py get_doc_buffer()<CR>
-    map <silent> <leader>s :py if update_subchannel_msgs(force=True): echo("vim-ipython shell updated",'Operator')<CR>
-    map <silent> <S-F9> :python toggle_reselect()<CR>
-    "map <silent> <C-F6> :python send('%pdb')<CR>
-    "map <silent> <F6> :python set_breakpoint()<CR>
-    "map <silent> <s-F6> :python clear_breakpoint()<CR>
-    "map <silent> <F7> :python run_this_file_pdb()<CR>
-    "map <silent> <s-F7> :python clear_all_breaks()<CR>
-    imap <C-F5> <C-O><F5>
-    imap <S-F5> <C-O><S-F5>
-    imap <silent> <F5> <C-O><F5>
-    map <C-F5> :call <SID>toggle_send_on_save()<CR>
+    map  <buffer> <silent> <F5>           <Plug>(IPython-RunFile)
+    map  <buffer> <silent> <S-F5>         <Plug>(IPython-RunLine)
+    map  <buffer> <silent> <F9>           <Plug>(IPython-RunLines)
+    map  <buffer> <silent> <C-M-F5>       <Plug>(IPython-RunCell)
+    map  <buffer> <silent> <LocalLeader>d <Plug>(IPython-OpenPyDoc)
+    map  <buffer> <silent> <LocalLeader>s <Plug>(IPython-UpdateShell)
+    map  <buffer> <silent> <S-F9>         <Plug>(IPython-ToggleReselect)
+    "map  <buffer> <silent> <C-F6>         <Plug>(IPython-StartDebugging)
+    "map  <buffer> <silent> <F6>           <Plug>(IPython-BreakpointSet)
+    "map  <buffer> <silent> <S-F6>         <Plug>(IPython-BreakpointClear)
+    "map  <buffer> <silent> <F7>           <Plug>(IPython-DebugThisFile)
+    "map  <buffer> <silent> <S-F7>         <Plug>(IPython-BreakpointClearAll)
+    imap <buffer>          <C-F5>         <C-o><Plug>(IPython-RunFile)
+    imap <buffer>          <S-F5>         <C-o><Plug>(IPython-RunLines)
+    imap <buffer> <silent> <F5>           <C-o><Plug>(IPython-RunFile)
+    imap  <buffer> <silent> <C-M-F5>      <C-o><Plug>(IPython-RunCell)
+    map  <buffer>          <C-F5>         <Plug>(IPython-ToggleSendOnSave)
     "" Example of how to quickly clear the current plot with a keystroke
-    "map <silent> <F12> :python run_command("plt.clf()")<cr>
+    "map  <buffer> <silent> <F12>          <Plug>(IPython-PlotClearCurrent)
     "" Example of how to quickly close all figures with a keystroke
-    "map <silent> <F11> :python run_command("plt.close('all')")<cr>
+    "map  <buffer> <silent> <F11>          <Plug>(IPython-PlotCloseAll)
 
     "pi custom
-    map <silent> <C-Return> :python run_this_file()<CR>
-    map <silent> <C-s> :python run_this_line()<CR>
-    map <silent> <C-M-s> :python run_this_cell()<CR>
-    imap <silent> <C-s> <C-O>:python run_this_line()<CR>
-    map <silent> <M-s> :python dedent_run_this_line()<CR>
-    vmap <silent> <C-S> :python run_these_lines()<CR>
-    vmap <silent> <M-s> :python dedent_run_these_lines()<CR>
-    map <silent> <M-c> I#<ESC>
-    vmap <silent> <M-c> I#<ESC>
-    map <silent> <M-C> :s/^\([ \t]*\)#/\1/<CR>
-    vmap <silent> <M-C> :s/^\([ \t]*\)#/\1/<CR>
+    map  <buffer> <silent> <C-Return>     <Plug>(IPython-RunFile)
+    map  <buffer> <silent> <C-s>          <Plug>(IPython-RunLine)
+    imap <buffer> <silent> <C-s>          <C-o><Plug>(IPython-RunLine)
+    map  <buffer> <silent> <M-s>          <Plug>(IPython-RunLineAsTopLevel)
+    xmap <buffer> <silent> <C-S>          <Plug>(IPython-RunLines)
+    xmap <buffer> <silent> <M-s>          <Plug>(IPython-RunLinesAsTopLevel)
+    map  <buffer> <silent> <M-C-s>        <Plug>(IPython-RunCell)
+
+    noremap  <buffer> <silent> <M-c>      I#<ESC>
+    xnoremap <buffer> <silent> <M-c>      I#<ESC>
+    noremap  <buffer> <silent> <M-C>      :s/^\([ \t]*\)#/\1/<CR>
+    xnoremap <buffer> <silent> <M-C>      :s/^\([ \t]*\)#/\1/<CR>
 endif
 
 command! -nargs=* IPython :py km_from_string("<args>")
