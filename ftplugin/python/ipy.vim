@@ -20,6 +20,7 @@
 "
 if !has('python')
     " exit if python is not available.
+    " XXX: raise an error message here
     finish
 endif
 
@@ -627,6 +628,8 @@ def set_pid():
         pid = int(child['content']['user_variables']['_pid'])
     except TypeError: # change in IPython 1.0.dev moved this out
         pid = int(child['content']['user_variables']['_pid']['data']['text/plain'])
+    except KeyError: # change in IPython 1.0.dev moved this out
+        echo("Could not get PID information, kernel not running Python?")
     return pid
 
 
@@ -667,13 +670,8 @@ def dedent_run_this_line():
     run_this_line(True)
 
 def dedent_run_these_lines():
-    r = vim.current.range
-    shiftwidth = vim.eval('&shiftwidth')
-    count = int(vim.eval('indent(%d+1)/%s' % (r.start,shiftwidth)))
-    if count > 0:
-       vim.command("'<,'>" + "<"*count)
     run_these_lines(True)
-
+    
 #def set_this_line():
 #    # not sure if there's a way to do this, since we have multiple clients
 #    send("get_ipython().shell.set_next_input(\'%s\')" % vim.current.line.replace("\'","\\\'"))
