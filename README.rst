@@ -7,7 +7,7 @@ A two-way integration between Vim and IPython 0.11+
 * author: Paul Ivanov (http://pirsquared.org)
 * github: http://github.com/ivanov/vim-ipython
 * demos: http://pirsquared.org/vim-ipython/
-* blogpost: http://pirsquared.org/blog/2011/07/28/vim-ipython/
+* blogpost: http://pirsquared.org/blog/vim-ipython.html
 
 Using this plugin, you can send lines or whole files for IPython to
 execute, and also get back object introspection and word completions in
@@ -76,7 +76,9 @@ Now type out a line and send it to IPython using ``<Ctrl-S>`` from Command mode:
   import os
 
 You should see a notification message confirming the line was sent, along
-with the input number for the line, like so ``In[1]: import os``.
+with the input number for the line, like so ``In[1]: import os``. If
+``<Ctrl-S>`` did **not** work, see the `Known Issues <#known-issues>`_ for a
+work-around.
 
 ``<Ctrl-S>`` also works from insert mode, but doesn't show notification,
 unless ``monitor_subchannel`` is set to ``True`` (see `vim-ipython 'shell'`_,
@@ -205,6 +207,13 @@ editor and REPL combination.
 Known issues:
 ---------------
 - For now, vim-ipython only connects to an ipython session in progress.
+- The standard ipython clients (console, qtconsole, notebook) do not currently
+  display the result of computation which they did not initialize. This means
+  that if you send print statements for execution from within vim, they will
+  only be shown inside the vim-ipython shell buffer, but **not** within any of
+  the standard clients. This is not a limitation of vim-ipython, but a
+  limitation of those built-in clients, see `ipython/ipython#1873
+  <https://github.com/ipython/ipython/issues/1873>`_
 - The ipdb integration is not yet re-implemented. Pending 
   [IPython PR #3089](https://github.com/ipython/ipython/pull/3089)
 - If you're running inside ``screen``, read about the ``<CTRL-S>`` issue `here
