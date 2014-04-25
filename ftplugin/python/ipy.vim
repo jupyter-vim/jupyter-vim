@@ -75,7 +75,7 @@ except AttributeError:
 def vim_variable(name, default=None):
     exists = int(vim.eval("exists('%s')" % name))
     return vim.eval(name) if exists else default
- 
+
 def vim_regex_escape(x):
     for old, new in (("[", "\\["), ("]", "\\]"), (":", "\\:"), (".", "\."), ("*", "\\*")):
         x = x.replace(old, new)
@@ -142,7 +142,7 @@ def km_from_string(s=''):
         except ImportError:
             # < 0.12, no find_connection_file
             pass
-        
+
     global km, kc, send, Empty
 
     s = s.replace('--existing', '')
@@ -203,7 +203,7 @@ def km_from_string(s=''):
         klass = sc.__class__
         klass._oinfo_orig = klass.object_info
         klass.object_info = lambda s,x,y: s._oinfo_orig(x)
-    
+
     #XXX: backwards compatability for IPython < 1.0
     if not hasattr(kc, 'iopub_channel'):
         kc.iopub_channel = kc.sub_channel
@@ -437,7 +437,7 @@ def update_subchannel_msgs(debug=False, force=False):
             s += c['ename'] + ":" + c['evalue']
 
         if s.find('\n') == -1:
-            # somewhat ugly unicode workaround from 
+            # somewhat ugly unicode workaround from
             # http://vim.1045645.n5.nabble.com/Limitations-of-vim-python-interface-with-respect-to-character-encodings-td1223881.html
             if isinstance(s,unicode):
                 s=s.encode(vim_encoding)
@@ -457,7 +457,7 @@ def update_subchannel_msgs(debug=False, force=False):
     if not startedin_vimipython:
         vim.command('normal! p') # go back to where you were
     return update_occured
-    
+
 def get_child_msg(msg_id):
     # XXX: message handling should be split into its own process in the future
     while True:
@@ -469,7 +469,7 @@ def get_child_msg(msg_id):
             #got a message, but not the one we were looking for
             echo('skipping a message on shell_channel','WarningMsg')
     return m
-            
+
 def print_prompt(prompt,msg_id=None):
     """Print In[] or In[42] style messages"""
     global show_execution_count
@@ -561,27 +561,28 @@ def run_these_lines(dedent=False):
 
 @with_subchannel
 def run_this_cell():
+    cell_sep = '# <codecell>'
     b = vim.current.buffer
-    (cur_line, cur_col) = vim.current.window.cursor    
+    (cur_line, cur_col) = vim.current.window.cursor
     cur_line -= 1
-    
-    # Search upwards for lines starting with ##
+
+    # Search upwards for lines starting with cell_sep
     upper_bound = cur_line
-    while upper_bound > 0 and not vim.current.buffer[upper_bound].strip().startswith('##'):
+    while upper_bound > 0 and not vim.current.buffer[upper_bound].strip().startswith(cell_sep):
         upper_bound -= 1
 
-    # Skip past the first ## if it exists
-    if vim.current.buffer[upper_bound].strip().startswith('##'):
+    # Skip past the first cell_sep if it exists
+    if vim.current.buffer[upper_bound].strip().startswith(cell_sep):
         upper_bound += 1
 
-    # Search downwards for lines starting with ##
+    # Search downwards for lines starting with cell_sep
     lower_bound = min(upper_bound+1, len(vim.current.buffer)-1)
 
-    while lower_bound < len(vim.current.buffer)-1 and not vim.current.buffer[lower_bound].strip().startswith('##'):
+    while lower_bound < len(vim.current.buffer)-1 and not vim.current.buffer[lower_bound].strip().startswith(cell_sep):
         lower_bound += 1
 
-    # Move before the last ## if it exists
-    if vim.current.buffer[lower_bound].strip().startswith('##'):
+    # Move before the last cell_sep if it exists
+    if vim.current.buffer[lower_bound].strip().startswith(cell_sep):
         lower_bound -= 1
 
     # Make sure bounds are within buffer limits
@@ -614,7 +615,7 @@ def run_this_cell():
     # Re-indent
     if min_indent > 0:
         vim.command("silent undo")
-    
+
 def set_pid():
     """
     Explicitly ask the ipython kernel for its pid
@@ -676,7 +677,7 @@ def dedent_run_this_line():
 
 def dedent_run_these_lines():
     run_these_lines(True)
-    
+
 #def set_this_line():
 #    # not sure if there's a way to do this, since we have multiple clients
 #    send("get_ipython().shell.set_next_input(\'%s\')" % vim.current.line.replace("\'","\\\'"))
@@ -692,9 +693,9 @@ def toggle_reselect():
 #def set_breakpoint():
 #    send("__IP.InteractiveTB.pdb.set_break('%s',%d)" % (vim.current.buffer.name,
 #                                                        vim.current.window.cursor[0]))
-#    print "set breakpoint in %s:%d"% (vim.current.buffer.name, 
+#    print "set breakpoint in %s:%d"% (vim.current.buffer.name,
 #                                      vim.current.window.cursor[0])
-#    
+#
 #def clear_breakpoint():
 #    send("__IP.InteractiveTB.pdb.clear_break('%s',%d)" % (vim.current.buffer.name,
 #                                                          vim.current.window.cursor[0]))
@@ -873,7 +874,7 @@ except Empty:
 for c in completions:
     vim.command('call add(res,"'+c+'")')
 endpython
-        "call extend(res,completions) 
+        "call extend(res,completions)
         return res
       endif
     endfun
@@ -881,9 +882,10 @@ endpython
 
 " Custom folding function to fold cells
 function! FoldByCell(lnum)
-	if getline(a:lnum) =~? '\v^\s*##.*$'
+    let pattern = '\v^\s*' . escape('# <codecell>', '<>') . '.*$'
+	if getline(a:lnum) =~? pattern
 		return '>1'
-	elseif getline(a:lnum+1) =~? '\v^\s*##.*$'
+	elseif getline(a:lnum+1) =~? pattern
 		return '<1'
 	else
 		return '='
