@@ -109,13 +109,19 @@ Then, go to the qtconsole and run this line::
 
 You can also send whole files to IPython's ``%run`` magic using ``<F5>``.
 
-Finally, you can define Matlab-like cells using ``##`` markers and execute it
+Finally, you can define Matlab-like cells using ``# <codecell>`` markers and execute it
 by moving the cursor somewhere within the cell and pressing ``<Ctrl-Alt-S>``::
 
-    ## Print some messages
+    # <codecell>
+    import numpy as np
+    
+    # <codecell> 
+    # Print some messages
     print 'You can define cells,'
     print 'just like in Matlab!'
-    ##
+ 
+Cells are two-way compatible with IPython notebooks, 
+so you can easily switch between browser and Vim without loosing them.
 
 **NEW in IPython 0.12**!
 If you're trying to do run code fragments that have leading whitespace, use
