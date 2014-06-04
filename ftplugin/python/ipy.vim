@@ -31,7 +31,7 @@ endif
 
 " Enable cell folding
 if !exists('g:ipy_cell_folding')
-	let g:ipy_cell_folding = 1
+    let g:ipy_cell_folding = 1
 endif
 
 " Register IPython completefunc
@@ -559,30 +559,37 @@ def run_these_lines(dedent=False):
     prompt = "lines %d-%d "% (r.start+1,r.end+1)
     print_prompt(prompt,msg_id)
 
+
+def is_cell_separator(line):
+    cell_sep = ['##', '# <codecell>']
+    for sep in cell_sep:
+        if line.strip().startswith(sep):
+            return True
+    return False
+
 @with_subchannel
 def run_this_cell():
-    cell_sep = '# <codecell>'
     b = vim.current.buffer
     (cur_line, cur_col) = vim.current.window.cursor
     cur_line -= 1
 
-    # Search upwards for lines starting with cell_sep
+    # Search upwards for cell separator
     upper_bound = cur_line
-    while upper_bound > 0 and not vim.current.buffer[upper_bound].strip().startswith(cell_sep):
+    while upper_bound > 0 and not is_cell_separator(vim.current.buffer[upper_bound]):
         upper_bound -= 1
 
-    # Skip past the first cell_sep if it exists
-    if vim.current.buffer[upper_bound].strip().startswith(cell_sep):
+    # Skip past the first cell separator if it exists
+    if is_cell_separator(vim.current.buffer[upper_bound]):
         upper_bound += 1
 
-    # Search downwards for lines starting with cell_sep
+    # Search downwards for cell separator
     lower_bound = min(upper_bound+1, len(vim.current.buffer)-1)
 
-    while lower_bound < len(vim.current.buffer)-1 and not vim.current.buffer[lower_bound].strip().startswith(cell_sep):
+    while lower_bound < len(vim.current.buffer)-1 and not is_cell_separator(vim.current.buffer[lower_bound]):
         lower_bound += 1
 
-    # Move before the last cell_sep if it exists
-    if vim.current.buffer[lower_bound].strip().startswith(cell_sep):
+    # Move before the last cell separator if it exists
+    if is_cell_separator(vim.current.buffer[lower_bound]):
         lower_bound -= 1
 
     # Make sure bounds are within buffer limits
@@ -882,18 +889,18 @@ endpython
 
 " Custom folding function to fold cells
 function! FoldByCell(lnum)
-    let pattern = '\v^\s*' . escape('# <codecell>', '<>') . '.*$'
-	if getline(a:lnum) =~? pattern
-		return '>1'
-	elseif getline(a:lnum+1) =~? pattern
-		return '<1'
-	else
-		return '='
-	endif
+    let pattern = '\v^\s*(##|' . escape('# <codecell>', '<>') . ').*$'
+    if getline(a:lnum) =~? pattern
+        return '>1'
+    elseif getline(a:lnum+1) =~? pattern
+        return '<1'
+    else
+        return '='
+    endif
 endfunction
 
 if g:ipy_cell_folding != 0
-	setlocal foldmethod=expr
-	setlocal foldexpr=FoldByCell(v:lnum)
+    setlocal foldmethod=expr
+    setlocal foldexpr=FoldByCell(v:lnum)
 endif
 
