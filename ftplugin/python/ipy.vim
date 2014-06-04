@@ -194,7 +194,7 @@ def km_from_string(s=''):
     kc.start_channels()
     send = kc.shell_channel.execute
 
-    #XXX: backwards compatability for IPython < 0.13
+    #XXX: backwards compatibility for IPython < 0.13
     import inspect
     sc = kc.shell_channel
     num_oinfo_args = len(inspect.getargspec(sc.object_info).args)

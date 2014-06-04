@@ -109,13 +109,13 @@ Then, go to the qtconsole and run this line::
 
 You can also send whole files to IPython's ``%run`` magic using ``<F5>``.
 
-Finally, you can define Matlab-like cells using ``# <codecell>`` markers and execute it
+Finally, you can define Matlab-like cells using either ``##`` or ``# <codecell>`` markers and execute it
 by moving the cursor somewhere within the cell and pressing ``<Ctrl-Alt-S>``::
 
-    # <codecell>
+    ## Some imports
     import numpy as np
     
-    # <codecell> 
+    # <codecell> IPython notebook compatible cell marker
     # Print some messages
     print 'You can define cells,'
     print 'just like in Matlab!'
@@ -229,9 +229,10 @@ Known issues:
   <https://github.com/ipython/ipython/issues/1873>`_
 - The ipdb integration is not yet re-implemented. Pending 
   [IPython PR #3089](https://github.com/ipython/ipython/pull/3089)
-- If you're running inside ``screen``, read about the ``<CTRL-S>`` issue `here
-  <http://munkymorgy.blogspot.com/2008/07/screen-ctrl-s-bug.html>`_, and add
-  this line to your ``.bashrc`` to fix it::
+- If ``<CTRL-S>`` does not work inside your terminal, but you are able to run
+  some of the other commands successfully (``<F5>``, for example), try running
+  this command before launching vim in the terminal (add it to your
+  ``.bashrc`` if it fixes the issue)::
 
     stty stop undef # to unmap ctrl-s
 
