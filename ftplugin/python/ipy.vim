@@ -32,6 +32,7 @@ endif
 " Register IPython completefunc
 " 'global'   -- for all of vim (default).
 " 'local'    -- only for the current buffer.
+" 'omni'     -- set omnifunc for current buffer.
 " otherwise  -- don't register it at all.
 "
 " you can later set it using ':set completefunc=CompleteIPython', which will

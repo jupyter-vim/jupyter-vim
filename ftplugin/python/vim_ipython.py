@@ -197,6 +197,8 @@ def km_from_string(s=''):
             set completefunc=CompleteIPython
         elseif g:ipy_completefunc == 'local'
             setl completefunc=CompleteIPython
+        elseif g:ipy_completefunc == 'omni'
+            setl omnifunc=CompleteIPython
         endif
         """)
     # also activate GUI doc balloons if in gvim
