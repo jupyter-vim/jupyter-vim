@@ -13,10 +13,11 @@ let s:source = {
     \ }
 
 function! neocomplete#sources#ipythoncomplete#complete(findstart, base)
-    if exists('*CompleteIPython') && &l:omnifunc == 'CompleteIPython'
-        return CompleteIPython(a:findstart, a:base)
-    else
-        return
+    if &filetype == 'python'
+        " Wrap in try statement in case IPython is not connected
+        try
+            return CompleteIPython(a:findstart, a:base)
+        endtry
     endif
 endfunction
 
