@@ -153,7 +153,7 @@ function! s:DoMappings()
         "map  <buffer> <silent> <F11>          <Plug>(IPython-PlotCloseAll)
 
         "pi custom
-        map  <buffer> <silent> <C-Return>     <Plug>(IPython-RunFile)
+        map  <buffer> <silent> <C-Return>        <Plug>(IPython-RunFile)
         " map  <buffer> <silent> <Leader>x         <Plug>(IPython-RunLine)
         imap <buffer> <silent> <Leader>x         <Esc><Plug>(IPython-RunLine)
         map  <buffer> <silent> <M-S>             <Plug>(IPython-RunLineAsTopLevel)
