@@ -539,7 +539,14 @@ def with_subchannel(f,*args):
 @with_subchannel
 def run_this_file():
     msg_id = send('%%run %s %s' % (run_flags, repr(vim.current.buffer.name),))
-    print_prompt("In[]: %%run %s %s" % (run_flags, repr(vim.current.buffer.name)),msg_id)
+    print_prompt("%%run %s %s" % (run_flags, repr(vim.current.buffer.name)),msg_id)
+
+@with_subchannel
+def run_ipy_input():
+    lines = vim.eval('g:ipy_input')
+    msg_id = send(lines)
+    lines = unicode(lines, 'utf-8').replace('\n', u'\xac')
+    print_prompt(lines[:(int(vim.options['columns']) - 22)], msg_id)
 
 @with_subchannel
 def run_this_line(dedent=False):
