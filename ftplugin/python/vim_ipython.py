@@ -19,6 +19,7 @@ except ImportError:
     print("uh oh, not running inside vim")
 
 import sys
+import time
 
 # get around unicode problems when interfacing with vim
 vim_encoding=vim.eval('&encoding') or 'utf-8'
@@ -125,68 +126,103 @@ def km_from_string(s=''):
         
     global km, kc, send
 
-    s = s.replace('--existing', '')
-    if 'connection_file' in KernelManager.class_trait_names():
-        # 0.12 uses files instead of a collection of ports
-        # include default IPython search path
-        # filefind also allows for absolute paths, in which case the search
-        # is ignored
+    # Test if connection is still alive
+    connected = False
+    starttime = time.time()
+    attempt = 0
+    while not connected and (time.time() - starttime) < 5.0:
+        attempt += 1
         try:
-            # XXX: the following approach will be brittle, depending on what
-            # connection strings will end up looking like in the future, and
-            # whether or not they are allowed to have spaces. I'll have to sync
-            # up with the IPython team to address these issues -pi
-            if '--profile' in s:
-                k,p = s.split('--profile')
-                k = k.lstrip().rstrip() # kernel part of the string
-                p = p.lstrip().rstrip() # profile part of the string
-                fullpath = find_connection_file(k,p)
-            else:
-                fullpath = find_connection_file(s.lstrip().rstrip())
-        except IOError as e:
-            echo(":IPython " + s + " failed", "Info")
-            echo("^-- failed '" + s + "' not found", "Error")
-            return
-        km = KernelManager(connection_file = fullpath)
+            fullpath = find_connection_file('kernel*')
+        except IOError:
+            echo("IPython connection attempt #%d failed - no kernel file" % attempt, "Warning")
+            time.sleep(1)
+            continue
+
+        km = KernelManager(connection_file=fullpath)
         km.load_connection_file()
-    else:
-        if s == '':
-            echo(":IPython 0.11 requires the full connection string")
-            return
-        loader = KeyValueConfigLoader(s.split(), aliases=kernel_aliases)
-        cfg = loader.load_config()['KernelApp']
-        try:
-            km = KernelManager(
-                shell_address=(ip, cfg['shell_port']),
-                sub_address=(ip, cfg['iopub_port']),
-                stdin_address=(ip, cfg['stdin_port']),
-                hb_address=(ip, cfg['hb_port']))
-        except KeyError as e:
-            echo(":IPython " +s + " failed", "Info")
-            echo("^-- failed --"+e.message.replace('_port','')+" not specified", "Error")
-            return
 
-    try:
         kc = km.client()
-    except AttributeError:
-        # 0.13
-        kc = km
-    kc.start_channels()
-    send = kc.shell_channel.execute
+        kc.start_channels()
 
-    #XXX: backwards compatibility for IPython < 0.13
-    import inspect
-    sc = kc.shell_channel
-    num_oinfo_args = len(inspect.getargspec(sc.object_info).args)
-    if num_oinfo_args == 2:
-        # patch the object_info method which used to only take one argument
-        klass = sc.__class__
-        klass._oinfo_orig = klass.object_info
-        klass.object_info = lambda s,x,y: s._oinfo_orig(x)
-    
-    #XXX: backwards compatibility for IPython < 1.0
-    if not hasattr(kc, 'iopub_channel'):
-        kc.iopub_channel = kc.sub_channel
+        s = s.replace('--existing', '')
+        if 'connection_file' in KernelManager.class_trait_names():
+            # 0.12 uses files instead of a collection of ports
+            # include default IPython search path
+            # filefind also allows for absolute paths, in which case the search
+            # is ignored
+            try:
+                # XXX: the following approach will be brittle, depending on what
+                # connection strings will end up looking like in the future, and
+                # whether or not they are allowed to have spaces. I'll have to sync
+                # up with the IPython team to address these issues -pi
+                if '--profile' in s:
+                    k,p = s.split('--profile')
+                    k = k.lstrip().rstrip() # kernel part of the string
+                    p = p.lstrip().rstrip() # profile part of the string
+                    fullpath = find_connection_file(k,p)
+                else:
+                    fullpath = find_connection_file(s.lstrip().rstrip())
+            except IOError as e:
+                echo(":IPython " + s + " failed", "Info")
+                echo("^-- failed '" + s + "' not found", "Error")
+                return
+            km = KernelManager(connection_file = fullpath)
+            km.load_connection_file()
+        else:
+            if s == '':
+                echo(":IPython 0.11 requires the full connection string")
+                return
+            loader = KeyValueConfigLoader(s.split(), aliases=kernel_aliases)
+            cfg = loader.load_config()['KernelApp']
+            try:
+                km = KernelManager(
+                    shell_address=(ip, cfg['shell_port']),
+                    sub_address=(ip, cfg['iopub_port']),
+                    stdin_address=(ip, cfg['stdin_port']),
+                    hb_address=(ip, cfg['hb_port']))
+            except KeyError as e:
+                echo(":IPython " +s + " failed", "Info")
+                echo("^-- failed --"+e.message.replace('_port','')+" not specified", "Error")
+                return
+
+        try:
+            kc = km.client()
+        except AttributeError:
+            # 0.13
+            kc = km
+        kc.start_channels()
+        send = kc.shell_channel.execute
+
+        kc.shell_channel.execute('', silent=True)
+        try:
+            msg = kc.shell_channel.get_msg(timeout=1)
+            connected = True
+        except:
+            echo("IPython connection attempt #%d failed - no messages" % attempt, "Warning")
+            continue
+
+        #XXX: backwards compatibility for IPython < 0.13
+        import inspect
+        sc = kc.shell_channel
+        num_oinfo_args = len(inspect.getargspec(sc.object_info).args)
+        if num_oinfo_args == 2:
+            # patch the object_info method which used to only take one argument
+            klass = sc.__class__
+            klass._oinfo_orig = klass.object_info
+            klass.object_info = lambda s,x,y: s._oinfo_orig(x)
+        
+        #XXX: backwards compatibility for IPython < 1.0
+        if not hasattr(kc, 'iopub_channel'):
+            kc.iopub_channel = kc.sub_channel
+        set_pid()
+
+    if not connected:
+        echo("IPython connection attempt timed out", "Error")
+        return
+    else:
+        vim.command('redraw')
+        echo("IPython connection successful")
 
     # now that we're connect to an ipython kernel, activate completion
     # machinery, but do so only for the local buffer if the user added the
@@ -207,7 +243,6 @@ def km_from_string(s=''):
             set bexpr=IPythonBalloonExpr()
         endif
         """)
-    set_pid()
     return km
 
 def echo(arg,style="Question"):
