@@ -29,6 +29,13 @@ if !exists('g:ipy_perform_mappings')
     let g:ipy_perform_mappings = 1
 endif
 
+if !exists('g:ipython_dictionary_completion')
+    let g:ipython_dictionary_completion = 0
+endif
+if !exists('g:ipython_greedy_matching')
+    let g:ipython_greedy_matching = 0
+endif
+
 " Automatically run :IPython in python files after running :IPython the first
 " time
 if !exists('g:ipy_autostart')
@@ -45,7 +52,7 @@ endif
 " correspond to the 'global' behavior, or with ':setl ...' to get the 'local'
 " behavior
 if !exists('g:ipy_completefunc')
-    let g:ipy_completefunc = 'global'
+    let g:ipy_completefunc = 'omni'
 endif
 
 python << EOF
@@ -195,26 +202,38 @@ endpython
 return l:doc
 endfunction
 
+if g:ipython_greedy_matching
+    let s:split_pattern = "[^= \r\n().]"
+else
+    let s:split_pattern = '\k\|\.'
+endif
+
 fun! CompleteIPython(findstart, base)
       if a:findstart
         " locate the start of the word
-        let line = getline('.')
-        let start = col('.') - 1
-        while start > 0 && line[start-1] =~ '\k\|\.' "keyword
-          let start -= 1
+        let line = getline('.')[:col('.')-1]
+        let s:start = col('.') - 1
+        if line[s:start-1] !~ s:split_pattern &&
+            \ !(g:ipython_greedy_matching && s:start >= 2
+            \   && line[s:start-2] =~ '\k')
+            return -1
+        endif
+        while s:start > 0 && (line[s:start-1] =~ s:split_pattern
+            \ || (g:ipython_greedy_matching && line[s:start-1] == '.'
+            \     && s:start >= 2 && line[s:start-2] =~ '\k'))
+          let s:start -= 1
         endwhile
-        echo start
         python << endpython
 current_line = vim.current.line
 endpython
-        return start
+        return s:start
       else
         " find months matching with "a:base"
         let res = []
         python << endpython
 base = vim.eval("a:base")
 findstart = vim.eval("a:findstart")
-matches = ipy_complete(base, current_line, vim.eval("col('.')"))
+matches, metadata = ipy_complete(base, current_line, int(vim.eval('s:start')) + len(base))
 # we need to be careful with unicode, because we can have unicode
 # completions for filenames (for the %run magic, for example). So the next
 # line will fail on those:
@@ -222,6 +241,15 @@ matches = ipy_complete(base, current_line, vim.eval("col('.')"))
 # because str() won't work for non-ascii characters
 # and we also have problems with unicode in vim, hence the following:
 completions = [s.encode(vim_encoding) for s in matches]
+metadata = [s.encode(vim_encoding) for s in metadata]
+if vim.vars['ipython_dictionary_completion'] and not vim.vars['ipython_greedy_matching']:
+    for c in completions:
+        if c.endswith("']"):
+            completions = filter(lambda c: c.endswith("']"), completions)
+            break
+        elif c.endswith('"]'):
+            completions = filter(lambda c: c.endswith('"]'), completions)
+            break
 ## Additionally, we have no good way of communicating lists to vim, so we have
 ## to turn in into one long string, which can be problematic if e.g. the
 ## completions contain quotes. The next line will not work if some filenames
@@ -233,8 +261,16 @@ completions = [s.encode(vim_encoding) for s in matches]
 ## if there's a problem with turning a match into a string, it'll just not
 ## include the problematic match, instead of not including anything. There's a
 ## bit more indirection here, but I think it's worth it
-for c in completions:
-    vim.command('call add(res,"'+c+'")')
+try:
+    completions, metadata = zip(*sorted(zip(completions, metadata), key=lambda x: x[0].lower()))
+except ValueError:
+    pass
+for c, m in zip(completions, metadata):
+    if 'CALLSIG' in m:
+        split = m.partition('CALLSIG')
+        vim.command('call add(res, {"word": "'+c.replace('"', r'\"')+'", "menu": "'+split[0].replace('"', r'\"')+'", "info": "'+split[-1].replace('"', r'\"')+'"})')
+    else:
+        vim.command('call add(res, {"word": "'+c.replace('"', r'\"')+'", "menu": "'+m.replace('"', r'\"')+'", "info": ""})')
 endpython
         "call extend(res,completions) 
         return res

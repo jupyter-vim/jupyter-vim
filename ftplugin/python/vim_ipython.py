@@ -302,21 +302,24 @@ def get_doc_buffer(level=0):
         vim.command('setlocal syntax=python')
 
 def ipy_complete(base, current_line, pos):
-    msg_id = kc.shell_channel.complete(base, current_line, pos)
+    msg_id = kc.shell_channel.complete(
+        base,
+        current_line[pos-len(base):pos],
+        len(base))
     try:
-        m = get_child_msg(msg_id)
+        m = get_child_msg(msg_id, timeout=2)
         matches = m['content']['matches']
-        matches.insert(0,base) # the "no completion" version
+        metadata = m['content']['metadata']
         # we need to be careful with unicode, because we can have unicode
         # completions for filenames (for the %run magic, for example). So the next
         # line will fail on those:
         #completions= [str(u) for u in matches]
         # because str() won't work for non-ascii characters
         # and we also have problems with unicode in vim, hence the following:
-        return matches
+        return matches, metadata
     except Empty:
         echo("no reply from IPython kernel")
-        return ['']
+        return [''], ['']
 
 def vim_ipython_is_open():
     """
