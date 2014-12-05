@@ -606,7 +606,7 @@ def set_pid():
     Explicitly ask the ipython kernel for its pid
     """
     global pid
-    lines = '\n'.join(['import os', '_pid = os.getpid()'])
+    lines = '\n'.join(['import os as _os', '_pid = _os.getpid()'])
     msg_id = send(lines, silent=True, user_variables=['_pid'])
 
     # wait to get message back from kernel
