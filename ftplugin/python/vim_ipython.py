@@ -316,7 +316,7 @@ def get_doc_buffer(level=0):
     vim.command('nnoremap <buffer> q :q<CR>')
     # Known issue: to enable the use of arrow keys inside the terminal when
     # viewing the documentation, comment out the next line
-    vim.command('nnoremap <buffer> <Esc> :q<CR>')
+    # vim.command('nnoremap <buffer> <Esc> :q<CR>')
     # and uncomment this line (which will work if you have a timoutlen set)
     #vim.command('nnoremap <buffer> <Esc><Esc> :q<CR>')
     b = vim.current.buffer
@@ -330,8 +330,14 @@ def get_doc_buffer(level=0):
     #vim.command('pedit doc')
     #vim.command('normal! ') # go to previous window
     if level == 0:
-        # use the ReST formatting that ships with stock vim
-        vim.command('setlocal syntax=rst')
+        # highlight python code within rst
+        vim.command(r'unlet! b:current_syntax')
+        vim.command(r'syn include @rstPythonScript syntax/python.vim')
+        # 4 spaces
+        vim.command(r'syn region rstPythonRegion start=/^\v {4}/ end=/\v^( {4}|\n)@!/ contains=@rstPythonScript')
+        # >>> python code -> (doctests)
+        vim.command(r'syn region rstPythonRegion matchgroup=pythonDoctest start=/^>>>\s*/ end=/\n/ contains=@rstPythonScript')
+        vim.command(r'let b:current_syntax = "rst"')
     else:
         # use Python syntax highlighting
         vim.command('setlocal syntax=python')
@@ -377,6 +383,9 @@ def update_subchannel_msgs(debug=False, force=False):
     msgs = kc.iopub_channel.get_msgs()
     b = vim.current.buffer
     startedin_vimipython = vim.eval('@%')=='vim-ipython'
+    nwindows = len(vim.windows)
+    currentwin = int(vim.eval('winnr()'))
+    previouswin = int(vim.eval('winnr("#")'))
     if not startedin_vimipython:
         # switch to preview window
         vim.command(
@@ -461,7 +470,6 @@ def update_subchannel_msgs(debug=False, force=False):
         elif header == 'pyerr':
             c = m['content']
             s = "\n".join(map(strip_color_escapes,c['traceback']))
-            s += c['ename'] + ":" + c['evalue']
 
         if s.find('\n') == -1:
             # somewhat ugly unicode workaround from 
@@ -481,8 +489,14 @@ def update_subchannel_msgs(debug=False, force=False):
             b.append([''])
     if update_occured or force:
         vim.command('normal! G') # go to the end of the file
-    if not startedin_vimipython:
-        vim.command('normal! p') # go back to where you were
+    if len(vim.windows) > nwindows:
+        pwin = int(vim.current.window.number)
+        if pwin <= previouswin:
+            previouswin += 1
+        if pwin <= currentwin:
+            currentwin += 1
+    vim.command(str(previouswin) + 'wincmd w')
+    vim.command(str(currentwin) + 'wincmd w')
     return update_occured
     
 def get_child_msg(msg_id):
