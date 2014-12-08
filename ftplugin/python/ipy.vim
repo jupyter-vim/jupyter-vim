@@ -221,6 +221,10 @@ fun! CompleteIPython(findstart, base)
         while s:start > 0 && (line[s:start-1] =~ s:split_pattern
             \ || (g:ipython_greedy_matching && line[s:start-1] == '.'
             \     && s:start >= 2 && line[s:start-2] =~ '\k'))
+          if g:ipython_greedy_matching && line[s:start-1] == '[' &&
+              \ (s:start == 1 || line[s:start-2] !~ '\k')
+              break
+          endif
           let s:start -= 1
         endwhile
         python << endpython
