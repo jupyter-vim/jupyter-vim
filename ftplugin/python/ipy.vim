@@ -172,7 +172,7 @@ function! s:DoMappings()
 
     augroup vim_ipython_autostart
         autocmd!
-        autocmd BufEnter *.py,--Python-- if g:ipy_autostart && !exists('b:did_ipython')
+        autocmd BufEnter,BufNewFile *.py,--Python-- if g:ipy_autostart && !exists('b:did_ipython')
             \ | call s:DoMappings() | endif
     augroup END
 
