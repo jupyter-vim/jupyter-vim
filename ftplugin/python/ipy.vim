@@ -62,6 +62,8 @@ vim_ipython_path = vim.eval("expand('<sfile>:h')")
 sys.path.append(vim_ipython_path)
 from vim_ipython import *
 
+def clean(s):
+    return s.replace(r'\"', '"').replace('"', r'\"')
 EOF
 
 fun! <SID>toggle_send_on_save()
@@ -272,9 +274,9 @@ except ValueError:
 for c, m in zip(completions, metadata):
     if 'CALLSIG' in m:
         split = m.partition('CALLSIG')
-        vim.command('call add(res, {"word": "'+c.replace('"', r'\"')+'", "menu": "'+split[0].replace('"', r'\"')+'", "info": "'+split[-1].replace('"', r'\"')+'"})')
+        vim.command('call add(res, {"word": "'+clean(c)+'", "menu": "'+clean(split[0])+'", "info": "'+clean(split[-1])+'"})')
     else:
-        vim.command('call add(res, {"word": "'+c.replace('"', r'\"')+'", "menu": "'+m.replace('"', r'\"')+'", "info": ""})')
+        vim.command('call add(res, {"word": "'+clean(c)+'", "menu": "'+clean(m)+'", "info": ""})')
 endpython
         "call extend(res,completions) 
         return res
