@@ -214,12 +214,14 @@ fun! CompleteIPython(findstart, base)
         let s:start = col('.') - 1
         if line[s:start-1] !~ s:split_pattern &&
             \ !(g:ipython_greedy_matching && s:start >= 2
-            \   && line[s:start-2] =~ '\k')
+            \   && line[s:start-2] =~ '\k') &&
+            \ line[s:start-2:s:start-1] !=# '].'
             return -1
         endif
         while s:start > 0 && (line[s:start-1] =~ s:split_pattern
             \ || (g:ipython_greedy_matching && line[s:start-1] == '.'
             \     && s:start >= 2 && line[s:start-2] =~ '\k'))
+            \ || line[s:start-2:s:start-1] ==# '].'
           if g:ipython_greedy_matching && line[s:start-1] == '[' &&
               \ (s:start == 1 || line[s:start-2] !~ '\k\|\]')
               break
