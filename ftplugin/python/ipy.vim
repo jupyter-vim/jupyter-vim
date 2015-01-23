@@ -217,7 +217,14 @@ fun! CompleteIPython(findstart, base)
             \ !(g:ipython_greedy_matching && s:start >= 2
             \   && line[s:start-2] =~ '\k') &&
             \ line[s:start-2:s:start-1] !=# '].'
-            return -1
+            if line =~# '\v^\s*from\s+\w+\s+import\s+(\w+,\s+)*'
+                python << endpython
+current_line = vim.current.line
+endpython
+                return col('.') - 1
+            else
+                return -1
+            endif
         endif
         while s:start > 0 && (line[s:start-1] =~ s:split_pattern
             \ || (g:ipython_greedy_matching && line[s:start-1] == '.'
