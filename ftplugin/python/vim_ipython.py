@@ -343,10 +343,15 @@ def get_doc_buffer(level=0):
         vim.command('setlocal syntax=python')
 
 def ipy_complete(base, current_line, pos):
-    msg_id = kc.shell_channel.complete(
-        base,
-        current_line[pos-len(base):pos],
-        len(base))
+    if (re.match('^\s*(import|from)\s+', current_line)
+            or re.match('^\s*from\s+\w+\s+import\s+(\w+,\s+)*', current_line)):
+        msg_id = kc.shell_channel.complete(
+            base, current_line, pos)
+    else:
+        msg_id = kc.shell_channel.complete(
+            base,
+            current_line[pos-len(base):pos],
+            len(base))
     try:
         m = get_child_msg(msg_id, timeout=2)
         matches = m['content']['matches']
