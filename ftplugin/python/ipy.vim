@@ -133,7 +133,7 @@ function! s:DoMappings()
        if &buftype == ''
         map  <buffer> <silent> <F5>           <Plug>(IPython-RunFile)
        endif
-        map  <buffer> <silent> <S-F5>         <Plug>(IPython-RunLine)
+        " map  <buffer> <silent> <S-F5>         <Plug>(IPython-RunLine)
         map  <buffer> <silent> <F9>           <Plug>(IPython-RunLines)
         map  <buffer> <silent> ,d             <Plug>(IPython-OpenPyDoc)
         map  <buffer> <silent> <M-r>          <Plug>(IPython-UpdateShell)
