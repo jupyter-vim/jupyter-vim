@@ -517,7 +517,9 @@ def get_child_msg(msg_id, timeout=1):
             break
         else:
             #got a message, but not the one we were looking for
-            echo('skipping a message on shell_channel','WarningMsg')
+            if m['msg_type'] != 'execute_reply':
+                echo('skipping a message on shell_channel (%s)' % m['msg_type'],
+                     'WarningMsg')
     return m
             
 def print_prompt(prompt,msg_id=None):
