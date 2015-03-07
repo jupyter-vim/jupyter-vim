@@ -36,6 +36,11 @@ if !exists('g:ipython_greedy_matching')
     let g:ipython_greedy_matching = 0
 endif
 
+" Use -i with %run magic by default
+if !exists('g:ipython_run_flags')
+    let g:ipython_run_flags = '-i'
+endif
+
 " Automatically run :IPython in python files after running :IPython the first
 " time
 if !exists('g:ipy_autostart')

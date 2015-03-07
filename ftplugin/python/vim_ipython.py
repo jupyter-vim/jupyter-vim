@@ -1,7 +1,6 @@
 reselect = False             # reselect lines after sending from Visual mode
 show_execution_count = False # wait to get numbers for In[43]: feedback?
 monitor_subchannel = False   # update vim-ipython 'shell' on every send?
-run_flags= "-i"              # flags to for IPython's run magic when using <F5>
 current_line = ''
 
 try:
@@ -549,8 +548,8 @@ def with_subchannel(f,*args):
 
 @with_subchannel
 def run_this_file():
-    msg_id = send('%%run %s %s' % (run_flags, repr(vim.current.buffer.name),))
-    print_prompt("%%run %s %s" % (run_flags, repr(vim.current.buffer.name)),msg_id)
+    msg_id = send('%%run %s %s' % (vim.vars['ipython_run_flags'], repr(vim.current.buffer.name),))
+    print_prompt("%%run %s %s" % (vim.vars['ipython_run_flags'], repr(vim.current.buffer.name)),msg_id)
 
 @with_subchannel
 def run_ipy_input():
