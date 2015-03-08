@@ -250,13 +250,6 @@ endpython
         let res = []
         python << endpython
 base = vim.eval("a:base")
-if re.match('^\s*import\s\w*', vim.current.line):
-    base = 'import ' + base
-else:
-    match = re.match('^\s*from\s+\w+\s+import\s+', vim.current.line)
-    if match:
-        base = 'from ' + re.split(match.string, '\s+')[1] + ' import ' + base
-findstart = vim.eval("a:findstart")
 matches, metadata = ipy_complete(base, current_line, int(vim.eval('s:start')) + len(base))
 # we need to be careful with unicode, because we can have unicode
 # completions for filenames (for the %run magic, for example). So the next
