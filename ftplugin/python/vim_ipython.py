@@ -641,6 +641,25 @@ def set_pid():
     return pid
 
 
+def eval_to_register():
+    msg_id = send('', silent=True,
+                  user_expressions={'expr': vim.vars['ipy_input']})
+    try:
+        child = get_child_msg(msg_id)
+    except Empty:
+        echo("no reply from IPython kernel")
+        return
+    result = child['content']['user_expressions']['expr']
+    try:
+        vim.command('call setreg(\'"\', "%s")' %
+                    result['data']['text/plain'].replace('"', '\\"'))
+    except KeyError:
+        echo('{ename}: {evalue}'.format(**result))
+    else:
+        vim.command('let @+ = @"')
+        vim.command('let @* = @"')
+
+
 def terminate_kernel_hack():
     "Send SIGTERM to our the IPython kernel"
     import signal
