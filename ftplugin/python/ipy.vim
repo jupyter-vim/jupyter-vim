@@ -179,6 +179,8 @@ function! s:DoMappings()
         autocmd!
         autocmd BufEnter,BufNewFile *.py,--Python-- if g:ipy_autostart && !exists('b:did_ipython')
             \ | call s:DoMappings() | endif
+        autocmd FileType python if g:ipy_autostart && !exists('b:did_ipython')
+            \ | call s:DoMappings() | endif
     augroup END
 
     setlocal omnifunc=CompleteIPython
