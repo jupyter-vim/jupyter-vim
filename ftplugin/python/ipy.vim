@@ -172,7 +172,7 @@ function! s:DoMappings()
         " xnoremap <buffer> <silent> <M-C>      :s/^\([ \t]*\)#/\1/<CR>
 
         nnoremap <buffer> <C-c> :<C-u>IPythonInterrupt<CR>
-        inoremap <buffer> <C-k> <Esc>:<C-u>call <SID>GetDocBuffer()<CR>
+        inoremap <buffer> <Leader>K <Esc>:<C-u>call <SID>GetDocBuffer()<CR>
     endif
 
     augroup vim_ipython_autostart
