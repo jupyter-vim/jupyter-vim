@@ -642,7 +642,7 @@ def set_pid():
     return pid
 
 
-def eval_to_register():
+def eval_ipy_input(var=None):
     msg_id = send('', silent=True,
                   user_expressions={'expr': vim.vars['ipy_input']})
     try:
@@ -652,13 +652,18 @@ def eval_to_register():
         return
     result = child['content']['user_expressions']['expr']
     try:
-        vim.command('call setreg(\'"\', "%s")' %
-                    result['data']['text/plain'].replace('"', '\\"'))
+        if var:
+            vim.command('let %s = "%s"' % (
+                var, result['data']['text/plain'].replace('"', '\\"')))
+        else:
+            vim.command('call setreg(\'"\', "%s")' %
+                        result['data']['text/plain'].replace('"', '\\"'))
     except KeyError:
         echo('{ename}: {evalue}'.format(**result))
     else:
-        vim.command('let @+ = @"')
-        vim.command('let @* = @"')
+        if not var:
+            vim.command('let @+ = @"')
+            vim.command('let @* = @"')
 
 
 def terminate_kernel_hack():
