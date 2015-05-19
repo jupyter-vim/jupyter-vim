@@ -210,7 +210,7 @@ return l:doc
 endfunction
 
 if g:ipython_greedy_matching
-    let s:split_pattern = "[^= \r\n().@-]"
+    let s:split_pattern = "[^= \r\n*().@-]"
 else
     let s:split_pattern = '\k\|\.'
 endif
