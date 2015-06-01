@@ -39,7 +39,7 @@ except AttributeError:
 def vim_variable(name, default=None):
     exists = int(vim.eval("exists('%s')" % name))
     return vim.eval(name) if exists else default
- 
+
 def vim_regex_escape(x):
     for old, new in (("[", "\\["), ("]", "\\]"), (":", "\\:"), (".", "\."), ("*", "\\*")):
         x = x.replace(old, new)
@@ -122,7 +122,7 @@ def km_from_string(s=''):
         except ImportError:
             # < 0.12, no find_connection_file
             pass
-        
+
     global km, kc, send
 
     # Test if connection is still alive
@@ -210,7 +210,7 @@ def km_from_string(s=''):
             klass = sc.__class__
             klass._oinfo_orig = klass.object_info
             klass.object_info = lambda s,x,y: s._oinfo_orig(x)
-        
+
         #XXX: backwards compatibility for IPython < 1.0
         if not hasattr(kc, 'iopub_channel'):
             kc.iopub_channel = kc.sub_channel
@@ -222,6 +222,20 @@ def km_from_string(s=''):
     else:
         vim.command('redraw')
         echo("IPython connection successful")
+
+    #XXX: backwards compatibility for IPython < 0.13
+    import inspect
+    sc = kc.shell_channel
+    num_oinfo_args = len(inspect.getargspec(sc.object_info).args)
+    if num_oinfo_args == 2:
+        # patch the object_info method which used to only take one argument
+        klass = sc.__class__
+        klass._oinfo_orig = klass.object_info
+        klass.object_info = lambda s,x,y: s._oinfo_orig(x)
+
+    #XXX: backwards compatibility for IPython < 1.0
+    if not hasattr(kc, 'iopub_channel'):
+        kc.iopub_channel = kc.sub_channel
 
     # now that we're connect to an ipython kernel, activate completion
     # machinery, but do so only for the local buffer if the user added the
@@ -282,6 +296,16 @@ def get_doc_msg(msg_id):
 
     if not content['found']:
         return b
+
+    # IPython 3.0+ the documentation message is encoding by the kernel
+    if 'data' in content:
+        try:
+            text = content['data']['text/plain']
+            for line in text.split('\n'):
+                b.append(strip_color_escapes(line).rstrip())
+            return b
+        except KeyError:    # no text/plain key
+            return b
 
     for field in ['type_name','base_class','string_form','namespace',
             'file','length','definition','source','docstring']:
@@ -457,14 +481,17 @@ def update_subchannel_msgs(debug=False, force=False):
             # TODO: alllow for distinguishing between stdout and stderr (using
             # custom syntax markers in the vim-ipython buffer perhaps), or by
             # also echoing the message to the status bar
-            s = strip_color_escapes(m['content']['data'])
-        elif header == 'pyout':
+            try:
+                s = strip_color_escapes(m['content']['data'])
+            except KeyError:    # changed in IPython 3.0.0
+                s = strip_color_escapes(m['content']['text'])
+        elif header == 'pyout' or header == 'execute_result':
             s = status_prompt_out % {'line': m['content']['execution_count']}
             s += m['content']['data']['text/plain']
         elif header == 'display_data':
             # TODO: handle other display data types (HMTL? images?)
             s += m['content']['data']['text/plain']
-        elif header == 'pyin':
+        elif header == 'pyin' or header == 'execute_input':
             # TODO: the next line allows us to resend a line to ipython if
             # %doctest_mode is on. In the future, IPython will send the
             # execution_count on subchannel, so this will need to be updated
@@ -476,12 +503,12 @@ def update_subchannel_msgs(debug=False, force=False):
             dots = '.' * len(prompt.rstrip())
             dots += prompt[len(prompt.rstrip()):]
             s += m['content']['code'].rstrip().replace('\n', '\n' + dots)
-        elif header == 'pyerr':
+        elif header == 'pyerr' or header == 'error':
             c = m['content']
             s = "\n".join(map(strip_color_escapes,c['traceback']))
 
         if s.find('\n') == -1:
-            # somewhat ugly unicode workaround from 
+            # somewhat ugly unicode workaround from
             # http://vim.1045645.n5.nabble.com/Limitations-of-vim-python-interface-with-respect-to-character-encodings-td1223881.html
             if isinstance(s,unicode):
                 s=s.encode(vim_encoding)
@@ -507,7 +534,7 @@ def update_subchannel_msgs(debug=False, force=False):
     vim.command(str(previouswin) + 'wincmd w')
     vim.command(str(currentwin) + 'wincmd w')
     return update_occured
-    
+
 def get_child_msg(msg_id, timeout=1):
     # XXX: message handling should be split into its own process in the future
     while True:
@@ -521,7 +548,7 @@ def get_child_msg(msg_id, timeout=1):
                 echo('skipping a message on shell_channel (%s)' % m['msg_type'],
                      'WarningMsg')
     return m
-            
+
 def print_prompt(prompt,msg_id=None):
     """Print In[] or In[42] style messages"""
     global show_execution_count
@@ -626,7 +653,6 @@ def set_pid():
     global pid
     lines = '\n'.join(['import os as _os', '_pid = _os.getpid()'])
     msg_id = send(lines, silent=True, user_variables=['_pid'])
-
     # wait to get message back from kernel
     try:
         child = get_child_msg(msg_id)
@@ -637,6 +663,9 @@ def set_pid():
         pid = int(child['content']['user_variables']['_pid'])
     except TypeError: # change in IPython 1.0.dev moved this out
         pid = int(child['content']['user_variables']['_pid']['data']['text/plain'])
+    except KeyError:    # change in IPython 3.0+
+        pid = int(
+            child['content']['user_expressions']['_pid']['data']['text/plain'])
     except KeyError: # change in IPython 1.0.dev moved this out
         echo("Could not get PID information, kernel not running Python?")
     return pid
@@ -704,7 +733,7 @@ def dedent_run_this_line():
 
 def dedent_run_these_lines():
     run_these_lines(True)
-    
+
 #def set_this_line():
 #    # not sure if there's a way to do this, since we have multiple clients
 #    send("get_ipython().shell.set_next_input(\'%s\')" % vim.current.line.replace("\'","\\\'"))
@@ -721,9 +750,9 @@ def toggle_reselect():
 #def set_breakpoint():
 #    send("__IP.InteractiveTB.pdb.set_break('%s',%d)" % (vim.current.buffer.name,
 #                                                        vim.current.window.cursor[0]))
-#    print("set breakpoint in %s:%d"% (vim.current.buffer.name, 
+#    print("set breakpoint in %s:%d"% (vim.current.buffer.name,
 #                                      vim.current.window.cursor[0]))
-#    
+#
 #def clear_breakpoint():
 #    send("__IP.InteractiveTB.pdb.clear_break('%s',%d)" % (vim.current.buffer.name,
 #                                                          vim.current.window.cursor[0]))
