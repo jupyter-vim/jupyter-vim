@@ -15,11 +15,13 @@ except ImportError:
 import sys
 
 # Read global configuration variables
-reselect = vim.eval("g:ipy_reselect") 
-show_execution_count = vim.eval("g:ipy_show_execution_count")
-monitor_subchannel = vim.eval("g:ipy_monitor_subchannel")
+reselect = bool(vim.eval("g:ipy_reselect"))
+show_execution_count = bool(vim.eval("g:ipy_show_execution_count"))
+monitor_subchannel = bool(vim.eval("g:ipy_monitor_subchannel"))
 run_flags = vim.eval("g:ipy_run_flags")
 current_line = ""
+
+print('Subchannel:', monitor_subchannel)
 
 # get around unicode problems when interfacing with vim
 vim_encoding=vim.eval('&encoding') or 'utf-8'
