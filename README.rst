@@ -111,7 +111,7 @@ You can also send whole files to IPython's ``%run`` magic using ``<F5>``.
 
 To execute predefined sections of a script, you can define Matlab-like cells
 using either ``##`` or ``# <codecell>`` markers. To execute a cell, move the
-cursor somewhere within it and press ``<Ctrl-Alt-S>``::
+cursor somewhere within it and press ``<Ctrl-Enter>``::
 
   ## Do something
   print('Hello')
