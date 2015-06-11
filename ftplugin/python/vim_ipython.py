@@ -1,9 +1,3 @@
-reselect = False            # reselect lines after sending from Visual mode
-show_execution_count = True # wait to get numbers for In[43]: feedback?
-monitor_subchannel = True   # update vim-ipython 'shell' on every send?
-run_flags= "-i"             # flags to for IPython's run magic when using <F5>
-current_line = ''
-
 try:
     from queue import Empty # python3 convention
 except ImportError:
@@ -19,6 +13,13 @@ except ImportError:
     print("uh oh, not running inside vim")
 
 import sys
+
+# Read global configuration variables
+reselect = bool(int(vim.eval("g:ipy_reselect")))
+show_execution_count = bool(int(vim.eval("g:ipy_show_execution_count")))
+monitor_subchannel = bool(int(vim.eval("g:ipy_monitor_subchannel")))
+run_flags = vim.eval("g:ipy_run_flags")
+current_line = ""
 
 # get around unicode problems when interfacing with vim
 vim_encoding=vim.eval('&encoding') or 'utf-8'
