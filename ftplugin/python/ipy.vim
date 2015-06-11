@@ -43,7 +43,7 @@ endif
 
 " reselect lines after sending from Visual mode
 if !exists('g:ipy_reselect')
-	let g:ipy_select = 0
+	let g:ipy_reselect = 0
 endif
 
 " wait to get numbers for In[43]: feedback?
