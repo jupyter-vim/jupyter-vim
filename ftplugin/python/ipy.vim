@@ -41,6 +41,26 @@ if !exists('g:ipy_completefunc')
     let g:ipy_completefunc = 'global'
 endif
 
+" reselect lines after sending from Visual mode
+if !exists('g:ipy_reselect')
+	let g:ipy_select = 0
+endif
+
+" wait to get numbers for In[43]: feedback?
+if !exists('g:ipy_show_execution_count')
+	let g:ipy_show_execution_count = 1
+endif
+
+" update vim-ipython 'shell' on every send?
+if !exists('g:ipy_monitor_subchannel')
+	let g:ipy_monitor_subchannel = 1
+endif
+
+" flags to for IPython's run magic when using <F5>
+if !exists('g:ipy_run_flags')
+	let g:ipy_un_flags = '-i'
+endif
+
 python << EOF
 import vim
 import sys
