@@ -21,8 +21,6 @@ monitor_subchannel = bool(int(vim.eval("g:ipy_monitor_subchannel")))
 run_flags = vim.eval("g:ipy_run_flags")
 current_line = ""
 
-print('Subchannel:', monitor_subchannel)
-
 # get around unicode problems when interfacing with vim
 vim_encoding=vim.eval('&encoding') or 'utf-8'
 
