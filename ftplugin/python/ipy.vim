@@ -63,7 +63,7 @@ endif
 
 " flags to for IPython's run magic when using <F5>
 if !exists('g:ipy_run_flags')
-	let g:ipy_un_flags = '-i'
+	let g:ipy_run_flags = '-i'
 endif
 
 python << EOF
