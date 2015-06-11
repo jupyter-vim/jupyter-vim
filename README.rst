@@ -170,12 +170,12 @@ not work on Windows, please report the issue to ).
 -------
 Options
 -------
-You can change these at the top of the ipy.vim::
+You can change these in your vimrc::
 
-  reselect = False            # reselect lines after sending from Visual mode
-  show_execution_count = True # wait to get numbers for In[43]: feedback?
-  monitor_subchannel = True   # update vim-ipython 'shell' on every send?
-  run_flags= "-i"             # flags to for IPython's run magic when using <F5>
+  g:ipy_reselect = 0             # reselect lines after sending from Visual mode
+  g:ipy_show_execution_count = 1 # wait to get numbers for In[43]: feedback?
+  g:ipy_monitor_subchannel = 1   # update vim-ipython 'shell' on every send?
+  g:ipy_run_flags = '-i'         # flags to for IPython's run magic when using <F5>
 
 **Disabling default mappings**
 In your own ``.vimrc``, if you don't like the mappings provided by default,
@@ -312,6 +312,7 @@ pull request with your attribution.
 * @luispedro for IPythonNew
 * @jjhelmus for IPython 3.x support.
 * @wmvanvliet for Matlab-like cell support.
+* @wmvanvliet for config support through vim-globals.
 
 Similar Projects
 ----------------

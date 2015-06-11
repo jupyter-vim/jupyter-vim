@@ -15,7 +15,7 @@ This is a list of things I'm planning to work on with vim-ipython
 
 [ ] support for non-python kernels (IJulia, IHaskell kernel)
 
-[ ] provide g:ipy variables to set the initial state of python vars 
+[x] provide g:ipy variables to set the initial state of python vars 
     e.g. monitor_subchannel
 
 [ ] put debugging support back in
