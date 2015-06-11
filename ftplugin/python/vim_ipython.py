@@ -627,6 +627,71 @@ def dedent_run_this_line():
 def dedent_run_these_lines():
     run_these_lines(True)
 
+def is_cell_separator(line):
+    '''Determines whether a given line is a cell separator'''
+    cell_sep = ['##', '# <codecell>']
+    for sep in cell_sep:
+        if line.strip().startswith(sep):
+            return True
+    return False
+
+@with_subchannel
+def run_this_cell():
+    '''Runs all the code in between two cell separators'''
+    b = vim.current.buffer
+    (cur_line, cur_col) = vim.current.window.cursor
+    cur_line -= 1
+
+    # Search upwards for cell separator
+    upper_bound = cur_line
+    while upper_bound > 0 and not is_cell_separator(vim.current.buffer[upper_bound]):
+        upper_bound -= 1
+
+    # Skip past the first cell separator if it exists
+    if is_cell_separator(vim.current.buffer[upper_bound]):
+        upper_bound += 1
+
+    # Search downwards for cell separator
+    lower_bound = min(upper_bound+1, len(vim.current.buffer)-1)
+
+    while lower_bound < len(vim.current.buffer)-1 and not is_cell_separator(vim.current.buffer[lower_bound]):
+        lower_bound += 1
+
+    # Move before the last cell separator if it exists
+    if is_cell_separator(vim.current.buffer[lower_bound]):
+        lower_bound -= 1
+
+    # Make sure bounds are within buffer limits
+    upper_bound = max(0, min(upper_bound, len(vim.current.buffer)-1))
+    lower_bound = max(0, min(lower_bound, len(vim.current.buffer)-1))
+
+    # Make sure of proper ordering of bounds
+    lower_bound = max(upper_bound, lower_bound)
+
+    # Calculate minimum indentation level of entire cell
+    shiftwidth = vim.eval('&shiftwidth')
+    count = lambda x: int(vim.eval('indent(%d)/%s' % (x,shiftwidth)))
+
+    min_indent = count(upper_bound+1)
+    for i in range(upper_bound+1, lower_bound):
+        indent = count(i)
+        if i < min_indent:
+            min_indent = i
+
+    # Perform dedent
+    if min_indent > 0:
+        vim.command('%d,%d%s' % (upper_bound+1, lower_bound+1, '<'*min_indent))
+
+    # Execute cell
+    lines = "\n".join(vim.current.buffer[upper_bound:lower_bound+1])
+    msg_id = send(lines)
+    prompt = "lines %d-%d "% (upper_bound+1,lower_bound+1)
+    print_prompt(prompt, msg_id)
+
+    # Re-indent
+    if min_indent > 0:
+        vim.command("silent undo")
+
 #def set_this_line():
 #    # not sure if there's a way to do this, since we have multiple clients
 #    send("get_ipython().shell.set_next_input(\'%s\')" % vim.current.line.replace("\'","\\\'"))

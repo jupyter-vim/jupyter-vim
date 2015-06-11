@@ -95,6 +95,7 @@ au BufEnter vim-ipython :python if update_subchannel_msgs(): echo("vim-ipython s
 noremap  <Plug>(IPython-RunFile)            :python run_this_file()<CR>
 noremap  <Plug>(IPython-RunLine)            :python run_this_line()<CR>
 noremap  <Plug>(IPython-RunLines)           :python run_these_lines()<CR>
+noremap  <Plug>(IPython-RunCell)            :python run_this_cell()<CR>
 noremap  <Plug>(IPython-OpenPyDoc)          :python get_doc_buffer()<CR>
 noremap  <Plug>(IPython-UpdateShell)        :python if update_subchannel_msgs(force=True): echo("vim-ipython shell updated",'Operator')<CR>
 noremap  <Plug>(IPython-ToggleReselect)     :python toggle_reselect()<CR>
@@ -113,6 +114,7 @@ if g:ipy_perform_mappings != 0
     map  <buffer> <silent> <F5>           <Plug>(IPython-RunFile)
     map  <buffer> <silent> <S-F5>         <Plug>(IPython-RunLine)
     map  <buffer> <silent> <F9>           <Plug>(IPython-RunLines)
+    map  <buffer> <silent> <C-M-F5>       <Plug>(IPython-RunCell)
     map  <buffer> <silent> <LocalLeader>d <Plug>(IPython-OpenPyDoc)
     map  <buffer> <silent> <LocalLeader>s <Plug>(IPython-UpdateShell)
     map  <buffer> <silent> <S-F9>         <Plug>(IPython-ToggleReselect)
@@ -124,6 +126,7 @@ if g:ipy_perform_mappings != 0
     imap <buffer>          <C-F5>         <C-o><Plug>(IPython-RunFile)
     imap <buffer>          <S-F5>         <C-o><Plug>(IPython-RunLines)
     imap <buffer> <silent> <F5>           <C-o><Plug>(IPython-RunFile)
+    imap <buffer> <silent> <C-M-F5>       <C-o><Plug>(IPython-RunCell)
     map  <buffer>          <C-F5>         <Plug>(IPython-ToggleSendOnSave)
     "" Example of how to quickly clear the current plot with a keystroke
     "map  <buffer> <silent> <F12>          <Plug>(IPython-PlotClearCurrent)
@@ -137,6 +140,7 @@ if g:ipy_perform_mappings != 0
     map  <buffer> <silent> <M-s>          <Plug>(IPython-RunLineAsTopLevel)
     xmap <buffer> <silent> <C-S>          <Plug>(IPython-RunLines)
     xmap <buffer> <silent> <M-s>          <Plug>(IPython-RunLinesAsTopLevel)
+    map  <buffer> <silent> <C-Return>     <Plug>(IPython-RunCell)
 
     noremap  <buffer> <silent> <M-c>      I#<ESC>
     xnoremap <buffer> <silent> <M-c>      I#<ESC>
