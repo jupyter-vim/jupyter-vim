@@ -109,6 +109,23 @@ Then, go to the qtconsole and run this line::
 
 You can also send whole files to IPython's ``%run`` magic using ``<F5>``.
 
+To execute predefined sections of a script, you can define Matlab-like cells
+using either ``##`` or ``# <codecell>`` markers. To execute a cell, move the
+cursor somewhere within it and press ``<Ctrl-Alt-S>``::
+
+  ## Do something
+  print('Hello')
+  
+  ## Do something else
+  print('IPython')
+
+  # <codecell> This is an alternative cell marker
+  print('World!')
+ 
+Cells (when deliminated by '# <codecell>' markers) are two-way compatible with
+IPython notebooks, so you can easily switch between browser and Vim without
+loosing them.
+
 **NEW in IPython 0.12**!
 If you're trying to do run code fragments that have leading whitespace, use
 ``<Alt-S>`` instead - it will dedent a single line, and remove the leading
@@ -294,6 +311,7 @@ pull request with your attribution.
 * @pydave for IPythonTerminate (sending SIGTERM using our hack)
 * @luispedro for IPythonNew
 * @jjhelmus for IPython 3.x support.
+* @wmvanvliet for Matlab-like cell support.
 
 Similar Projects
 ----------------
