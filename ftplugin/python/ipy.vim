@@ -29,6 +29,11 @@ if !exists('g:ipy_perform_mappings')
     let g:ipy_perform_mappings = 1
 endif
 
+" Enable cell folding
+if !exists('g:ipy_cell_folding')
+    let g:ipy_cell_folding = 0
+endif
+
 " Register IPython completefunc
 " 'global'   -- for all of vim (default).
 " 'local'    -- only for the current buffer.
@@ -109,6 +114,7 @@ noremap  <Plug>(IPython-PlotClearCurrent)   :python run_command("plt.clf()")<CR>
 noremap  <Plug>(IPython-PlotCloseAll)       :python run_command("plt.close('all')")<CR>
 noremap  <Plug>(IPython-RunLineAsTopLevel)  :python dedent_run_this_line()<CR>
 xnoremap <Plug>(IPython-RunLinesAsTopLevel) :python dedent_run_these_lines()<CR>
+noremap  <Plug>(IPython-EnableFoldByCell)   :call EnableFoldByCell()<CR>
 
 if g:ipy_perform_mappings != 0
     map  <buffer> <silent> <F5>           <Plug>(IPython-RunFile)
@@ -209,3 +215,24 @@ endpython
         return res
       endif
     endfun
+
+" Custom folding function to fold cells
+function! FoldByCell(lnum)
+    let pattern = '\v^\s*(##|' . escape('# <codecell>', '<>') . ').*$'
+    if getline(a:lnum) =~? pattern
+        return '>1'
+    elseif getline(a:lnum+1) =~? pattern
+        return '<1'
+    else
+        return '='
+    endif
+endfunction
+
+function! EnableFoldByCell()
+	setlocal foldmethod=expr
+	setlocal foldexpr=FoldByCell(v:lnum)
+endfunction
+
+if g:ipy_cell_folding != 0
+    call EnableFoldByCell()
+endif
