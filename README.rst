@@ -153,7 +153,7 @@ not work on Windows, please report the issue to ).
 -------
 Options
 -------
-You can change these at the top of the ipy.vim::
+You can change these at the top of the vim_ipython.py::
 
   reselect = False            # reselect lines after sending from Visual mode
   show_execution_count = True # wait to get numbers for In[43]: feedback?
@@ -264,7 +264,7 @@ Known issues:
 ----------------------------
 Thanks and Bug Participation
 ----------------------------
-Here's a brief acknowledgment of the folks who have graciously pitched in. If
+Here's a brief acknowledgment of the `folks who have graciously pitched in`_. If
 you've been missed, don't hesitate to contact me, or better yet, submit a
 pull request with your attribution.
 
@@ -295,7 +295,7 @@ pull request with your attribution.
 * @memeplex for fixing the identifier grabbing on e.g. non-PEP8 compliant code
 * @pydave for IPythonTerminate (sending SIGTERM using our hack)
 * @luispedro for IPythonNew
-* @jjhelmus for IPython 3.x support.
+* @jjhelmus and @wmvanvliet for IPython 3.x support.
 
 Similar Projects
 ----------------
@@ -324,7 +324,7 @@ Similar Projects
 .. _ipyqtmacvim: https://github.com/jkitzes/ipyqtmacvim/
 .. _tslime_ipython: https://github.com/eldridgejm/tslime_ipython
 .. _vipy: https://github.com/johndgiese/vipy
-
+.. _folks who have graciously pitched in: https://github.com/ivanov/vim-ipython/graphs/contributors
 
 Bottom Line
 -----------
