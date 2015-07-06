@@ -289,7 +289,7 @@ def get_doc(word, level=0):
 
 import re
 # from http://serverfault.com/questions/71285/in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file
-strip = re.compile('\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]')
+strip = re.compile('\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mK]')
 def strip_color_escapes(s):
     return strip.sub('',s)
 
