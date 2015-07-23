@@ -693,13 +693,18 @@ def eval_ipy_input(var=None):
         echo("no reply from IPython kernel")
         return
     result = child['content']['user_expressions']['expr']
+    text = result['data']['text/plain']
     try:
         if var:
-            vim.command('let %s = "%s"' % (
-                var, result['data']['text/plain'].replace('"', '\\"')))
+            from cStringIO import StringIO
+            from tokenize import STRING, generate_tokens
+            if generate_tokens(StringIO(text).readline).next()[0] == STRING:
+                from ast import parse
+                vim.vars[var.replace('g:', '')] = parse(text).body[0].value.s
+            else:
+                vim.command('let %s = "%s"' % (var, text.replace('"', '\\"')))
         else:
-            vim.command('call setreg(\'"\', "%s")' %
-                        result['data']['text/plain'].replace('"', '\\"'))
+            vim.command('call setreg(\'"\', "%s")' % text.replace('"', '\\"'))
     except KeyError:
         echo('{ename}: {evalue}'.format(**result))
     else:
