@@ -230,6 +230,7 @@ def km_from_string(s=''):
     else:
         vim.command('redraw')
         echo("IPython connection successful")
+        send('"_vim_client";_=_;__=__', store_history=False)
 
     #XXX: backwards compatibility for IPython < 0.13
     import inspect
