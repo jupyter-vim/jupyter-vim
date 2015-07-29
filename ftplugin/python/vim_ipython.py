@@ -369,7 +369,7 @@ def get_doc_buffer(level=0):
         vim.command(r'syn region rstPythonRegion start=/^\v {4}/ end=/\v^( {4}|\n)@!/ contains=@rstPythonScript')
         # >>> python code -> (doctests)
         vim.command(r'syn region rstPythonRegion matchgroup=pythonDoctest start=/^>>>\s*/ end=/\n/ contains=@rstPythonScript')
-        vim.command(r'let b:current_syntax = "rst"')
+        vim.command(r'set syntax=rst')
     else:
         # use Python syntax highlighting
         vim.command('setlocal syntax=python')
