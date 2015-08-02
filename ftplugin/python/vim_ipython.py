@@ -686,16 +686,17 @@ def set_pid():
 
 
 def eval_ipy_input(var=None):
-    msg_id = send('', silent=True,
-                  user_expressions={'expr': vim.vars['ipy_input']})
+    msg_id = send('from __future__ import division; '
+                  '_expr = %s' % vim.vars['ipy_input'], silent=True,
+                  user_expressions={'_expr': '_expr'})
     try:
         child = get_child_msg(msg_id)
     except Empty:
         echo("no reply from IPython kernel")
         return
-    result = child['content']['user_expressions']['expr']
-    text = result['data']['text/plain']
     try:
+        result = child['content']['user_expressions']['_expr']
+        text = result['data']['text/plain']
         if var:
             from cStringIO import StringIO
             from tokenize import STRING, generate_tokens
