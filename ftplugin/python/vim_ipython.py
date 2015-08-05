@@ -694,9 +694,9 @@ def eval_ipy_input(var=None):
     except Empty:
         echo("no reply from IPython kernel")
         return
+    result = child['content']['user_expressions']
     try:
-        result = child['content']['user_expressions']['_expr']
-        text = result['data']['text/plain']
+        text = result['_expr']['data']['text/plain']
         if var:
             from cStringIO import StringIO
             from tokenize import STRING, generate_tokens
@@ -708,7 +708,10 @@ def eval_ipy_input(var=None):
         else:
             vim.command('call setreg(\'"\', "%s")' % text.replace('"', '\\"'))
     except KeyError:
-        echo('{ename}: {evalue}'.format(**result))
+        try:
+            echo('{ename}: {evalue}'.format(**child['content']))
+        except Exception:
+            echo('Unknown error occurred')
     else:
         if not var:
             vim.command('let @+ = @"')
