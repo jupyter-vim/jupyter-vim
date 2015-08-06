@@ -279,7 +279,7 @@ Known issues:
 ----------------------------
 Thanks and Bug Participation
 ----------------------------
-Here's a brief acknowledgment of the folks who have graciously pitched in. If
+Here's a brief acknowledgment of the `folks who have graciously pitched in`_. If
 you've been missed, don't hesitate to contact me, or better yet, submit a
 pull request with your attribution.
 
@@ -310,9 +310,13 @@ pull request with your attribution.
 * @memeplex for fixing the identifier grabbing on e.g. non-PEP8 compliant code
 * @pydave for IPythonTerminate (sending SIGTERM using our hack)
 * @luispedro for IPythonNew
+<<<<<<< HEAD
 * @jjhelmus for IPython 3.x support.
 * @wmvanvliet for Matlab-like cell support.
 * @wmvanvliet for config support through vim-globals.
+=======
+* @jjhelmus and @wmvanvliet for IPython 3.x support.
+>>>>>>> 42499f094b805b90b683afa5009cee99abd0bb75
 
 Similar Projects
 ----------------
@@ -341,7 +345,7 @@ Similar Projects
 .. _ipyqtmacvim: https://github.com/jkitzes/ipyqtmacvim/
 .. _tslime_ipython: https://github.com/eldridgejm/tslime_ipython
 .. _vipy: https://github.com/johndgiese/vipy
-
+.. _folks who have graciously pitched in: https://github.com/ivanov/vim-ipython/graphs/contributors
 
 Bottom Line
 -----------
