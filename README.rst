@@ -4,7 +4,7 @@ vim-ipython
 
 A two-way integration between Vim and IPython.
 
-IPython versions 0.11.x, 0.12.x, 0.13.x, 1.x and 2.x
+IPython versions 0.11.x, 0.12.x, 0.13.x, 1.x, 2.x and 3.x
 
 * author: Paul Ivanov (http://pirsquared.org)
 * github: http://github.com/ivanov/vim-ipython
@@ -109,19 +109,22 @@ Then, go to the qtconsole and run this line::
 
 You can also send whole files to IPython's ``%run`` magic using ``<F5>``.
 
-Finally, you can define Matlab-like cells using either ``##`` or ``# <codecell>`` markers and execute it
-by moving the cursor somewhere within the cell and pressing ``<Ctrl-Alt-S>``::
+To execute predefined sections of a script, you can define Matlab-like cells
+using either ``##`` or ``# <codecell>`` markers. To execute a cell, move the
+cursor somewhere within it and press ``<Ctrl-Enter>``::
 
-    ## Some imports
-    import numpy as np
-    
-    # <codecell> IPython notebook compatible cell marker
-    # Print some messages
-    print 'You can define cells,'
-    print 'just like in Matlab!'
+  ## Do something
+  print('Hello')
+  
+  ## Do something else
+  print('IPython')
+
+  # <codecell> This is an alternative cell marker
+  print('World!')
  
-Cells are two-way compatible with IPython notebooks, 
-so you can easily switch between browser and Vim without loosing them.
+Cells (when deliminated by '# <codecell>' markers) are two-way compatible with
+IPython notebooks, so you can easily switch between browser and Vim without
+loosing them.
 
 **NEW in IPython 0.12**!
 If you're trying to do run code fragments that have leading whitespace, use
@@ -167,12 +170,12 @@ not work on Windows, please report the issue to ).
 -------
 Options
 -------
-You can change these at the top of the ipy.vim::
+You can change these in your vimrc::
 
-  reselect = False            # reselect lines after sending from Visual mode
-  show_execution_count = True # wait to get numbers for In[43]: feedback?
-  monitor_subchannel = True   # update vim-ipython 'shell' on every send?
-  run_flags= "-i"             # flags to for IPython's run magic when using <F5>
+  g:ipy_reselect = 0             # reselect lines after sending from Visual mode
+  g:ipy_show_execution_count = 1 # wait to get numbers for In[43]: feedback?
+  g:ipy_monitor_subchannel = 1   # update vim-ipython 'shell' on every send?
+  g:ipy_run_flags = '-i'         # flags to for IPython's run magic when using <F5>
 
 **Disabling default mappings**
 In your own ``.vimrc``, if you don't like the mappings provided by default,
@@ -307,9 +310,13 @@ pull request with your attribution.
 * @memeplex for fixing the identifier grabbing on e.g. non-PEP8 compliant code
 * @pydave for IPythonTerminate (sending SIGTERM using our hack)
 * @luispedro for IPythonNew
+* @jjhelmus for IPython 3.x support.
+* @wmvanvliet for Matlab-like cell support.
+* @wmvanvliet for config support through vim-globals.
 
 Similar Projects
 ----------------
+* `ipython-vimception`_ - vim-within-vim in the IPython Notebook (Paul Ivanov)
 * `vim-slime`_ - Grab some text and "send" it to a GNU Screen / tmux session
   (Jonathan Palardy)
 * `screen.vba`_ - Simulate a split shell, using GNU Screen / tmux, that you
@@ -325,6 +332,7 @@ Similar Projects
   different direction. (John David Giese)
 
 
+.. _ipython-vimception: https://github.com/ivanov/ipython-vimception
 .. _vim-slime: https://github.com/jpalardy/vim-slime
 .. _screen.vba: https://github.com/ervandew/screen
 .. _conque: http://code.google.com/p/conque/

@@ -31,7 +31,7 @@ endif
 
 " Enable cell folding
 if !exists('g:ipy_cell_folding')
-    let g:ipy_cell_folding = 1
+    let g:ipy_cell_folding = 0
 endif
 
 " Register IPython completefunc
@@ -46,11 +46,29 @@ if !exists('g:ipy_completefunc')
     let g:ipy_completefunc = 'global'
 endif
 
+" reselect lines after sending from Visual mode
+if !exists('g:ipy_reselect')
+	let g:ipy_reselect = 0
+endif
+
+" wait to get numbers for In[43]: feedback?
+if !exists('g:ipy_show_execution_count')
+	let g:ipy_show_execution_count = 1
+endif
+
+" update vim-ipython 'shell' on every send?
+if !exists('g:ipy_monitor_subchannel')
+	let g:ipy_monitor_subchannel = 1
+endif
+
+" flags to for IPython's run magic when using <F5>
+if !exists('g:ipy_run_flags')
+	let g:ipy_run_flags = '-i'
+endif
+
 python << EOF
 import vim
 import sys
-
-
 vim_ipython_path = vim.eval("expand('<sfile>:h')")
 sys.path.append(vim_ipython_path)
 from vim_ipython import *
@@ -134,7 +152,7 @@ if g:ipy_perform_mappings != 0
     imap <buffer>          <C-F5>         <C-o><Plug>(IPython-RunFile)
     imap <buffer>          <S-F5>         <C-o><Plug>(IPython-RunLines)
     imap <buffer> <silent> <F5>           <C-o><Plug>(IPython-RunFile)
-    imap  <buffer> <silent> <C-M-F5>      <C-o><Plug>(IPython-RunCell)
+    imap <buffer> <silent> <C-M-F5>       <C-o><Plug>(IPython-RunCell)
     map  <buffer>          <C-F5>         <Plug>(IPython-ToggleSendOnSave)
     "" Example of how to quickly clear the current plot with a keystroke
     "map  <buffer> <silent> <F12>          <Plug>(IPython-PlotClearCurrent)
@@ -142,7 +160,7 @@ if g:ipy_perform_mappings != 0
     "map  <buffer> <silent> <F11>          <Plug>(IPython-PlotCloseAll)
 
     "pi custom
-    "map  <buffer> <silent> <C-Return>     <Plug>(IPython-RunFile)
+    map  <buffer> <silent> <C-Return>     <Plug>(IPython-RunFile)
     map  <buffer> <silent> <C-s>          <Plug>(IPython-RunLine)
     imap <buffer> <silent> <C-s>          <C-o><Plug>(IPython-RunLine)
     map  <buffer> <silent> <M-s>          <Plug>(IPython-RunLineAsTopLevel)
@@ -213,11 +231,10 @@ completions = [s.encode(vim_encoding) for s in matches]
 for c in completions:
     vim.command('call add(res,"'+c+'")')
 endpython
-        "call extend(res,completions)
+        "call extend(res,completions) 
         return res
       endif
     endfun
-
 
 " Custom folding function to fold cells
 function! FoldByCell(lnum)
@@ -239,4 +256,3 @@ endfunction
 if g:ipy_cell_folding != 0
     call EnableFoldByCell()
 endif
-
