@@ -331,11 +331,11 @@ def get_doc_msg(msg_id):
                 b.extend(c.splitlines())
     return b
 
-def get_doc_buffer(level=0):
+def get_doc_buffer(level=0, word=''):
     # empty string in case vim.eval return None
     vim.command("let isk_save = &isk") # save iskeyword list
     vim.command("let &isk = '@,48-57,_,192-255,.'")
-    word = vim.eval('expand("<cword>")') or ''
+    word = vim.eval('expand("<cword>")') or word
     vim.command("let &isk = isk_save") # restore iskeyword list
     doc = get_doc(word, level)
     if len(doc) ==0:
@@ -591,6 +591,9 @@ def run_this_file():
 @with_subchannel
 def run_ipy_input():
     lines = vim.eval('g:ipy_input')
+    if lines.strip().endswith('?'):
+        return get_doc_buffer(level=1 if lines.strip().endswith('??') else 0,
+                              word=lines.strip().rstrip('?'))
     msg_id = send(lines)
     lines = unicode(lines, 'utf-8').replace('\n', u'\xac')
     print_prompt(lines[:(int(vim.options['columns']) - 22)], msg_id)
