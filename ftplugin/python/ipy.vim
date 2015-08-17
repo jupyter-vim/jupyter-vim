@@ -162,7 +162,7 @@ function! s:DoMappings()
         " map  <buffer> <silent> <Leader>x         <Plug>(IPython-RunLine)
         imap <buffer> <silent> <Leader>x         <Esc><Plug>(IPython-RunLine)
         map  <buffer> <silent> <M-S>             <Plug>(IPython-RunLineAsTopLevel)
-        xmap <buffer> <silent> <Leader>x         <Plug>(IPython-RunLinesAsTopLevel)
+        "xmap <buffer> <silent> <Leader>x         <Plug>(IPython-RunLinesAsTopLevel)
         xmap <buffer> <silent> <M-S>             <Plug>(IPython-RunLines)
         map  <buffer> <silent> <Leader><Leader>x <Plug>(IPython-RunCell)
 
