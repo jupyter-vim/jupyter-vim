@@ -689,9 +689,13 @@ def set_pid():
 
 
 def eval_ipy_input(var=None):
-    msg_id = send('from __future__ import division; '
-                  '_expr = %s' % vim.vars['ipy_input'], silent=True,
-                  user_expressions={'_expr': '_expr'})
+    if vim.vars['ipy_input'].startswith(('%', '!', '$')):
+        msg_id = send('', silent=True,
+                      user_expressions={'_expr': vim.vars['ipy_input']})
+    else:
+        msg_id = send('from __future__ import division; '
+                      '_expr = %s' % vim.vars['ipy_input'], silent=True,
+                      user_expressions={'_expr': '_expr'})
     try:
         child = get_child_msg(msg_id)
     except Empty:
@@ -712,7 +716,10 @@ def eval_ipy_input(var=None):
             vim.command('call setreg(\'"\', "%s")' % text.replace('"', '\\"'))
     except KeyError:
         try:
-            echo('{ename}: {evalue}'.format(**child['content']))
+            try:
+                echo('{ename}: {evalue}'.format(**child['content']))
+            except KeyError:
+                echo('{ename}: {evalue}'.format(**result['_expr']))
         except Exception:
             echo('Unknown error occurred')
     else:
