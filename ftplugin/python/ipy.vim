@@ -295,3 +295,24 @@ endpython
         return res
       endif
     endfun
+
+function! IPythonHistory(pattern)
+    let res = []
+    python << endpython
+n = vim.vars.get('ipython_history_len', 100)
+pattern = '*' + vim.eval('a:pattern') + '*'
+if not len(pattern):
+    pattern = None
+history = get_history(n, pattern=pattern)
+seen = set()
+for session, line, code in history:
+    if code.strip() not in seen:
+        seen.add(code.strip())
+        code = code.encode(vim_encoding)
+        vim.command('call add(res, {'
+        '"session": +pyeval("session"), '
+        '"line": +pyeval("line"), '
+        '"code": pyeval("code")})')
+endpython
+    return res
+endfunction

@@ -801,3 +801,13 @@ def toggle_reselect():
 #    #send('run -d %s' % (vim.current.buffer.name,))
 #    echo("In[]: run -d %s (using pdb)" % vim.current.buffer.name)
 
+def get_history(n, pattern=None):
+    msg_id = kc.shell_channel.history(
+        hist_access_type='search' if pattern else 'tail',
+        pattern=pattern, n=n, unique=True)
+    try:
+        child = get_child_msg(msg_id)
+        return reversed(child['content']['history'])
+    except Empty:
+        echo("no reply from IPython kernel")
+        return []
