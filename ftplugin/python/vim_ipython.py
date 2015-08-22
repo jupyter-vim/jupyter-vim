@@ -331,11 +331,11 @@ def get_doc_msg(msg_id):
                 b.extend(c.splitlines())
     return b
 
-def get_doc_buffer(level=0, word=''):
+def get_doc_buffer(level=0, word=None):
     # empty string in case vim.eval return None
     vim.command("let isk_save = &isk") # save iskeyword list
     vim.command("let &isk = '@,48-57,_,192-255,.'")
-    word = vim.eval('expand("<cword>")') or word
+    word = word or vim.eval('expand("<cword>")')
     vim.command("let &isk = isk_save") # restore iskeyword list
     doc = get_doc(word, level)
     if len(doc) ==0:
@@ -689,6 +689,8 @@ def set_pid():
 
 
 def eval_ipy_input(var=None):
+    if not vim.vars.get('ipy_input', None):
+        return
     if vim.vars['ipy_input'].startswith(('%', '!', '$')):
         msg_id = send('', silent=True,
                       user_expressions={'_expr': vim.vars['ipy_input']})
