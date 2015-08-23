@@ -807,9 +807,27 @@ def get_history(n, pattern=None):
     msg_id = kc.shell_channel.history(
         hist_access_type='search' if pattern else 'tail',
         pattern=pattern, n=n, unique=True)
+    results = []
     try:
         child = get_child_msg(msg_id)
-        return reversed(child['content']['history'])
+        results.extend(child['content']['history'])
     except Empty:
         echo("no reply from IPython kernel")
         return []
+    msg_id = send('', silent=True, user_expressions={
+        '_hist': '[h for h in get_ipython().history_manager.get_range('
+        'get_ipython().history_manager.session_number)]',
+    })
+    try:
+        child = get_child_msg(msg_id)
+        hist = child['content']['user_expressions']['_hist']
+        from ast import literal_eval
+        from fnmatch import fnmatch
+        more = literal_eval(hist['data']['text/plain'])
+        results.extend(h for h in more if fnmatch(h[2], pattern or '*'))
+    except Empty:
+        echo("no reply from IPython kernel")
+        return reversed(results)
+    except KeyError:
+        pass
+    return reversed(results)
