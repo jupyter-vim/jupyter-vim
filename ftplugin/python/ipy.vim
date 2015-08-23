@@ -252,7 +252,14 @@ endpython
         let res = []
         python << endpython
 base = vim.eval("a:base")
-matches, metadata = ipy_complete(base, current_line, int(vim.eval('s:start')) + len(base))
+try:
+    matches, metadata = ipy_complete(base, current_line, int(vim.eval('s:start')) + len(base))
+except IOError:
+    if vim.eval('exists("*jedi#completions")'):
+        vim.command('setlocal omnifunc=jedi#completions')
+    else:
+        vim.command('setlocal omnifunc=')
+    vim.command('return -1')
 # we need to be careful with unicode, because we can have unicode
 # completions for filenames (for the %run magic, for example). So the next
 # line will fail on those:

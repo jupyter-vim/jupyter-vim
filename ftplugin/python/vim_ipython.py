@@ -402,7 +402,7 @@ def ipy_complete(base, current_line, pos):
         return matches, metadata
     except Empty:
         echo("no reply from IPython kernel")
-        return [''], ['']
+        raise IOError
 
 def vim_ipython_is_open():
     """
