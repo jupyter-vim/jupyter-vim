@@ -308,7 +308,7 @@ function! IPythonHistory(pattern)
     python << endpython
 n = vim.vars.get('ipython_history_len', 100)
 pattern = '*' + vim.eval('a:pattern') + '*'
-if not len(pattern):
+if pattern == '**':
     pattern = None
 history = get_history(n, pattern=pattern)
 seen = set()
