@@ -809,7 +809,8 @@ def get_history(n, pattern=None):
         pattern=pattern, n=n, unique=True)
     results = []
     try:
-        child = get_child_msg(msg_id)
+        child = get_child_msg(
+            msg_id, timeout=float(vim.vars.get('ipython_history_timeout', 2)))
         results.extend(child['content']['history'])
     except Empty:
         echo("no reply from IPython kernel")
@@ -819,7 +820,8 @@ def get_history(n, pattern=None):
         'get_ipython().history_manager.session_number)]',
     })
     try:
-        child = get_child_msg(msg_id)
+        child = get_child_msg(
+            msg_id, timeout=float(vim.vars.get('ipython_history_timeout', 2)))
         hist = child['content']['user_expressions']['_hist']
         from ast import literal_eval
         from fnmatch import fnmatch
