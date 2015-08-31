@@ -346,6 +346,10 @@ def get_doc_buffer(level=0, word=None):
     vim.command('setlocal modifiable noro')
     # doc window quick quit keys: 'q' and 'escape'
     vim.command('nnoremap <buffer> q :q<CR>')
+    # shortcuts to change filetype/syntax
+    vim.command('nnoremap <buffer> m :<C-u>setfiletype man<CR>')
+    vim.command('nnoremap <buffer> p :<C-u>setfiletype python<CR>')
+    vim.command('nnoremap <buffer> r :<C-u>setfiletype rst<CR>')
     # Known issue: to enable the use of arrow keys inside the terminal when
     # viewing the documentation, comment out the next line
     # vim.command('nnoremap <buffer> <Esc> :q<CR>')
