@@ -598,7 +598,7 @@ def run_ipy_input():
     if lines.strip().endswith('?'):
         return get_doc_buffer(level=1 if lines.strip().endswith('??') else 0,
                               word=lines.strip().rstrip('?'))
-    msg_id = send(lines)
+    msg_id = send(lines, store_history=vim.vars.get('ipython_store_history', True))
     lines = unicode(lines, 'utf-8').replace('\n', u'\xac')
     print_prompt(lines[:(int(vim.options['columns']) - 22)], msg_id)
 
