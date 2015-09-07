@@ -160,7 +160,7 @@ function! s:DoMappings()
         "pi custom
         map  <buffer> <silent> <C-Return>        <Plug>(IPython-RunFile)
         " map  <buffer> <silent> <Leader>x         <Plug>(IPython-RunLine)
-        imap <buffer> <silent> <Leader>x         <Esc><Plug>(IPython-RunLine)
+        " imap <buffer> <silent> <Leader>x         <Esc><Plug>(IPython-RunLine)
         map  <buffer> <silent> <M-S>             <Plug>(IPython-RunLineAsTopLevel)
         "xmap <buffer> <silent> <Leader>x         <Plug>(IPython-RunLinesAsTopLevel)
         xmap <buffer> <silent> <M-S>             <Plug>(IPython-RunLines)
