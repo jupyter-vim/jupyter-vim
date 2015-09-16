@@ -94,7 +94,7 @@ def new_ipy(s=''):
         new_ipy()
 
     """
-    from IPython.kernel import KernelManager
+    from jupyter_client.manager import KernelManager
     km = KernelManager()
     km.start_kernel()
     return km_from_string(km.connection_file)
@@ -110,10 +110,8 @@ def km_from_string(s=''):
         raise ImportError("Could not find IPython. " + _install_instructions)
     from IPython.config.loader import KeyValueConfigLoader
     try:
-        from IPython.kernel import (
-            KernelManager,
-            find_connection_file,
-        )
+        from jupyter_client.manager import KernelManager
+        from jupyter_client.connect import find_connection_file
     except ImportError:
         #  IPython < 1.0
         from IPython.zmq.blockingkernelmanager import BlockingKernelManager as KernelManager
@@ -142,8 +140,10 @@ def km_from_string(s=''):
                 k = k.lstrip().rstrip() # kernel part of the string
                 p = p.lstrip().rstrip() # profile part of the string
                 fullpath = find_connection_file(k,p)
-            else:
+            elif len(s.lstrip().rstrip()):
                 fullpath = find_connection_file(s.lstrip().rstrip())
+            else:
+                fullpath = find_connection_file()
         except IOError as e:
             echo(":IPython " + s + " failed", "Info")
             echo("^-- failed '" + s + "' not found", "Error")
