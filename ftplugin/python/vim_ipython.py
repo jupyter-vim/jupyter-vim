@@ -17,6 +17,7 @@ except ImportError:
     vim = NoOp()
     print("uh oh, not running inside vim")
 
+import os
 import sys
 import time
 
@@ -589,8 +590,17 @@ def with_subchannel(f,*args):
 
 @with_subchannel
 def run_this_file():
-    msg_id = send('%%run %s %s' % (vim.vars['ipython_run_flags'], repr(vim.current.buffer.name),))
-    print_prompt("%%run %s %s" % (vim.vars['ipython_run_flags'], repr(vim.current.buffer.name)),msg_id)
+    ext = os.path.splitext(vim.current.buffer.name)[-1][1:]
+    if ext in ('pxd', 'pxi', 'pyx', 'pyxbld'):
+        cmd = ' '.join(filter(None, (
+            '%run_cython',
+            vim.vars.get('cython_run_flags', ''),
+            repr(vim.current.buffer.name))))
+    else:
+        cmd = '%%run %s %s' % (vim.vars['ipython_run_flags'],
+                               repr(vim.current.buffer.name))
+    msg_id = send(cmd)
+    print_prompt(cmd, msg_id)
 
 @with_subchannel
 def run_ipy_input():
