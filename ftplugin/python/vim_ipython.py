@@ -395,7 +395,7 @@ def ipy_complete(base, current_line, pos):
             pos = len(base)
     msg_id = kc.shell_channel.complete(base, current_line, pos)
     try:
-        m = get_child_msg(msg_id, timeout=2)
+        m = get_child_msg(msg_id, timeout=vim.vars.get('ipython_completion_timeout', 2))
         matches = m['content']['matches']
         metadata = m['content']['metadata']
         # we need to be careful with unicode, because we can have unicode
@@ -820,7 +820,8 @@ def toggle_reselect():
 def get_history(n, pattern=None):
     msg_id = kc.shell_channel.history(
         hist_access_type='search' if pattern else 'tail',
-        pattern=pattern, n=n, unique=True)
+        pattern=pattern, n=n, unique=True,
+        raw=vim.vars.get('ipython_history_raw', True))
     results = []
     try:
         child = get_child_msg(
@@ -829,9 +830,16 @@ def get_history(n, pattern=None):
     except Empty:
         echo("no reply from IPython kernel")
         return []
+    results.extend(get_session_history(pattern=pattern))
+    return results
+
+def get_session_history(session=None, pattern=None):
     msg_id = send('', silent=True, user_expressions={
         '_hist': '[h for h in get_ipython().history_manager.get_range('
-        'get_ipython().history_manager.session_number)]',
+        '%s, raw=%s)]'
+        % (str(session) if session else
+           'get_ipython().history_manager.session_number',
+           vim.vars.get('ipython_history_raw', 'True')),
     })
     try:
         child = get_child_msg(
@@ -840,10 +848,9 @@ def get_history(n, pattern=None):
         from ast import literal_eval
         from fnmatch import fnmatch
         more = literal_eval(hist['data']['text/plain'])
-        results.extend(h for h in more if fnmatch(h[2], pattern or '*'))
+        return [h for h in more if fnmatch(h[2], pattern or '*')]
     except Empty:
         echo("no reply from IPython kernel")
-        return reversed(results)
+        return []
     except KeyError:
-        pass
-    return reversed(results)
+        return []
