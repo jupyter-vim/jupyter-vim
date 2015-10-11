@@ -199,7 +199,7 @@ def km_from_string(s=''):
             # < 3.0
             send = kc.shell_channel.execute
 
-        kc.shell_channel.execute('', silent=True)
+        send('', silent=True)
         try:
             msg = kc.shell_channel.get_msg(timeout=1)
             connected = True
