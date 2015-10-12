@@ -124,7 +124,7 @@ def km_from_string(s=''):
             # < 0.12, no find_connection_file
             pass
 
-    global km, kc, send
+    global km, kc, send, history
 
     # Test if connection is still alive
     connected = False
@@ -195,9 +195,11 @@ def km_from_string(s=''):
 
         try:
             send = kc.execute
+            history = kc.history
         except AttributeError:
             # < 3.0
             send = kc.shell_channel.execute
+            history = kc.shell_channel.history
 
         send('', silent=True)
         try:
@@ -818,7 +820,7 @@ def toggle_reselect():
 #    echo("In[]: run -d %s (using pdb)" % vim.current.buffer.name)
 
 def get_history(n, pattern=None):
-    msg_id = kc.shell_channel.history(
+    msg_id = history(
         hist_access_type='search' if pattern else 'tail',
         pattern=pattern, n=n, unique=True,
         raw=vim.vars.get('ipython_history_raw', True))
@@ -840,15 +842,19 @@ def get_session_history(session=None, pattern=None):
         % (str(session) if session else
            'get_ipython().history_manager.session_number',
            vim.vars.get('ipython_history_raw', 'True')),
+        '_session': 'get_ipython().history_manager.session_number',
     })
     try:
         child = get_child_msg(
             msg_id, timeout=float(vim.vars.get('ipython_history_timeout', 2)))
         hist = child['content']['user_expressions']['_hist']
+        session = child['content']['user_expressions']['_session']
+        session = int(session['data']['text/plain'])
         from ast import literal_eval
         from fnmatch import fnmatch
         more = literal_eval(hist['data']['text/plain'])
-        return [h for h in more if fnmatch(h[2], pattern or '*')]
+        return [(s if s > 0 else session, l, c) for s, l, c in more
+                if fnmatch(c, pattern or '*')]
     except Empty:
         echo("no reply from IPython kernel")
         return []
