@@ -320,7 +320,6 @@ seen = set()
 for session, line, code in reversed(history):
     if code.strip() not in seen:
         seen.add(code.strip())
-        code = code.encode(vim_encoding)
         vim.command('call add(res, {'
         '"session": +pyeval("session"), '
         '"line": +pyeval("line"), '

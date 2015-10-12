@@ -725,7 +725,8 @@ def eval_ipy_input(var=None):
         if var:
             from cStringIO import StringIO
             from tokenize import STRING, generate_tokens
-            if generate_tokens(StringIO(text).readline).next()[0] == STRING:
+            if generate_tokens(StringIO(
+                    text.encode(vim_encoding)).readline).next()[0] == STRING:
                 from ast import parse
                 vim.vars[var.replace('g:', '')] = parse(text).body[0].value.s
             else:
@@ -824,11 +825,11 @@ def get_history(n, pattern=None):
         hist_access_type='search' if pattern else 'tail',
         pattern=pattern, n=n, unique=True,
         raw=vim.vars.get('ipython_history_raw', True))
-    results = []
     try:
         child = get_child_msg(
             msg_id, timeout=float(vim.vars.get('ipython_history_timeout', 2)))
-        results.extend(child['content']['history'])
+        results = [(s, l, c.encode(vim_encoding))
+                   for s, l, c in child['content']['history']]
     except Empty:
         echo("no reply from IPython kernel")
         return []
@@ -849,10 +850,10 @@ def get_session_history(session=None, pattern=None):
             msg_id, timeout=float(vim.vars.get('ipython_history_timeout', 2)))
         hist = child['content']['user_expressions']['_hist']
         session = child['content']['user_expressions']['_session']
-        session = int(session['data']['text/plain'])
+        session = int(session['data']['text/plain'].encode(vim_encoding))
         from ast import literal_eval
         from fnmatch import fnmatch
-        more = literal_eval(hist['data']['text/plain'])
+        more = literal_eval(hist['data']['text/plain'].encode(vim_encoding))
         return [(s if s > 0 else session, l, c) for s, l, c in more
                 if fnmatch(c, pattern or '*')]
     except Empty:
