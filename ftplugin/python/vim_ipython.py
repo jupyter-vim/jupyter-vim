@@ -130,14 +130,18 @@ def km_from_string(s=''):
     connected = False
     starttime = time.time()
     attempt = 0
+    s = s.replace('--existing', '')
     while not connected and (time.time() - starttime) < 5.0:
+        if not attempt and os.path.isfile(s):
+            fullpath = s
+        else:
+            try:
+                s = fullpath = find_connection_file('kernel*')
+            except IOError:
+                echo("IPython connection attempt #%d failed - no kernel file" % attempt, "Warning")
+                time.sleep(1)
+                continue
         attempt += 1
-        try:
-            fullpath = find_connection_file('kernel*')
-        except IOError:
-            echo("IPython connection attempt #%d failed - no kernel file" % attempt, "Warning")
-            time.sleep(1)
-            continue
 
         km = KernelManager(connection_file=fullpath)
         km.load_connection_file()
@@ -145,7 +149,6 @@ def km_from_string(s=''):
         kc = km.client()
         kc.start_channels()
 
-        s = s.replace('--existing', '')
         if 'connection_file' in KernelManager.class_trait_names():
             # 0.12 uses files instead of a collection of ports
             # include default IPython search path
