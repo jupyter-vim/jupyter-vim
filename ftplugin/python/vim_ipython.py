@@ -823,20 +823,21 @@ def toggle_reselect():
 #    #send('run -d %s' % (vim.current.buffer.name,))
 #    echo("In[]: run -d %s (using pdb)" % vim.current.buffer.name)
 
-def get_history(n, pattern=None):
+def get_history(n, pattern=None, unique=True):
     msg_id = history(
         hist_access_type='search' if pattern else 'tail',
-        pattern=pattern, n=n, unique=True,
+        pattern=pattern, n=n, unique=unique,
         raw=vim.vars.get('ipython_history_raw', True))
     try:
         child = get_child_msg(
             msg_id, timeout=float(vim.vars.get('ipython_history_timeout', 2)))
-        results = [(s, l, c.encode(vim_encoding))
-                   for s, l, c in child['content']['history']]
+        results = [(session, line, code.encode(vim_encoding))
+                   for session, line, code in child['content']['history']]
     except Empty:
         echo("no reply from IPython kernel")
         return []
-    results.extend(get_session_history(pattern=pattern))
+    if unique:
+        results.extend(get_session_history(pattern=pattern))
     return results
 
 def get_session_history(session=None, pattern=None):

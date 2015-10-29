@@ -308,6 +308,7 @@ function! IPythonHistory(pattern, ...)
     let res = []
     python << endpython
 n = vim.vars.get('ipython_history_len', 100)
+unique = vim.eval('a:pattern') != ''
 pattern = '*' + vim.eval('a:pattern') + '*'
 if pattern == '**':
     pattern = None
@@ -315,10 +316,10 @@ if int(vim.eval('session')) >= 0:
     history = get_session_history(session=int(vim.eval('session')),
                                   pattern=pattern)
 else:
-    history = get_history(n, pattern=pattern)
+    history = get_history(n, pattern=pattern, unique=unique)
 seen = set()
 for session, line, code in reversed(history):
-    if code.strip() not in seen:
+    if not unique or code.strip() not in seen:
         seen.add(code.strip())
         vim.command('call add(res, {'
         '"session": +pyeval("session"), '
