@@ -389,9 +389,9 @@ def ipy_complete(base, current_line, pos):
         pos -= len(current_line) - len(current_line.lstrip())
         current_line = current_line.lstrip()
     else:
-        match = re.match('^\s*from\s+\w+\s+import\s+(\w+,\s+)*', current_line)
+        match = re.match('^\s*from\s+\w+(\.\w+)*\s+import\s+(\w+,\s+)*', current_line)
         if match:
-            module = re.split(match.string.strip(), '\s+')[1]
+            module = match.string.strip().split()[1]
             current_line = 'from {module} import {base}'.format(
                 module=module, base=base)
             pos = current_line.rindex(base)
