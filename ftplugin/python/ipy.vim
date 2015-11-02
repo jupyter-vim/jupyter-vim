@@ -230,39 +230,39 @@ else
 endif
 
 fun! CompleteIPython(findstart, base)
-      if a:findstart
+    if a:findstart
+        " return immediately for imports
+        if getline('.')[:col('.')-1] =~#
+            \ '\v^\s*(from\s+\w+\s+import\s+(\w+,\s+)*|import\s+)'
+            let s:start = col('.') - 1
+            Python2or3 current_line = vim.current.line
+            return col('.') - 1
+        endif
         " locate the start of the word
         let line = split(getline('.')[:col('.')-1], '\zs')
-        let s:start = strchars(getline('.')[:col('.')-1]) - 1
-        if line[s:start-1] !~ s:split_pattern &&
+        let s:start = col('.') - 1
+        if s:start == 0 || (len(line) == s:start &&
+            \ line[s:start-2] !~ s:split_pattern &&
             \ !(g:ipython_greedy_matching && s:start >= 2
-            \   && line[s:start-2] =~ '\k') &&
-            \ join(line[s:start-2:s:start-1], '') !=# '].'
-            if line =~# '\v^\s*from\s+\w+\s+import\s+(\w+,\s+)*'
-                Python2or3 << endpython
-current_line = vim.current.line
-endpython
-                return col('.') - 1
-            else
-                return -1
-            endif
+            \   && line[s:start-3] =~ '\k') &&
+            \ join(line[s:start-3:s:start-2], '') !=# '].')
+            return -1
         endif
+        let s:start = strchars(getline('.')[:col('.')-1]) - 1
         while s:start > 0 && (line[s:start-1] =~ s:split_pattern
             \ || (g:ipython_greedy_matching && line[s:start-1] == '.'
             \     && s:start >= 2 && line[s:start-2] =~ '\k')
             \ || join(line[s:start-2:s:start-1], '') ==# '].')
-          if g:ipython_greedy_matching && line[s:start-1] == '[' &&
-              \ (s:start == 1 || line[s:start-2] !~ '\k\|\]')
-              break
-          endif
-          let s:start -= 1
+            if g:ipython_greedy_matching && line[s:start-1] == '[' &&
+                \ (s:start == 1 || line[s:start-2] !~ '\k\|\]')
+                break
+            endif
+            let s:start -= 1
         endwhile
-        Python2or3 << endpython
-current_line = vim.current.line
-endpython
-        return s:start + len(join(line[: s:start], ''))
-            \ - len(getline('.')[: s:start])
-      else
+        Python2or3 current_line = vim.current.line
+        return s:start + len(join(line[: s:start], '')) -
+            \ len(getline('.')[: s:start])
+    else
         " find months matching with "a:base"
         let res = []
         let start = s:start
@@ -307,7 +307,8 @@ if vim.vars['ipython_dictionary_completion'] and not vim.vars['ipython_greedy_ma
 ## include the problematic match, instead of not including anything. There's a
 ## bit more indirection here, but I think it's worth it
 try:
-    completions, metadata = zip(*sorted(zip(completions, metadata), key=lambda x: x[0].lower()))
+    completions, metadata = zip(*sorted(zip(completions, metadata),
+                                        key=lambda x: x[0].lstrip('%').lower()))
 except ValueError:
     pass
 for c, m in zip(completions, metadata):
