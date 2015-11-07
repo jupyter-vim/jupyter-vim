@@ -250,7 +250,8 @@ fun! CompleteIPython(findstart, base)
             \ !(g:ipython_greedy_matching && s:start >= 2
             \   && line[s:start-3] =~ '\k') &&
             \ join(line[s:start-3:s:start-2], '') !=# '].')
-            return -1
+            let s:start = -1
+            return s:start
         endif
         let s:start = strchars(getline('.')[:col('.')-1]) - 1
         while s:start > 0 && (line[s:start-1] =~ s:split_pattern
@@ -269,6 +270,7 @@ fun! CompleteIPython(findstart, base)
     else
         " find months matching with "a:base"
         let res = []
+        if s:start == -1 | return [] | endif
         let start = s:start
         Python2or3 << endpython
 base = vim.eval("a:base")
