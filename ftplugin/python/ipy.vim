@@ -233,10 +233,14 @@ fun! CompleteIPython(findstart, base)
     if a:findstart
         " return immediately for imports
         if getline('.')[:col('.')-1] =~#
-            \ '\v^\s*(from\s+\w+\s+import\s+(\w+,\s+)*|import\s+)'
+            \ '\v^\s*(from\s+\w+(\.\w+)*\s+import\s+(\w+,\s+)*|import\s+)'
+            let line = getline('.')
             let s:start = col('.') - 1
+            while s:start && line[s:start - 1] =~ '[._[:alnum:]]'
+                let s:start -= 1
+            endwhile
             Python2or3 current_line = vim.current.line
-            return col('.') - 1
+            return s:start
         endif
         " locate the start of the word
         let line = split(getline('.')[:col('.')-1], '\zs')
@@ -321,10 +325,9 @@ for c, m in zip(completions, metadata):
         vim.command('call add(res, {"word": IPythonPyeval("c"), '
                                    '"menu": IPythonPyeval("m")})')
 endpython
-        "call extend(res,completions) 
         return res
-      endif
-    endfun
+    endif
+endfun
 
 function! IPythonHistory(pattern, ...)
     let session = a:0 > 0 ? a:1 : (-1)
