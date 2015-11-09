@@ -224,10 +224,17 @@ def km_from_string(s=''):
             kc = km
         kc.start_channels()
 
-        send = kc.execute if hasattr(kc, 'execute') else kc.shell_channel.execute
+        execute = kc.execute if hasattr(kc, 'execute') else kc.shell_channel.execute
         history = kc.history if hasattr(kc, 'history') else kc.shell_channel.history
         complete = kc.complete if hasattr(kc, 'complete') else kc.shell_channel.complete
         object_info = kc.inspect if hasattr(kc, 'inspect') else kc.shell_channel.object_info
+
+        def send(msg, **kwargs):
+            kwds = dict(
+                store_history=vim_vars.get('ipython_store_history', True),
+            )
+            kwds.update(kwargs)
+            return execute(msg, **kwds)
 
         send('', silent=True)
         try:
@@ -629,7 +636,7 @@ def run_ipy_input():
     if lines.strip().endswith('?'):
         return get_doc_buffer(level=1 if lines.strip().endswith('??') else 0,
                               word=lines.strip().rstrip('?'))
-    msg_id = send(lines, store_history=vim_vars.get('ipython_store_history', True))
+    msg_id = send(lines)
     lines = lines.replace('\n', u'\xac')
     print_prompt(lines[:(int(vim.options['columns']) - 22)], msg_id)
 
