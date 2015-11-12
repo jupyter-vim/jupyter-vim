@@ -31,6 +31,8 @@ class VimVars(object):
         var = vim.vars.get(name, default)
         if PY3 and isinstance(var, bytes):
             var = str(var, vim_encoding)
+        elif not PY3 and isinstance(var, str):
+            var = unicode(var, vim_encoding)
         return var
 
     def __getitem__(self, name):
