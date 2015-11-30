@@ -607,11 +607,11 @@ def print_prompt(prompt,msg_id=None):
     else:
         echo("In[]: %s" % prompt)
 
-def with_subchannel(f,*args):
+def with_subchannel(f,*args,**kwargs):
     "conditionally monitor subchannel"
     def f_with_update(*args):
         try:
-            f(*args)
+            f(*args,**kwargs)
             if monitor_subchannel:
                 update_subchannel_msgs(force=True)
         except AttributeError: #if kc is None
@@ -633,12 +633,12 @@ def run_this_file():
     print_prompt(cmd, msg_id)
 
 @with_subchannel
-def run_ipy_input():
+def run_ipy_input(silent=False):
     lines = vim_vars['ipy_input']
     if lines.strip().endswith('?'):
         return get_doc_buffer(level=1 if lines.strip().endswith('??') else 0,
                               word=lines.strip().rstrip('?'))
-    msg_id = send(lines)
+    msg_id = send(lines, silent=silent)
     lines = lines.replace('\n', u'\xac')
     print_prompt(lines[:(int(vim.options['columns']) - 22)], msg_id)
 
