@@ -359,3 +359,23 @@ for session, line, code in reversed(history):
 endpython
     return res
 endfunction
+
+function! IPythonCmdComplete(arglead, cmdline, cursorpos)
+Python2or3 << endpython
+arglead = vim.eval('a:arglead')
+if ' ' in arglead and not (arglead.strip().startswith('from ') or
+                           arglead.strip().startswith('import ')):
+    start = arglead.split()[-1]
+else:
+    start = arglead
+
+matches, _ = ipy_complete(start,
+                          vim.eval('a:cmdline'),
+                          int(vim.eval('a:cursorpos')))
+
+if ' ' in arglead:
+    arglead = arglead.rpartition(' ')[0]
+    matches = ['%s %s' % (arglead, m) for m in matches]
+vim.command('return IPythonPyeval("matches")')
+endpython
+endfunction
