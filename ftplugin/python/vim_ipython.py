@@ -579,8 +579,10 @@ def update_subchannel_msgs(debug=False, force=False):
     vim.command(str(currentwin) + 'wincmd w')
     return update_occured
 
-def get_child_msg(msg_id, timeout=1):
+def get_child_msg(msg_id, timeout=None):
     # XXX: message handling should be split into its own process in the future
+    if timeout is None:
+        timeout = float(vim_vars.get('ipython_timeout', 1))
     while True:
         # get_msg will raise with Empty exception if no messages arrive in 1 second
         m = kc.shell_channel.get_msg(timeout=timeout)
