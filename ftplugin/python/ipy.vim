@@ -281,7 +281,7 @@ except IOError:
         vim.command('setlocal omnifunc=jedi#completions')
     else:
         vim.command('setlocal omnifunc=')
-    vim.command('return -1')
+    vim.command('return []')
 # we need to be careful with unicode, because we can have unicode
 # completions for filenames (for the %run magic, for example). So the next
 # line will fail on those:
