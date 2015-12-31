@@ -81,6 +81,9 @@ import re
 vim_ipython_path = vim.eval("expand('<sfile>:h')")
 sys.path.append(vim_ipython_path)
 from vim_ipython import *
+
+class Result(object):
+    pass
 endpython
 
 fun! <SID>toggle_send_on_save()
@@ -229,6 +232,35 @@ else
     let s:split_pattern = '\k\|\.'
 endif
 
+Python2or3 << endpython
+def process_matches(matches, metadata, result):
+    if PY3:
+        completions = matches
+    else:
+        completions = [s.encode(vim_encoding) for s in matches]
+        metadata = [s.encode(vim_encoding) for s in metadata]
+    if vim.vars['ipython_dictionary_completion'] and not vim.vars['ipython_greedy_matching']:
+        for char in '\'"':
+            if any(c.endswith(char + ']') for c in completions):
+                completions = [c for c in completions if c.endswith(char + ']')]
+                break
+    try:
+        completions, metadata = zip(*sorted(zip(completions, metadata),
+                                            key=lambda x: x[0].lstrip('%').lower()))
+    except ValueError:
+        pass
+    for c, m in zip(completions, metadata):
+        result.c, result.m = c, m
+        if 'CALLSIG' in m:
+            result.split = m.partition('CALLSIG')
+            vim.command('call add(res, {"word": IPythonPyeval("r.c"), '
+                                       '"menu": IPythonPyeval("r.split[0]"), '
+                                       '"info": IPythonPyeval("r.split[-1]")})')
+        else:
+            vim.command('call add(res, {"word": IPythonPyeval("r.c"), '
+                                       '"menu": IPythonPyeval("r.m")})')
+endpython
+
 fun! CompleteIPython(findstart, base)
     if a:findstart
         " return immediately for imports
@@ -282,50 +314,8 @@ except IOError:
     else:
         vim.command('setlocal omnifunc=')
     vim.command('return []')
-# we need to be careful with unicode, because we can have unicode
-# completions for filenames (for the %run magic, for example). So the next
-# line will fail on those:
-#completions= [str(u) for u in matches]
-# because str() won't work for non-ascii characters
-# and we also have problems with unicode in vim, hence the following:
-if PY3:
-    completions = matches
-else:
-    completions = [s.encode(vim_encoding) for s in matches]
-    metadata = [s.encode(vim_encoding) for s in metadata]
-if vim.vars['ipython_dictionary_completion'] and not vim.vars['ipython_greedy_matching']:
-    for c in completions:
-        if c.endswith("']"):
-            completions = [c for c in completions if c.endswith("']")]
-            break
-        elif c.endswith('"]'):
-            completions = [c for c in completions if c.endswith('"]')]
-            break
-## Additionally, we have no good way of communicating lists to vim, so we have
-## to turn in into one long string, which can be problematic if e.g. the
-## completions contain quotes. The next line will not work if some filenames
-## contain quotes - but if that's the case, the user's just asking for
-## it, right?
-#completions = '["'+ '", "'.join(completions)+'"]'
-#vim.command("let completions = %s" % completions)
-## An alternative for the above, which will insert matches one at a time, so
-## if there's a problem with turning a match into a string, it'll just not
-## include the problematic match, instead of not including anything. There's a
-## bit more indirection here, but I think it's worth it
-try:
-    completions, metadata = zip(*sorted(zip(completions, metadata),
-                                        key=lambda x: x[0].lstrip('%').lower()))
-except ValueError:
-    pass
-for c, m in zip(completions, metadata):
-    if 'CALLSIG' in m:
-        split = m.partition('CALLSIG')
-        vim.command('call add(res, {"word": IPythonPyeval("c"), '
-                                   '"menu": IPythonPyeval("split[0]"), '
-                                   '"info": IPythonPyeval("split[-1]")})')
-    else:
-        vim.command('call add(res, {"word": IPythonPyeval("c"), '
-                                   '"menu": IPythonPyeval("m")})')
+r = Result()  # result object to let vim access namespace while in a function
+process_matches(matches, metadata, r)
 endpython
         return res
     endif
@@ -360,7 +350,8 @@ endpython
     return res
 endfunction
 
-function! IPythonCmdComplete(arglead, cmdline, cursorpos)
+function! IPythonCmdComplete(arglead, cmdline, cursorpos, ...)
+  let res = []
 Python2or3 << endpython
 arglead = vim.eval('a:arglead')
 if ' ' in arglead and not (arglead.strip().startswith('from ') or
@@ -369,13 +360,33 @@ if ' ' in arglead and not (arglead.strip().startswith('from ') or
 else:
     start = arglead
 
-matches, _ = ipy_complete(start,
-                          vim.eval('a:cmdline'),
-                          int(vim.eval('a:cursorpos')))
+matches, metadata = ipy_complete(start,
+                                 vim.eval('a:cmdline'),
+                                 int(vim.eval('a:cursorpos')))
 
 if ' ' in arglead:
     arglead = arglead.rpartition(' ')[0]
     matches = ['%s %s' % (arglead, m) for m in matches]
-vim.command('return IPythonPyeval("matches")')
+if int(vim.eval('a:0')):
+    r = Result()
+    process_matches(matches, metadata, r)
 endpython
+  if a:0
+    return res
+  else
+    return IPythonPyeval('matches')
+  endif
+endfunction
+
+function! GreedyCompleteIPython(findstart, base)
+  if a:findstart
+    let line = getline('.')
+    let start = col('.') - 1
+    while start && line[start - 1] =~ '\S'
+      let start -= 1
+    endwhile
+    return start
+  else
+    return IPythonCmdComplete(a:base, a:base, len(a:base), 1)
+  endif
 endfunction
