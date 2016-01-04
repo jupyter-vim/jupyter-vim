@@ -360,9 +360,12 @@ if ' ' in arglead and not (arglead.strip().startswith('from ') or
 else:
     start = arglead
 
-matches, metadata = ipy_complete(start,
-                                 vim.eval('a:cmdline'),
-                                 int(vim.eval('a:cursorpos')))
+try:
+    matches, metadata = ipy_complete(start,
+                                     vim.eval('a:cmdline'),
+                                     int(vim.eval('a:cursorpos')))
+except IOError:
+    vim.command('return []')
 
 if ' ' in arglead:
     arglead = arglead.rpartition(' ')[0]
