@@ -753,6 +753,8 @@ def eval_ipy_input(var=None):
     result = child['content']['user_expressions']
     try:
         text = result['_expr']['data']['text/plain']
+        if not PY3 and isinstance(text, str):
+            text = unicode(text, vim_encoding)
         if var:
             try:
                 from cStringIO import StringIO
@@ -763,9 +765,11 @@ def eval_ipy_input(var=None):
                 from ast import parse
                 vim_vars[var.replace('g:', '')] = parse(text).body[0].value.s
             else:
-                vim.command('let %s = "%s"' % (var, text.replace('"', '\\"')))
+                vim.command('let %s = "%s"' % (
+                    var, text.replace('\\', '\\\\').replace('"', '\\"')))
         else:
-            vim.command('call setreg(\'"\', "%s")' % text.replace('"', '\\"'))
+            vim.command('call setreg(\'"\', "%s")' %
+                        text.replace('\\', '\\\\').replace('"', '\\"'))
     except KeyError:
         try:
             try:
