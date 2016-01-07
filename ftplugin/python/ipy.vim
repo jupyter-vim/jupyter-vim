@@ -77,7 +77,8 @@ endif
 Python2or3 << endpython
 import vim
 import sys
-import re
+import itertools as it
+import operator as op
 vim_ipython_path = vim.eval("expand('<sfile>:h')")
 sys.path.append(vim_ipython_path)
 from vim_ipython import *
@@ -339,7 +340,9 @@ if int(vim.eval('session')) >= 0:
 else:
     history = get_history(n, pattern=pattern, unique=unique)
 seen = set()
-for session, line, code in reversed(history):
+for session, line, code in reversed(
+        [next(iter(h)) for _, h in it.groupby(
+         history, lambda i: (i[0], i[2]))]):
     if not unique or code.strip() not in seen:
         seen.add(code.strip())
         vim.command('call add(res, {'
