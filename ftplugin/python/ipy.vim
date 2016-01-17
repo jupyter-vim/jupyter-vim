@@ -333,7 +333,8 @@ if pattern:
         pattern = '*{0}*'.format(pattern)
 else:
     pattern = None
-unique = pattern is not None
+unique = vim.eval('get(g:, "ipython_history_unique", "")')
+unique = bool(int(unique)) if unique else pattern is not None
 if int(vim.eval('session')) >= 0:
     history = get_session_history(session=int(vim.eval('session')),
                                   pattern=pattern)
