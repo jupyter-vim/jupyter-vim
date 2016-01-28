@@ -342,7 +342,7 @@ else:
     history = get_history(n, pattern=pattern, unique=unique)
 seen = set()
 for session, line, code in reversed(
-        [next(iter(h)) for _, h in it.groupby(
+        [list(h)[-1] for _, h in it.groupby(
          history, lambda i: (i[0], i[2]))]):
     if not unique or code.strip() not in seen:
         seen.add(code.strip())
