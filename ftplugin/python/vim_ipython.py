@@ -611,7 +611,7 @@ def print_prompt(prompt,msg_id=None):
 
 def with_subchannel(f,*args,**kwargs):
     "conditionally monitor subchannel"
-    def f_with_update(*args):
+    def f_with_update(*args, **kwargs):
         try:
             f(*args,**kwargs)
             if monitor_subchannel:
@@ -635,12 +635,12 @@ def run_this_file():
     print_prompt(cmd, msg_id)
 
 @with_subchannel
-def run_ipy_input(silent=False):
+def run_ipy_input(**kwargs):
     lines = vim_vars['ipy_input']
     if lines.strip().endswith('?'):
         return get_doc_buffer(level=1 if lines.strip().endswith('??') else 0,
                               word=lines.strip().rstrip('?'))
-    msg_id = send(lines, silent=silent)
+    msg_id = send(lines, **kwargs)
     lines = lines.replace('\n', u'\xac')
     print_prompt(lines[:(int(vim.options['columns']) - 22)], msg_id)
 
