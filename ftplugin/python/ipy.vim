@@ -61,6 +61,19 @@ if !exists('g:ipy_autostart')
     let g:ipy_autostart = 1
 endif
 
+if !exists('g:ipython_history_len')
+  let g:ipython_history_len = 100
+endif
+if !exists('g:ipython_history_raw')
+  let g:ipython_history_raw = 1
+endif
+if !exists('g:ipython_history_unique')
+  let g:ipython_history_unique = 1
+endif
+if !exists('g:ipython_history_timeout')
+  let g:ipython_history_timeout = 2
+endif
+
 " Register IPython completefunc
 " 'global'   -- for all of vim (default).
 " 'local'    -- only for the current buffer.
