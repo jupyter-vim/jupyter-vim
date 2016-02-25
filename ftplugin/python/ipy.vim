@@ -344,6 +344,7 @@ pattern = vim.eval('a:pattern')
 if pattern:
     if not pattern.startswith('*') and not pattern.endswith('*'):
         pattern = '*{0}*'.format(pattern)
+    pattern = pattern.replace('[', '[[]')
 else:
     pattern = None
 unique = vim.eval('get(g:, "ipython_history_unique", "")')
