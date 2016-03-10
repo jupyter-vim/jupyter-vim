@@ -147,6 +147,7 @@ augroup END
 
 " Setup plugin mappings for the most common ways to interact with ipython.
 noremap  <Plug>(IPython-RunFile)            :update<CR>:Python2or3 run_this_file()<CR>
+noremap  <Plug>(IPython-ImportFile)         :update<CR>:Python2or3 run_this_file('-n')<CR>
 noremap  <Plug>(IPython-RunLine)            :Python2or3 run_this_line()<CR>
 noremap  <Plug>(IPython-RunLines)           :Python2or3 run_these_lines()<CR>
 noremap  <Plug>(IPython-OpenPyDoc)          :Python2or3 get_doc_buffer()<CR>
@@ -168,6 +169,7 @@ function! s:DoMappings()
     if g:ipy_perform_mappings != 0
        if &buftype == ''
         map  <buffer> <silent> <F5>           <Plug>(IPython-RunFile)
+        map  <buffer> <silent> g<F5>          <Plug>(IPython-ImportFile)
        endif
         " map  <buffer> <silent> <S-F5>         <Plug>(IPython-RunLine)
         map  <buffer> <silent> <F9>           <Plug>(IPython-RunLines)
