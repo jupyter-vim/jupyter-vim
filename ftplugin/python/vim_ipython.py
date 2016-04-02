@@ -427,7 +427,9 @@ def ipy_complete(base, current_line, pos):
     try:
         m = get_child_msg(msg_id, timeout=vim_vars.get('ipython_completion_timeout', 2))
         matches = m['content']['matches']
-        metadata = m['content']['metadata']
+        metadata = m['content'].get('metadata', None)
+        if not metadata:
+            metadata = ['' for _ in matches]
         # we need to be careful with unicode, because we can have unicode
         # completions for filenames (for the %run magic, for example). So the next
         # line will fail on those:
