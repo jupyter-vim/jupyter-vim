@@ -302,13 +302,19 @@ fun! CompleteIPython(findstart, base)
             return s:start
         endif
         let s:start = strchars(getline('.')[:col('.')-1]) - 1
+        let bracket_level = 0
         while s:start > 0 && (line[s:start-1] =~ s:split_pattern
             \ || (g:ipython_greedy_matching && line[s:start-1] == '.'
             \     && s:start >= 2 && line[s:start-2] =~ '\k')
             \ || join(line[s:start-2:s:start-1], '') ==# '].')
-            if g:ipython_greedy_matching && line[s:start-1] == '[' &&
-                \ (s:start == 1 || line[s:start-2] !~ '\k\|\]')
-                break
+            if g:ipython_greedy_matching && line[s:start-1] == '['
+                if (s:start == 1 || line[s:start-2] !~ '\k\|\]')
+                    \ || bracket_level > 0
+                    break
+                endif
+                let bracket_level += 1
+            elseif g:ipython_greedy_matching && line[s:start-1] == ']'
+                let bracket_level -= 1
             endif
             let s:start -= 1
         endwhile
