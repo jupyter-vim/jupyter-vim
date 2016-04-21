@@ -360,6 +360,8 @@ def get_doc_msg(msg_id):
             text = content['data']['text/plain']
             for line in text.split('\n'):
                 b.append(strip_color_escapes(line).rstrip())
+                if b[-1].startswith('Signature:'):
+                    b[-1] = re.sub(r'(\s+)(.*)$', r'\1`\2`', b[-1])
             return b
         except KeyError:    # no text/plain key
             return b
@@ -369,7 +371,7 @@ def get_doc_msg(msg_id):
         c = content.get(field,None)
         if c:
             if field in ['definition']:
-                c = strip_color_escapes(c).rstrip()
+                c = '`%s`' % strip_color_escapes(c).rstrip()
             s = field.replace('_',' ').title()+':'
             s = s.ljust(n)
             if c.find('\n')==-1:
