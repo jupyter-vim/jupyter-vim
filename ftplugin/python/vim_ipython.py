@@ -311,7 +311,15 @@ def disconnect():
 def get_doc(word, level=0):
     if kc is None:
         return ["Not connected to IPython, cannot query: %s" % word]
-    msg_id = object_info(word, detail_level=level)
+    if word.startswith('%'):  # request for magic documentation
+        request = ('_doc = get_ipython().object_inspect("{0}", '
+                   'detail_level={1})').format(word, level)
+        try:
+            msg_id = send(request, silent=True, user_variables=['_doc'])
+        except TypeError: # change in IPython 3.0+
+            msg_id = send(request, silent=True, user_expressions={'_doc':'_doc'})
+    else:
+        msg_id = object_info(word, detail_level=level)
     doc = get_doc_msg(msg_id)
     # get around unicode problems when interfacing with vim
     return [d.encode(vim_encoding) for d in doc]
@@ -330,6 +338,18 @@ def get_doc_msg(msg_id):
     except Empty:
         # timeout occurred
         return ["no reply from IPython kernel"]
+
+    if 'evalue' in content:
+        return b
+
+    doc = None
+    if 'user_variables' in content:
+        doc = content['user_variables']['_doc']
+    elif 'user_expressions' in content:
+        doc = content['user_expressions']['_doc']
+    if doc:
+        import ast
+        content = ast.literal_eval(doc['data']['text/plain'])
 
     if not content['found']:
         return b
@@ -370,7 +390,7 @@ def get_doc_buffer(level=0, word=None):
         echo(repr(word)+" not found","Error")
         return
     # documentation buffer name is same as the query made to ipython
-    vim.command('new '+word)
+    vim.command('new '+word.lstrip('%'))
     vim.command('setlocal modifiable noro')
     # doc window quick quit keys: 'q' and 'escape'
     vim.command('nnoremap <buffer> q :q<CR>')
