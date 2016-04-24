@@ -360,8 +360,9 @@ def get_doc_msg(msg_id):
             text = content['data']['text/plain']
             for line in text.split('\n'):
                 b.append(strip_color_escapes(line).rstrip())
-                if b[-1].startswith('Signature:'):
-                    b[-1] = re.sub(r'(\s+)(.*)$', r'\1`\2`', b[-1])
+                if 'signature:' in b[-1].lower():
+                    left, _, right = b[-1].partition(': ')
+                    b[-1] = '{0}: `{1}`'.format(left, right)
             return b
         except KeyError:    # no text/plain key
             return b
