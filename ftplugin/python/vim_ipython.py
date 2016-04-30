@@ -173,12 +173,6 @@ def km_from_string(s=''):
                 continue
         attempt += 1
 
-        km = KernelManager(connection_file=fullpath)
-        km.load_connection_file()
-
-        kc = km.client()
-        kc.start_channels()
-
         if 'connection_file' in KernelManager.class_trait_names():
             # 0.12 uses files instead of a collection of ports
             # include default IPython search path
@@ -244,6 +238,7 @@ def km_from_string(s=''):
             connected = True
         except:
             echo("IPython connection attempt #%d failed - no messages" % attempt, "Warning")
+            kc.stop_channels()
             continue
 
         #XXX: backwards compatibility for IPython < 1.0
