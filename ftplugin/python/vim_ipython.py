@@ -355,7 +355,7 @@ def get_doc_msg(msg_id):
             text = content['data']['text/plain']
             for line in text.split('\n'):
                 b.append(strip_color_escapes(line).rstrip())
-                if 'signature:' in b[-1].lower():
+                if 'signature: ' in b[-1].lower() and b[-1].endswith(')'):
                     left, _, right = b[-1].partition(': ')
                     b[-1] = '{0}: `{1}`'.format(left, right)
             return b
