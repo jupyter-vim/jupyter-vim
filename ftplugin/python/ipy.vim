@@ -266,6 +266,7 @@ def process_matches(matches, metadata, result):
     except ValueError:
         pass
     for c, m in zip(completions, metadata):
+        m = m.replace('\0', '^@')  # vim can't handle null bytes in Python strings
         result.c, result.m = c, m
         if 'CALLSIG' in m:
             result.split = m.partition('CALLSIG')
