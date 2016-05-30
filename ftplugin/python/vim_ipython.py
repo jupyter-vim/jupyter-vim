@@ -308,7 +308,8 @@ def get_doc(word, level=0):
         return ["Not connected to IPython, cannot query: %s" % word]
     if word.startswith('%'):  # request for magic documentation
         request = ('_doc = get_ipython().object_inspect("{0}", '
-                   'detail_level={1})').format(word, level)
+                   'detail_level={1})\n'
+                   'del _doc["argspec"]').format(word, level)
         try:
             msg_id = send(request, silent=True, user_variables=['_doc'])
         except TypeError: # change in IPython 3.0+
