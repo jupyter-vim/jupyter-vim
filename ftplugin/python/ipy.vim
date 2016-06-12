@@ -338,7 +338,7 @@ base = vim.eval("a:base")
 try:
     matches, metadata = ipy_complete(base, current_line, int(vim.eval('start')) + len(base))
 except IOError:
-    if vim.eval('exists("*jedi#completions")'):
+    if vim.eval('exists("*jedi#completions")') == '1':
         vim.command('setlocal omnifunc=jedi#completions')
     else:
         vim.command('setlocal omnifunc=')
