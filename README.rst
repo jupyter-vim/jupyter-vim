@@ -187,8 +187,10 @@ vim-ipython from defining any of the default mappings.
 By default, vim-ipython activates the custom completefunc globally.
 Sometimes, having a completefunc breaks other plugins' completions. Putting
 the line ``let g:ipy_completefunc = 'local'`` in one's vimrc will activate the
-IPython-based completion only for current buffer. Setting `g:ipy_completefunc`
-to anything other than `'local'` or `'global'` disables it altogether.
+IPython-based completion only for current buffer. Putting ``let
+g:ipy_completefunc = 'omni'`` will set the omnifunc option for the current
+buffer. Setting `g:ipy_completefunc` to anything other than `'local'` or
+`'global'` disables it altogether.
 
 **NEW since IPython 0.13**
 
@@ -310,13 +312,9 @@ pull request with your attribution.
 * @memeplex for fixing the identifier grabbing on e.g. non-PEP8 compliant code
 * @pydave for IPythonTerminate (sending SIGTERM using our hack)
 * @luispedro for IPythonNew
-<<<<<<< HEAD
-* @jjhelmus for IPython 3.x support.
 * @wmvanvliet for Matlab-like cell support.
 * @wmvanvliet for config support through vim-globals.
-=======
 * @jjhelmus and @wmvanvliet for IPython 3.x support.
->>>>>>> 42499f094b805b90b683afa5009cee99abd0bb75
 
 Similar Projects
 ----------------

@@ -1,5 +1,11 @@
+reselect = False             # reselect lines after sending from Visual mode
+show_execution_count = False # wait to get numbers for In[43]: feedback?
+monitor_subchannel = False   # update vim-ipython 'shell' on every send?
+current_line = ''
+
 try:
     from queue import Empty # python3 convention
+    unicode = str
 except ImportError:
     from Queue import Empty
 
@@ -12,7 +18,32 @@ except ImportError:
     vim = NoOp()
     print("uh oh, not running inside vim")
 
+import os
 import sys
+import time
+PY3 = sys.version_info[0] == 3
+
+class VimVars(object):
+
+    """Wrapper for vim.vars for converting bytes to str."""
+
+    def get(self, name, default=None):
+        var = vim.vars.get(name, default)
+        if PY3 and isinstance(var, bytes):
+            var = str(var, vim_encoding)
+        elif not PY3 and isinstance(var, str):
+            var = unicode(var, vim_encoding)
+        return var
+
+    def __getitem__(self, name):
+        if name not in vim.vars:
+            raise KeyError(name)
+        return self.get(name)
+
+    def __setitem__(self, name, value):
+        vim.vars[name] = value
+
+vim_vars = VimVars()
 
 # Read global configuration variables
 reselect = bool(int(vim.eval("g:ipy_reselect")))
@@ -94,7 +125,10 @@ def new_ipy(s=''):
         new_ipy()
 
     """
-    from jupyter_client.manager import KernelManager
+    try:
+        from jupyter_client import KernelManager
+    except ImportError:
+        from IPython.kernel import KernelManager
     km = KernelManager()
     km.start_kernel()
     return km_from_string(km.connection_file)
@@ -108,90 +142,135 @@ def km_from_string(s=''):
         import IPython
     except ImportError:
         raise ImportError("Could not find IPython. " + _install_instructions)
-    from IPython.config.loader import KeyValueConfigLoader
     try:
-        from jupyter_client.manager import KernelManager
-        from jupyter_client.connect import find_connection_file
+        from traitlets.config.loader import KeyValueConfigLoader
     except ImportError:
-        #  IPython < 1.0
-        from IPython.zmq.blockingkernelmanager import BlockingKernelManager as KernelManager
-        from IPython.zmq.kernelapp import kernel_aliases
+        from IPython.config.loader import KeyValueConfigLoader
+    try:
+        from jupyter_client import KernelManager, find_connection_file
+    except ImportError:
         try:
-            from IPython.lib.kernel import find_connection_file
+            from IPython.kernel import  KernelManager, find_connection_file
         except ImportError:
-            # < 0.12, no find_connection_file
-            pass
+            #  IPython < 1.0
+            from IPython.zmq.blockingkernelmanager import BlockingKernelManager as KernelManager
+            from IPython.zmq.kernelapp import kernel_aliases
+            try:
+                from IPython.lib.kernel import find_connection_file
+            except ImportError:
+                # < 0.12, no find_connection_file
+                pass
 
-    global km, kc, send
+    global km, kc, send, history, complete, object_info
 
+    # Test if connection is still alive
+    connected = False
+    starttime = time.time()
+    attempt = 0
     s = s.replace('--existing', '')
-    if 'connection_file' in KernelManager.class_trait_names():
-        # 0.12 uses files instead of a collection of ports
-        # include default IPython search path
-        # filefind also allows for absolute paths, in which case the search
-        # is ignored
+    while not connected and (time.time() - starttime) < 5.0:
+        if not attempt and os.path.isfile(s):
+            fullpath = s
+        else:
+            try:
+                s = fullpath = find_connection_file('kernel*')
+            except IOError:
+                echo("IPython connection attempt #%d failed - no kernel file" % attempt, "Warning")
+                time.sleep(1)
+                continue
+        attempt += 1
+
+        if 'connection_file' in KernelManager.class_trait_names():
+            # 0.12 uses files instead of a collection of ports
+            # include default IPython search path
+            # filefind also allows for absolute paths, in which case the search
+            # is ignored
+            try:
+                # XXX: the following approach will be brittle, depending on what
+                # connection strings will end up looking like in the future, and
+                # whether or not they are allowed to have spaces. I'll have to sync
+                # up with the IPython team to address these issues -pi
+                if '--profile' in s:
+                    k,p = s.split('--profile')
+                    k = k.lstrip().rstrip() # kernel part of the string
+                    p = p.lstrip().rstrip() # profile part of the string
+                    fullpath = find_connection_file(k,p)
+                else:
+                    fullpath = find_connection_file(s.lstrip().rstrip())
+            except IOError as e:
+                echo(":IPython " + s + " failed", "Info")
+                echo("^-- failed '" + s + "' not found", "Error")
+                return
+            km = KernelManager(connection_file = fullpath)
+            km.load_connection_file()
+        else:
+            if s == '':
+                echo(":IPython 0.11 requires the full connection string")
+                return
+            loader = KeyValueConfigLoader(s.split(), aliases=kernel_aliases)
+            cfg = loader.load_config()['KernelApp']
+            try:
+                km = KernelManager(
+                    shell_address=(ip, cfg['shell_port']),
+                    sub_address=(ip, cfg['iopub_port']),
+                    stdin_address=(ip, cfg['stdin_port']),
+                    hb_address=(ip, cfg['hb_port']))
+            except KeyError as e:
+                echo(":IPython " +s + " failed", "Info")
+                echo("^-- failed --"+e.message.replace('_port','')+" not specified", "Error")
+                return
+
         try:
-            # XXX: the following approach will be brittle, depending on what
-            # connection strings will end up looking like in the future, and
-            # whether or not they are allowed to have spaces. I'll have to sync
-            # up with the IPython team to address these issues -pi
-            if '--profile' in s:
-                k,p = s.split('--profile')
-                k = k.lstrip().rstrip() # kernel part of the string
-                p = p.lstrip().rstrip() # profile part of the string
-                fullpath = find_connection_file(k,p)
-            elif len(s.lstrip().rstrip()):
-                fullpath = find_connection_file(s.lstrip().rstrip())
-            else:
-                fullpath = find_connection_file()
-        except IOError as e:
-            echo(":IPython " + s + " failed", "Info")
-            echo("^-- failed '" + s + "' not found", "Error")
-            return
-        km = KernelManager(connection_file = fullpath)
-        km.load_connection_file()
+            kc = km.client()
+        except AttributeError:
+            # 0.13
+            kc = km
+        kc.start_channels()
+
+        execute = kc.execute if hasattr(kc, 'execute') else kc.shell_channel.execute
+        history = kc.history if hasattr(kc, 'history') else kc.shell_channel.history
+        complete = kc.complete if hasattr(kc, 'complete') else kc.shell_channel.complete
+        object_info = kc.inspect if hasattr(kc, 'inspect') else kc.shell_channel.object_info
+
+        def send(msg, **kwargs):
+            kwds = dict(
+                store_history=vim_vars.get('ipython_store_history', True),
+            )
+            kwds.update(kwargs)
+            return execute(msg, **kwds)
+
+        send('', silent=True)
+        try:
+            msg = kc.shell_channel.get_msg(timeout=1)
+            connected = True
+        except:
+            echo("IPython connection attempt #%d failed - no messages" % attempt, "Warning")
+            kc.stop_channels()
+            continue
+
+        #XXX: backwards compatibility for IPython < 1.0
+        if not hasattr(kc, 'iopub_channel'):
+            kc.iopub_channel = kc.sub_channel
+        set_pid()
+
+    if not connected:
+        echo("IPython connection attempt timed out", "Error")
+        return
     else:
-        if s == '':
-            echo(":IPython 0.11 requires the full connection string")
-            return
-        loader = KeyValueConfigLoader(s.split(), aliases=kernel_aliases)
-        cfg = loader.load_config()['KernelApp']
-        try:
-            km = KernelManager(
-                shell_address=(ip, cfg['shell_port']),
-                sub_address=(ip, cfg['iopub_port']),
-                stdin_address=(ip, cfg['stdin_port']),
-                hb_address=(ip, cfg['hb_port']))
-        except KeyError as e:
-            echo(":IPython " +s + " failed", "Info")
-            echo("^-- failed --"+e.message.replace('_port','')+" not specified", "Error")
-            return
-
-    try:
-        kc = km.client()
-    except AttributeError:
-        # 0.13
-        kc = km
-    kc.start_channels()
-
-    try:
-        send = kc.execute
-    except AttributeError:
-        # < 3.0
-        send = kc.shell_channel.execute
+        vim.command('redraw')
+        echo("IPython connection successful")
+        send('"_vim_client";_=_;__=__', store_history=False)
 
     #XXX: backwards compatibility for IPython < 0.13
-    try:
+    sc = kc.shell_channel
+    if hasattr(sc, 'object_info'):
         import inspect
-        sc = kc.shell_channel
         num_oinfo_args = len(inspect.getargspec(sc.object_info).args)
         if num_oinfo_args == 2:
             # patch the object_info method which used to only take one argument
             klass = sc.__class__
             klass._oinfo_orig = klass.object_info
             klass.object_info = lambda s,x,y: s._oinfo_orig(x)
-    except:
-        pass
 
     #XXX: backwards compatibility for IPython < 1.0
     if not hasattr(kc, 'iopub_channel'):
@@ -206,6 +285,8 @@ def km_from_string(s=''):
             set completefunc=CompleteIPython
         elseif g:ipy_completefunc == 'local'
             setl completefunc=CompleteIPython
+        elseif g:ipy_completefunc == 'omni'
+            setl omnifunc=CompleteIPython
         endif
         """)
     # also activate GUI doc balloons if in gvim
@@ -214,7 +295,6 @@ def km_from_string(s=''):
             set bexpr=IPythonBalloonExpr()
         endif
         """)
-    set_pid()
     return km
 
 def echo(arg,style="Question"):
@@ -233,14 +313,23 @@ def disconnect():
 def get_doc(word, level=0):
     if kc is None:
         return ["Not connected to IPython, cannot query: %s" % word]
-    msg_id = kc.shell_channel.object_info(word, level)
+    if word.startswith('%'):  # request for magic documentation
+        request = ('_doc = get_ipython().object_inspect("{0}", '
+                   'detail_level={1})\n'
+                   'del _doc["argspec"]').format(word, level)
+        try:
+            msg_id = send(request, silent=True, user_variables=['_doc'])
+        except TypeError: # change in IPython 3.0+
+            msg_id = send(request, silent=True, user_expressions={'_doc':'_doc'})
+    else:
+        msg_id = object_info(word, detail_level=level)
     doc = get_doc_msg(msg_id)
     # get around unicode problems when interfacing with vim
     return [d.encode(vim_encoding) for d in doc]
 
 import re
 # from http://serverfault.com/questions/71285/in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file
-strip = re.compile('\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]')
+strip = re.compile('\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mK]')
 def strip_color_escapes(s):
     return strip.sub('',s)
 
@@ -253,6 +342,18 @@ def get_doc_msg(msg_id):
         # timeout occurred
         return ["no reply from IPython kernel"]
 
+    if 'evalue' in content:
+        return b
+
+    doc = None
+    if 'user_variables' in content:
+        doc = content['user_variables']['_doc']
+    elif 'user_expressions' in content:
+        doc = content['user_expressions']['_doc']
+    if doc:
+        import ast
+        content = ast.literal_eval(doc['data']['text/plain'])
+
     if not content['found']:
         return b
 
@@ -262,6 +363,9 @@ def get_doc_msg(msg_id):
             text = content['data']['text/plain']
             for line in text.split('\n'):
                 b.append(strip_color_escapes(line).rstrip())
+                if 'signature: ' in b[-1].lower() and b[-1].endswith(')'):
+                    left, _, right = b[-1].partition(': ')
+                    b[-1] = '{0}: `{1}`'.format(left, right)
             return b
         except KeyError:    # no text/plain key
             return b
@@ -271,7 +375,7 @@ def get_doc_msg(msg_id):
         c = content.get(field,None)
         if c:
             if field in ['definition']:
-                c = strip_color_escapes(c).rstrip()
+                c = '`%s`' % strip_color_escapes(c).rstrip()
             s = field.replace('_',' ').title()+':'
             s = s.ljust(n)
             if c.find('\n')==-1:
@@ -281,24 +385,28 @@ def get_doc_msg(msg_id):
                 b.extend(c.splitlines())
     return b
 
-def get_doc_buffer(level=0):
+def get_doc_buffer(level=0, word=None):
     # empty string in case vim.eval return None
     vim.command("let isk_save = &isk") # save iskeyword list
     vim.command("let &isk = '@,48-57,_,192-255,.'")
-    word = vim.eval('expand("<cword>")') or ''
+    word = word or vim.eval('expand("<cword>")')
     vim.command("let &isk = isk_save") # restore iskeyword list
     doc = get_doc(word, level)
     if len(doc) ==0:
         echo(repr(word)+" not found","Error")
         return
     # documentation buffer name is same as the query made to ipython
-    vim.command('new '+word)
+    vim.command('new '+word.lstrip('%'))
     vim.command('setlocal modifiable noro')
     # doc window quick quit keys: 'q' and 'escape'
     vim.command('nnoremap <buffer> q :q<CR>')
+    # shortcuts to change filetype/syntax
+    vim.command('nnoremap <buffer> m :<C-u>setfiletype man<CR>')
+    vim.command('nnoremap <buffer> p :<C-u>setfiletype python<CR>')
+    vim.command('nnoremap <buffer> r :<C-u>setfiletype rst<CR>')
     # Known issue: to enable the use of arrow keys inside the terminal when
     # viewing the documentation, comment out the next line
-    vim.command('nnoremap <buffer> <Esc> :q<CR>')
+    # vim.command('nnoremap <buffer> <Esc> :q<CR>')
     # and uncomment this line (which will work if you have a timoutlen set)
     #vim.command('nnoremap <buffer> <Esc><Esc> :q<CR>')
     b = vim.current.buffer
@@ -312,31 +420,52 @@ def get_doc_buffer(level=0):
     #vim.command('pedit doc')
     #vim.command('normal! ') # go to previous window
     if level == 0:
-        # use the ReST formatting that ships with stock vim
-        vim.command('setlocal syntax=rst')
+        # highlight python code within rst
+        vim.command(r'unlet! b:current_syntax')
+        vim.command(r'syn include @rstPythonScript syntax/python.vim')
+        # 4 spaces
+        vim.command(r'syn region rstPythonRegion start=/^\v {4}/ end=/\v^( {4}|\n)@!/ contains=@rstPythonScript')
+        # >>> python code -> (doctests)
+        vim.command(r'syn region rstPythonRegion matchgroup=pythonDoctest start=/^>>>\s*/ end=/\n/ contains=@rstPythonScript')
+        vim.command(r'set syntax=rst')
     else:
         # use Python syntax highlighting
         vim.command('setlocal syntax=python')
 
 def ipy_complete(base, current_line, pos):
-    # pos is the location of the start of base, add the length
-    # to get the completion position
-    msg_id = kc.shell_channel.complete(base, current_line,
-                                       int(pos) + len(base) - 1)
+    if re.match('^\s*(import|from)\s+', current_line):
+        pos -= len(current_line) - len(current_line.lstrip())
+        current_line = current_line.lstrip()
+    else:
+        match = re.match('^\s*from\s+\w+(\.\w+)*\s+import\s+(\w+,\s+)*', current_line)
+        if match:
+            module = match.string.strip().split()[1]
+            current_line = 'from {module} import {base}'.format(
+                module=module, base=base)
+            pos = current_line.rindex(base)
+        else:
+            current_line = current_line[pos-len(base):pos]
+            pos = len(base)
     try:
-        m = get_child_msg(msg_id)
+        msg_id = complete(text=base, line=current_line, cursor_pos=pos)
+    except TypeError:
+        msg_id = complete(code=current_line, cursor_pos=pos)
+    try:
+        m = get_child_msg(msg_id, timeout=vim_vars.get('ipython_completion_timeout', 2))
         matches = m['content']['matches']
-        matches.insert(0,base) # the "no completion" version
+        metadata = m['content'].get('metadata', None)
+        if not metadata:
+            metadata = ['' for _ in matches]
         # we need to be careful with unicode, because we can have unicode
         # completions for filenames (for the %run magic, for example). So the next
         # line will fail on those:
         #completions= [str(u) for u in matches]
         # because str() won't work for non-ascii characters
         # and we also have problems with unicode in vim, hence the following:
-        return matches
+        return matches, metadata
     except Empty:
         echo("no reply from IPython kernel")
-        return ['']
+        raise IOError
 
 def vim_ipython_is_open():
     """
@@ -359,6 +488,9 @@ def update_subchannel_msgs(debug=False, force=False):
     msgs = kc.iopub_channel.get_msgs()
     b = vim.current.buffer
     startedin_vimipython = vim.eval('@%')=='vim-ipython'
+    nwindows = len(vim.windows)
+    currentwin = int(vim.eval('winnr()'))
+    previouswin = int(vim.eval('winnr("#")'))
     if not startedin_vimipython:
         # switch to preview window
         vim.command(
@@ -446,7 +578,6 @@ def update_subchannel_msgs(debug=False, force=False):
         elif header == 'pyerr' or header == 'error':
             c = m['content']
             s = "\n".join(map(strip_color_escapes,c['traceback']))
-            s += c['ename'] + ":" + c['evalue']
 
         if s.find('\n') == -1:
             # somewhat ugly unicode workaround from
@@ -466,20 +597,30 @@ def update_subchannel_msgs(debug=False, force=False):
             b.append([''])
     if update_occured or force:
         vim.command('normal! G') # go to the end of the file
-    if not startedin_vimipython:
-        vim.command('normal! p') # go back to where you were
+    if len(vim.windows) > nwindows:
+        pwin = int(vim.current.window.number)
+        if pwin <= previouswin:
+            previouswin += 1
+        if pwin <= currentwin:
+            currentwin += 1
+    vim.command(str(previouswin) + 'wincmd w')
+    vim.command(str(currentwin) + 'wincmd w')
     return update_occured
 
-def get_child_msg(msg_id):
+def get_child_msg(msg_id, timeout=None):
     # XXX: message handling should be split into its own process in the future
+    if timeout is None:
+        timeout = float(vim_vars.get('ipython_timeout', 1))
     while True:
         # get_msg will raise with Empty exception if no messages arrive in 1 second
-        m = kc.shell_channel.get_msg(timeout=1)
+        m = kc.shell_channel.get_msg(timeout=timeout)
         if m['parent_header']['msg_id'] == msg_id:
             break
         else:
             #got a message, but not the one we were looking for
-            echo('skipping a message on shell_channel','WarningMsg')
+            if m['msg_type'] != 'execute_reply':
+                echo('skipping a message on shell_channel (%s)' % m['msg_type'],
+                     'WarningMsg')
     return m
 
 def print_prompt(prompt,msg_id=None):
@@ -496,11 +637,11 @@ def print_prompt(prompt,msg_id=None):
     else:
         echo("In[]: %s" % prompt)
 
-def with_subchannel(f,*args):
+def with_subchannel(f,*args,**kwargs):
     "conditionally monitor subchannel"
-    def f_with_update(*args):
+    def f_with_update(*args, **kwargs):
         try:
-            f(*args)
+            f(*args,**kwargs)
             if monitor_subchannel:
                 update_subchannel_msgs(force=True)
         except AttributeError: #if kc is None
@@ -508,9 +649,28 @@ def with_subchannel(f,*args):
     return f_with_update
 
 @with_subchannel
-def run_this_file():
-    msg_id = send('%%run %s %s' % (run_flags, repr(vim.current.buffer.name),))
-    print_prompt("In[]: %%run %s %s" % (run_flags, repr(vim.current.buffer.name)),msg_id)
+def run_this_file(flags=''):
+    ext = os.path.splitext(vim.current.buffer.name)[-1][1:]
+    if ext in ('pxd', 'pxi', 'pyx', 'pyxbld'):
+        cmd = ' '.join(filter(None, (
+            '%run_cython',
+            vim_vars.get('cython_run_flags', ''),
+            repr(vim.current.buffer.name))))
+    else:
+        cmd = '%%run %s %s' % (flags or vim_vars['ipython_run_flags'],
+                               repr(vim.current.buffer.name))
+    msg_id = send(cmd)
+    print_prompt(cmd, msg_id)
+
+@with_subchannel
+def run_ipy_input(**kwargs):
+    lines = vim_vars['ipy_input']
+    if lines.strip().endswith('?'):
+        return get_doc_buffer(level=1 if lines.strip().endswith('??') else 0,
+                              word=lines.strip().rstrip('?'))
+    msg_id = send(lines, **kwargs)
+    lines = lines.replace('\n', u'\xac')
+    print_prompt(lines[:(int(vim.options['columns']) - 22)], msg_id)
 
 @with_subchannel
 def run_this_line(dedent=False):
@@ -577,7 +737,7 @@ def set_pid():
     Explicitly ask the ipython kernel for its pid
     """
     global pid
-    lines = '\n'.join(['import os', '_pid = os.getpid()'])
+    lines = '\n'.join(['import os as _os', '_pid = _os.getpid()'])
 
     try:
         msg_id = send(lines, silent=True, user_variables=['_pid'])
@@ -600,6 +760,56 @@ def set_pid():
     except KeyError: # change in IPython 1.0.dev moved this out
         echo("Could not get PID information, kernel not running Python?")
     return pid
+
+
+def eval_ipy_input(var=None):
+    ipy_input = vim_vars['ipy_input']
+    if not ipy_input:
+        return
+    if ipy_input.startswith(('%', '!', '$')):
+        msg_id = send('', silent=True,
+                      user_expressions={'_expr': ipy_input})
+    else:
+        msg_id = send('from __future__ import division; '
+                      '_expr = %s' % ipy_input, silent=True,
+                      user_expressions={'_expr': '_expr'})
+    try:
+        child = get_child_msg(msg_id)
+    except Empty:
+        echo("no reply from IPython kernel")
+        return
+    result = child['content']['user_expressions']
+    try:
+        text = result['_expr']['data']['text/plain']
+        if not PY3 and isinstance(text, str):
+            text = unicode(text, vim_encoding)
+        if var:
+            try:
+                from cStringIO import StringIO
+            except ImportError:
+                from io import StringIO
+            from tokenize import STRING, generate_tokens
+            if next(generate_tokens(StringIO(text).readline))[0] == STRING:
+                from ast import parse
+                vim_vars[var.replace('g:', '')] = parse(text).body[0].value.s
+            else:
+                vim.command('let %s = "%s"' % (
+                    var, text.replace('\\', '\\\\').replace('"', '\\"')))
+        else:
+            vim.command('call setreg(\'"\', "%s")' %
+                        text.replace('\\', '\\\\').replace('"', '\\"'))
+    except KeyError:
+        try:
+            try:
+                echo('{ename}: {evalue}'.format(**child['content']))
+            except KeyError:
+                echo('{ename}: {evalue}'.format(**result['_expr']))
+        except Exception:
+            echo('Unknown error occurred')
+    else:
+        if not var:
+            vim.command('let @+ = @"')
+            vim.command('let @* = @"')
 
 
 def terminate_kernel_hack():
@@ -740,3 +950,45 @@ def toggle_reselect():
 #    #send('run -d %s' % (vim.current.buffer.name,))
 #    echo("In[]: run -d %s (using pdb)" % vim.current.buffer.name)
 
+def get_history(n, pattern=None, unique=True):
+    msg_id = history(
+        hist_access_type='search' if pattern else 'tail',
+        pattern=pattern, n=n, unique=unique,
+        raw=vim_vars.get('ipython_history_raw', True))
+    try:
+        child = get_child_msg(
+            msg_id, timeout=float(vim_vars.get('ipython_history_timeout', 2)))
+        results = [(session, line, code.encode(vim_encoding))
+                   for session, line, code in child['content']['history']]
+    except Empty:
+        echo("no reply from IPython kernel")
+        return []
+    if unique:
+        results.extend(get_session_history(pattern=pattern))
+    return results
+
+def get_session_history(session=None, pattern=None):
+    from ast import literal_eval
+    from fnmatch import fnmatch
+    msg_id = send('', silent=True, user_expressions={
+        '_hist': '[h for h in get_ipython().history_manager.get_range('
+        '%s, raw=%s)]'
+        % (str(session) if session else
+           'get_ipython().history_manager.session_number',
+           vim_vars.get('ipython_history_raw', 'True')),
+        '_session': 'get_ipython().history_manager.session_number',
+    })
+    try:
+        child = get_child_msg(
+            msg_id, timeout=float(vim_vars.get('ipython_history_timeout', 2)))
+        hist = child['content']['user_expressions']['_hist']
+        session = child['content']['user_expressions']['_session']
+        session = int(session['data']['text/plain'].encode(vim_encoding))
+        hist = literal_eval(hist['data']['text/plain'])
+        return [(s if s > 0 else session, l, c.encode(vim_encoding))
+                for s, l, c in hist if fnmatch(c, pattern or '*')]
+    except Empty:
+        echo("no reply from IPython kernel")
+        return []
+    except KeyError:
+        return []
