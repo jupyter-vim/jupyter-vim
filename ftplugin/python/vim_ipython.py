@@ -330,10 +330,11 @@ def get_doc_msg(msg_id):
     n = 13 # longest field name (empirically)
     b=[]
     try:
-        content = get_child_msg(msg_id)['content']
+        m = get_child_msg(msg_id)
     except Empty:
         # timeout occurred
         return ["no reply from IPython kernel"]
+    content = m['content']
 
     if 'evalue' in content:
         return b
