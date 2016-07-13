@@ -254,7 +254,8 @@ def process_matches(matches, metadata, result):
         completions = matches
     else:
         completions = [s.encode(vim_encoding) for s in matches]
-        metadata = [s.encode(vim_encoding) for s in metadata]
+        for i, m in enumerate(metadata):
+            metadata[i] = {k: v.encode(vim_encoding) for k, v in m.items()}
     if vim.vars['ipython_dictionary_completion'] and not vim.vars['ipython_greedy_matching']:
         for char in '\'"':
             if any(c.endswith(char + ']') for c in completions):
@@ -266,16 +267,18 @@ def process_matches(matches, metadata, result):
     except ValueError:
         pass
     for c, m in zip(completions, metadata):
-        m = m.replace('\0', '^@')  # vim can't handle null bytes in Python strings
+        # vim can't handle null bytes in Python strings
+        m = {k: v.replace('\0', '^@') for k, v in m.items()}
         result.c, result.m = c, m
-        if 'CALLSIG' in m:
-            result.split = m.partition('CALLSIG')
-            vim.command('call add(res, {"word": IPythonPyeval("r.c"), '
-                                       '"menu": IPythonPyeval("r.split[0]"), '
-                                       '"info": IPythonPyeval("r.split[-1]")})')
+        if 'info' in m:
+            r.text, r.info = m['text'], m['info']
+            vim.command('call add(res, {"word": IPythonPyeval("r.c"),    '
+                                       '"menu": IPythonPyeval("r.text"), '
+                                       '"info": IPythonPyeval("r.info")})')
         else:
-            vim.command('call add(res, {"word": IPythonPyeval("r.c"), '
-                                       '"menu": IPythonPyeval("r.m")})')
+            r.text = m.get('text', '')
+            vim.command('call add(res, {"word": IPythonPyeval("r.c"),    '
+                                       '"menu": IPythonPyeval("r.text")})')
 endpython
 
 fun! CompleteIPython(findstart, base)
