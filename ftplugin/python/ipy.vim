@@ -269,16 +269,16 @@ def process_matches(matches, metadata, result):
     for c, m in zip(completions, metadata):
         # vim can't handle null bytes in Python strings
         m = {k: v.replace('\0', '^@') for k, v in m.items()}
-        result.c, result.m = c, m
+        result.word = c
         if 'info' in m:
-            r.text, r.info = m['text'], m['info']
-            vim.command('call add(res, {"word": IPythonPyeval("r.c"),    '
-                                       '"menu": IPythonPyeval("r.text"), '
+            result.menu, result.info = m['menu'], m['info']
+            vim.command('call add(res, {"word": IPythonPyeval("r.word"),    '
+                                       '"menu": IPythonPyeval("r.menu"), '
                                        '"info": IPythonPyeval("r.info")})')
         else:
-            r.text = m.get('text', '')
-            vim.command('call add(res, {"word": IPythonPyeval("r.c"),    '
-                                       '"menu": IPythonPyeval("r.text")})')
+            result.menu = m.get('menu', '')
+            vim.command('call add(res, {"word": IPythonPyeval("r.word"),    '
+                                       '"menu": IPythonPyeval("r.menu")})')
 endpython
 
 fun! CompleteIPython(findstart, base)

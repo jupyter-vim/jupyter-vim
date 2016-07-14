@@ -474,7 +474,7 @@ def get_completion_metadata():
     else:
         metadata = content['user_expressions']['_completions']
     metadata = ast.literal_eval(metadata['data']['text/plain'])
-    matches = [c['match'] for c in metadata]
+    matches = [c['word'] for c in metadata]
     return matches, metadata
 
 def vim_ipython_is_open():
