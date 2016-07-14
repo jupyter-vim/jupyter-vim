@@ -229,6 +229,7 @@ def km_from_string(s=''):
         def send(msg, **kwargs):
             kwds = dict(
                 store_history=vim_vars.get('ipython_store_history', True),
+                allow_stdin=False,
             )
             kwds.update(kwargs)
             return execute(msg, **kwds)
