@@ -5,21 +5,22 @@ Contents                                *vim-ipython-contents*
 
 1. Completion Metadata                     |vim-ipython-metadata|
 2. IPython Monitor                         |vim-ipython-monitor|
-3. Variables                               |vim-ipython-variables|
-    3.1. g:ipy_autostart                   |g:ipy_autostart|
-    3.2. g:ipy_completefunc                |g:ipy_completefunc|
-    3.3. g:ipy_input                       |g:ipy_input|
-    3.4. g:ipy_perform_mappings            |g:ipy_perform_mappings|
-    3.5. g:ipython_completion_timeout      |g:ipython_completion_timeout|
-    3.6. g:ipython_dictionary_completion   |g:ipython_dictionary_completion|
-    3.7. g:ipython_greedy_matching         |g:ipython_greedy_matching|
-    3.8. g:ipython_history_len             |g:ipython_history_len|
-    3.9. g:ipython_history_raw             |g:ipython_history_raw|
-    3.10. g:ipython_history_timeout        |g:ipython_history_timeout|
-    3.11. g:ipython_history_unique         |g:ipython_history_unique|
-    3.12. g:ipython_run_flags              |g:ipython_run_flags|
-    3.13. g:ipython_store_history          |g:ipython_store_history|
-    3.14. g:ipython_timeout                |g:ipython_timeout|
+3. IPython History Unite Source            |vim-ipython-history|
+4. Variables                               |vim-ipython-variables|
+    4.1. g:ipy_autostart                   |g:ipy_autostart|
+    4.2. g:ipy_completefunc                |g:ipy_completefunc|
+    4.3. g:ipy_input                       |g:ipy_input|
+    4.4. g:ipy_perform_mappings            |g:ipy_perform_mappings|
+    4.5. g:ipython_completion_timeout      |g:ipython_completion_timeout|
+    4.6. g:ipython_dictionary_completion   |g:ipython_dictionary_completion|
+    4.7. g:ipython_greedy_matching         |g:ipython_greedy_matching|
+    4.8. g:ipython_history_len             |g:ipython_history_len|
+    4.9. g:ipython_history_raw             |g:ipython_history_raw|
+    4.10. g:ipython_history_timeout        |g:ipython_history_timeout|
+    4.11. g:ipython_history_unique         |g:ipython_history_unique|
+    4.12. g:ipython_run_flags              |g:ipython_run_flags|
+    4.13. g:ipython_store_history          |g:ipython_store_history|
+    4.14. g:ipython_timeout                |g:ipython_timeout|
 
 ==============================================================================
 1. Completion Metadata                   *vim-ipython-metadata*
@@ -69,48 +70,90 @@ connect to the first connection file it finds matching the glob pattern
 notebook kernels by design.
 
 ==============================================================================
-3. Variables                             *vim-ipython-variables*
+3. IPython History Unite Source          *vim-ipython-history*
+
+Note: Requires unite.vim: https://github.com/Shougo/unite.vim
+
+The plugin includes a Unite source named "history/ipython" providing an
+interface to the history messaging in IPython. The source will prompt for a
+glob pattern to search for. If no pattern is provided, the search results in
+up to |g:ipython_history_len| of the most recent IPython commands. If the
+pattern begins or ends with a '*', the other end of the pattern is anchored at
+the start or end of the match. For example, >
+
+    Pattern: def *
+
+will return results that start with a function definition and >
+
+    Pattern: *)
+
+will return results ending with ')'. Otherwise a '*' is both prepended
+and appended to the pattern, so >
+
+    Pattern: sys
+
+will return results containing "sys" anywhere.
+
+The input prompt allows completion from the IPython namespace.
+
+After selecting a history entry, the available actions are (in addition to
+Unite's common actions):
+
+    - `append` (insert the entry after the cursor line)
+    - `insert` (insert the entry before the cursor line)
+    - `macro` (prompt for a macro name and create an IPython macro to repeat
+      the commands)
+    - `send` (repeat the command in IPython)
+    - `session` (restart the history/ipython source showing entries only from
+      the same session as the selected entry)
+    - `session_info` (print session date and start time)
+    - `yank` (yank entries to unnamed and clipboard if 'clipboard' is set)
+
+Multiple history entries may be selected for all of the actions.
+
+==============================================================================
+4. Variables                             *vim-ipython-variables*
 
 ------------------------------------------------------------------------------
-3.1. `g:ipy_autostart`                   *g:ipy_autostart*
+4.1. `g:ipy_autostart`                   *g:ipy_autostart*
 
 ------------------------------------------------------------------------------
-3.2. `g:ipy_completefunc`                *g:ipy_completefunc*
+4.2. `g:ipy_completefunc`                *g:ipy_completefunc*
 
 ------------------------------------------------------------------------------
-3.3. `g:ipy_input`                       *g:ipy_input*
+4.3. `g:ipy_input`                       *g:ipy_input*
 
 ------------------------------------------------------------------------------
-3.4. `g:ipy_perform_mappings`            *g:ipy_perform_mappings*
+4.4. `g:ipy_perform_mappings`            *g:ipy_perform_mappings*
 
 ------------------------------------------------------------------------------
-3.5. `g:ipython_completion_timeout`      *g:ipython_completion_timeout*
+4.5. `g:ipython_completion_timeout`      *g:ipython_completion_timeout*
 
 ------------------------------------------------------------------------------
-3.6. `g:ipython_dictionary_completion`   *g:ipython_dictionary_completion*
+4.6. `g:ipython_dictionary_completion`   *g:ipython_dictionary_completion*
 
 ------------------------------------------------------------------------------
-3.7. `g:ipython_greedy_matching`         *g:ipython_greedy_matching*
+4.7. `g:ipython_greedy_matching`         *g:ipython_greedy_matching*
 
 ------------------------------------------------------------------------------
-3.8. `g:ipython_history_len`             *g:ipython_history_len*
+4.8. `g:ipython_history_len`             *g:ipython_history_len*
 
 ------------------------------------------------------------------------------
-3.9. `g:ipython_history_raw`             *g:ipython_history_raw*
+4.9. `g:ipython_history_raw`             *g:ipython_history_raw*
 
 ------------------------------------------------------------------------------
-3.10. `g:ipython_history_timeout`        *g:ipython_history_timeout*
+4.10. `g:ipython_history_timeout`        *g:ipython_history_timeout*
 
 ------------------------------------------------------------------------------
-3.11. `g:ipython_history_unique`         *g:ipython_history_unique*
+4.11. `g:ipython_history_unique`         *g:ipython_history_unique*
 
 ------------------------------------------------------------------------------
-3.12. `g:ipython_run_flags`              *g:ipython_run_flags*
+4.12. `g:ipython_run_flags`              *g:ipython_run_flags*
 
 ------------------------------------------------------------------------------
-3.13. `g:ipython_store_history`          *g:ipython_store_history*
+4.13. `g:ipython_store_history`          *g:ipython_store_history*
 
 ------------------------------------------------------------------------------
-3.14. `g:ipython_timeout`                *g:ipython_timeout*
+4.14. `g:ipython_timeout`                *g:ipython_timeout*
 
  vim: textwidth=78 et filetype=help:norightleft:
