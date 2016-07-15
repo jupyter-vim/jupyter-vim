@@ -149,7 +149,13 @@ augroup END
 noremap  <Plug>(IPython-RunFile)            :update<CR>:Python2or3 run_this_file()<CR>
 noremap  <Plug>(IPython-ImportFile)         :update<CR>:Python2or3 run_this_file('-n')<CR>
 noremap  <Plug>(IPython-RunLine)            :Python2or3 run_this_line()<CR>
-noremap  <Plug>(IPython-RunLines)           :Python2or3 run_these_lines()<CR>
+if has('python3') && get(g:, 'pymode_python', '') !=# 'python'
+    noremap  <Plug>(IPython-RunLines)           :python3 run_these_lines()<CR>
+    xnoremap <Plug>(IPython-RunLinesAsTopLevel) :python3 dedent_run_these_lines()<CR>
+else
+    noremap  <Plug>(IPython-RunLines)           :python run_these_lines()<CR>
+    xnoremap <Plug>(IPython-RunLinesAsTopLevel) :python dedent_run_these_lines()<CR>
+endif
 noremap  <Plug>(IPython-OpenPyDoc)          :Python2or3 get_doc_buffer()<CR>
 noremap  <Plug>(IPython-UpdateShell)        :Python2or3 if update_subchannel_msgs(force=True): echo("vim-ipython shell updated",'Operator')<CR>
 noremap  <Plug>(IPython-ToggleReselect)     :Python2or3 toggle_reselect()<CR>
@@ -162,7 +168,6 @@ noremap  <Plug>(IPython-ToggleSendOnSave)   :call <SID>toggle_send_on_save()<CR>
 noremap  <Plug>(IPython-PlotClearCurrent)   :Python2or3 run_command("plt.clf()")<CR>
 noremap  <Plug>(IPython-PlotCloseAll)       :Python2or3 run_command("plt.close('all')")<CR>
 noremap  <Plug>(IPython-RunLineAsTopLevel)  :Python2or3 dedent_run_this_line()<CR>
-xnoremap <Plug>(IPython-RunLinesAsTopLevel) :Python2or3 dedent_run_these_lines()<CR>
 
 function! s:DoMappings()
     let b:did_ipython = 1
