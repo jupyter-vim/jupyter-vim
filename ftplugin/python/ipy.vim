@@ -46,6 +46,7 @@ endif
 " Enable cell folding
 if !exists('g:ipy_cell_folding')
     let g:ipy_cell_folding = 0
+endif
 
 if !exists('g:ipython_dictionary_completion')
     let g:ipython_dictionary_completion = 0
