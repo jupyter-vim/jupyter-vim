@@ -115,7 +115,7 @@ cursor somewhere within it and press ``<Ctrl-Enter>``::
 
   ## Do something
   print('Hello')
-  
+
   ## Do something else
   print('IPython')
 

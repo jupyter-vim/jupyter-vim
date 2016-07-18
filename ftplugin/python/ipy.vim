@@ -383,8 +383,8 @@ r = Result()  # result object to let vim access namespace while in a function
 process_matches(matches, metadata, r)
 endpython
         return res
-      endif
-    endfun
+    endif
+endfun
 
 " Custom folding function to fold cells
 function! FoldByCell(lnum)

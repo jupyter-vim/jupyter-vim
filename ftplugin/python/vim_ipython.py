@@ -917,8 +917,8 @@ def run_this_cell():
     min_indent = count(upper_bound+1)
     for i in range(upper_bound+1, lower_bound):
         indent = count(i)
-        if i < min_indent:
-            min_indent = i
+        if indent < min_indent:
+            min_indent = indent
 
     # Perform dedent
     if min_indent > 0:
