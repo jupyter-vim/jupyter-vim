@@ -177,7 +177,13 @@ noremap  <Plug>(IPython-RunCell)            :python run_this_cell()<CR>
 noremap  <Plug>(IPython-RunFile)            :update<CR>:Python2or3 run_this_file()<CR>
 noremap  <Plug>(IPython-ImportFile)         :update<CR>:Python2or3 run_this_file('-n')<CR>
 noremap  <Plug>(IPython-RunLine)            :Python2or3 run_this_line()<CR>
-noremap  <Plug>(IPython-RunLines)           :Python2or3 run_these_lines()<CR>
+if has('python3') && get(g:, 'pymode_python', '') !=# 'python'
+    noremap  <Plug>(IPython-RunLines)           :python3 run_these_lines()<CR>
+    xnoremap <Plug>(IPython-RunLinesAsTopLevel) :python3 dedent_run_these_lines()<CR>
+else
+    noremap  <Plug>(IPython-RunLines)           :python run_these_lines()<CR>
+    xnoremap <Plug>(IPython-RunLinesAsTopLevel) :python dedent_run_these_lines()<CR>
+endif
 noremap  <Plug>(IPython-OpenPyDoc)          :Python2or3 get_doc_buffer()<CR>
 noremap  <Plug>(IPython-UpdateShell)        :Python2or3 if update_subchannel_msgs(force=True): echo("vim-ipython shell updated",'Operator')<CR>
 noremap  <Plug>(IPython-ToggleReselect)     :Python2or3 toggle_reselect()<CR>
@@ -190,7 +196,6 @@ noremap  <Plug>(IPython-ToggleSendOnSave)   :call <SID>toggle_send_on_save()<CR>
 noremap  <Plug>(IPython-PlotClearCurrent)   :Python2or3 run_command("plt.clf()")<CR>
 noremap  <Plug>(IPython-PlotCloseAll)       :Python2or3 run_command("plt.close('all')")<CR>
 noremap  <Plug>(IPython-RunLineAsTopLevel)  :Python2or3 dedent_run_this_line()<CR>
-xnoremap <Plug>(IPython-RunLinesAsTopLevel) :Python2or3 dedent_run_these_lines()<CR>
 
 function! s:DoMappings()
     let b:did_ipython = 1
@@ -282,7 +287,8 @@ def process_matches(matches, metadata, result):
         completions = matches
     else:
         completions = [s.encode(vim_encoding) for s in matches]
-        metadata = [s.encode(vim_encoding) for s in metadata]
+        for i, m in enumerate(metadata):
+            metadata[i] = {k: v.encode(vim_encoding) for k, v in m.items()}
     if vim.vars['ipython_dictionary_completion'] and not vim.vars['ipython_greedy_matching']:
         for char in '\'"':
             if any(c.endswith(char + ']') for c in completions):
@@ -294,16 +300,18 @@ def process_matches(matches, metadata, result):
     except ValueError:
         pass
     for c, m in zip(completions, metadata):
-        m = m.replace('\0', '^@')  # vim can't handle null bytes in Python strings
-        result.c, result.m = c, m
-        if 'CALLSIG' in m:
-            result.split = m.partition('CALLSIG')
-            vim.command('call add(res, {"word": IPythonPyeval("r.c"), '
-                                       '"menu": IPythonPyeval("r.split[0]"), '
-                                       '"info": IPythonPyeval("r.split[-1]")})')
+        # vim can't handle null bytes in Python strings
+        m = {k: v.replace('\0', '^@') for k, v in m.items()}
+        result.word = c
+        if 'info' in m:
+            result.menu, result.info = m['menu'], m['info']
+            vim.command('call add(res, {"word": IPythonPyeval("r.word"),    '
+                                       '"menu": IPythonPyeval("r.menu"), '
+                                       '"info": IPythonPyeval("r.info")})')
         else:
-            vim.command('call add(res, {"word": IPythonPyeval("r.c"), '
-                                       '"menu": IPythonPyeval("r.m")})')
+            result.menu = m.get('menu', '')
+            vim.command('call add(res, {"word": IPythonPyeval("r.word"),    '
+                                       '"menu": IPythonPyeval("r.menu")})')
 endpython
 
 fun! CompleteIPython(findstart, base)

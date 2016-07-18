@@ -18,6 +18,7 @@ except ImportError:
     vim = NoOp()
     print("uh oh, not running inside vim")
 
+import ast
 import os
 import sys
 import time
@@ -235,6 +236,7 @@ def km_from_string(s=''):
         def send(msg, **kwargs):
             kwds = dict(
                 store_history=vim_vars.get('ipython_store_history', True),
+                allow_stdin=False,
             )
             kwds.update(kwargs)
             return execute(msg, **kwds)
@@ -337,10 +339,11 @@ def get_doc_msg(msg_id):
     n = 13 # longest field name (empirically)
     b=[]
     try:
-        content = get_child_msg(msg_id)['content']
+        m = get_child_msg(msg_id)
     except Empty:
         # timeout occurred
         return ["no reply from IPython kernel"]
+    content = m['content']
 
     if 'evalue' in content:
         return b
@@ -351,7 +354,6 @@ def get_doc_msg(msg_id):
     elif 'user_expressions' in content:
         doc = content['user_expressions']['_doc']
     if doc:
-        import ast
         content = ast.literal_eval(doc['data']['text/plain'])
 
     if not content['found']:
@@ -452,20 +454,36 @@ def ipy_complete(base, current_line, pos):
         msg_id = complete(code=current_line, cursor_pos=pos)
     try:
         m = get_child_msg(msg_id, timeout=vim_vars.get('ipython_completion_timeout', 2))
-        matches = m['content']['matches']
-        metadata = m['content'].get('metadata', None)
-        if not metadata:
-            metadata = ['' for _ in matches]
-        # we need to be careful with unicode, because we can have unicode
-        # completions for filenames (for the %run magic, for example). So the next
-        # line will fail on those:
-        #completions= [str(u) for u in matches]
-        # because str() won't work for non-ascii characters
-        # and we also have problems with unicode in vim, hence the following:
-        return matches, metadata
+        try:
+            return get_completion_metadata()
+        except KeyError:  # completion_metadata function not available
+            matches = m['content']['matches']
+            metadata = [{} for _ in matches]
+            return matches, metadata
     except Empty:
         echo("no reply from IPython kernel")
         raise IOError
+
+def get_completion_metadata():
+    """Generate and fetch completion metadata."""
+    request = '_completions = completion_metadata(get_ipython())'
+    try:
+        msg_id = send(request, silent=True, user_variables=['_completions'])
+    except TypeError: # change in IPython 3.0+
+        msg_id = send(request, silent=True, user_expressions={'_completions':'_completions'})
+    try:
+        m = get_child_msg(msg_id, timeout=vim_vars.get('ipython_completion_timeout', 2))
+    except Empty:
+        echo("no reply from IPython kernel")
+        raise IOError
+    content = m['content']
+    if 'user_variables' in content:
+        metadata = content['user_variables']['_completions']
+    else:
+        metadata = content['user_expressions']['_completions']
+    metadata = ast.literal_eval(metadata['data']['text/plain'])
+    matches = [c['word'] for c in metadata]
+    return matches, metadata
 
 def vim_ipython_is_open():
     """
