@@ -197,6 +197,8 @@ noremap  <Plug>(IPython-ToggleSendOnSave)   :call <SID>toggle_send_on_save()<CR>
 noremap  <Plug>(IPython-PlotClearCurrent)   :Python2or3 run_command("plt.clf()")<CR>
 noremap  <Plug>(IPython-PlotCloseAll)       :Python2or3 run_command("plt.close('all')")<CR>
 noremap  <Plug>(IPython-RunLineAsTopLevel)  :Python2or3 dedent_run_this_line()<CR>
+noremap  <Plug>(IPython-RunTextObj)          :<C-u>set opfunc=<SID>opfunc<CR>g@
+noremap  <Plug>(IPython-RunCell)            :<C-u>set opfunc=<SID>opfunc<CR>g@ap
 
 function! s:DoMappings()
     let b:did_ipython = 1
@@ -206,6 +208,7 @@ function! s:DoMappings()
         map  <buffer> <silent> g<F5>          <Plug>(IPython-ImportFile)
        endif
         " map  <buffer> <silent> <S-F5>         <Plug>(IPython-RunLine)
+        map  <buffer> <silent> <F6>           <Plug>(IPython-RunTextObj)
         map  <buffer> <silent> <F9>           <Plug>(IPython-RunLines)
         map  <buffer> <silent> ,d             <Plug>(IPython-OpenPyDoc)
         map  <buffer> <silent> <M-r>          <Plug>(IPython-UpdateShell)
@@ -483,4 +486,44 @@ function! GreedyCompleteIPython(findstart, base)
   else
     return IPythonCmdComplete(a:base, a:base, len(a:base), 1)
   endif
+endfunction
+
+function! s:opfunc(type)
+  " Originally from tpope/vim-scriptease
+  let sel_save = &selection
+  let cb_save = &clipboard
+  let reg_save = @@
+  let left_save = getpos("'<")
+  let right_save = getpos("'>")
+  let vimode_save = visualmode()
+  try
+    set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
+    if a:type =~ '^\d\+$'
+      silent exe 'normal! ^v'.a:type.'$hy'
+    elseif a:type =~# '^.$'
+      silent exe "normal! `<" . a:type . "`>y"
+    elseif a:type ==# 'line'
+      silent exe "normal! '[V']y"
+    elseif a:type ==# 'block'
+      silent exe "normal! `[\<C-V>`]y"
+    elseif a:type ==# 'visual'
+      silent exe "normal! gvy"
+    else
+      silent exe "normal! `[v`]y"
+    endif
+    redraw
+    let l:cmd = @@
+  finally
+    let @@ = reg_save
+    let &selection = sel_save
+    let &clipboard = cb_save
+    exe "normal! " . vimode_save . "\<Esc>"
+    call setpos("'<", left_save)
+    call setpos("'>", right_save)
+  endtry
+Python2or3 << EOF
+import textwrap
+import vim
+run_command(textwrap.dedent(vim.eval('l:cmd')))
+EOF
 endfunction
