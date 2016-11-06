@@ -96,8 +96,6 @@ vim_ipython_path = vim.eval("expand('<sfile>:h')")
 sys.path.append(vim_ipython_path)
 from vim_ipython import *
 
-class Result(object):
-    pass
 endpython
 
 fun! <SID>toggle_send_on_save()
@@ -262,8 +260,6 @@ def process_matches(matches, metadata, result):
         completions = matches
     else:
         completions = [s.encode(vim_encoding) for s in matches]
-        for i, m in enumerate(metadata):
-            metadata[i] = {k: v.encode(vim_encoding) for k, v in m.items()}
     if vim.vars['ipython_dictionary_completion'] and not vim.vars['ipython_greedy_matching']:
         for char in '\'"':
             if any(c.endswith(char + ']') for c in completions):
@@ -277,16 +273,11 @@ def process_matches(matches, metadata, result):
     for c, m in zip(completions, metadata):
         # vim can't handle null bytes in Python strings
         m = {k: v.replace('\0', '^@') for k, v in m.items()}
-        result.word = c
-        if 'info' in m:
-            result.menu, result.info = m['menu'], m['info']
-            vim.command('call add(res, {"word": IPythonPyeval("r.word"),    '
-                                       '"menu": IPythonPyeval("r.menu"), '
-                                       '"info": IPythonPyeval("r.info")})')
-        else:
-            result.menu = m.get('menu', '')
-            vim.command('call add(res, {"word": IPythonPyeval("r.word"),    '
-                                       '"menu": IPythonPyeval("r.menu")})')
+        result.clear()
+        result.update(m)
+        vim.command('call add(res, {%s})' % ','.join(
+            '"{k}": IPythonPyeval("r[\'{k}\']")'.format(k=k)
+            for k in result))
 endpython
 
 fun! CompleteIPython(findstart, base)
@@ -354,7 +345,7 @@ except IOError:
     else:
         vim.command('setlocal omnifunc=')
     vim.command('return []')
-r = Result()  # result object to let vim access namespace while in a function
+r = dict()  # result object to let vim access namespace while in a function
 process_matches(matches, metadata, r)
 endpython
         return res
@@ -415,7 +406,7 @@ if ' ' in arglead:
     arglead = arglead.rpartition(' ')[0]
     matches = ['%s %s' % (arglead, m) for m in matches]
 if int(vim.eval('a:0')):
-    r = Result()
+    r = dict()
     process_matches(matches, metadata, r)
 endpython
   if a:0
