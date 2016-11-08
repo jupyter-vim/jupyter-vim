@@ -459,7 +459,12 @@ def ipy_complete(base, current_line, pos):
 
 def get_completion_metadata():
     """Generate and fetch completion metadata."""
-    request = '_completions = completion_metadata(get_ipython())'
+    request = '''
+try:
+    _completions = completion_metadata(get_ipython())
+except Exception:
+    pass
+'''
     try:
         msg_id = send(request, silent=True, user_variables=['_completions'])
     except TypeError: # change in IPython 3.0+
