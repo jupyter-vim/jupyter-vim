@@ -272,9 +272,9 @@ def process_matches(matches, metadata, result):
         pass
     for c, m in zip(completions, metadata):
         # vim can't handle null bytes in Python strings
-        m = {k: v.replace('\0', '^@') for k, v in m.items()}
         result.clear()
-        result.update(m)
+        result['word'] = c
+        result.update({k: v.replace('\0', '^@') for k, v in m.items()})
         vim.command('call add(res, {%s})' % ','.join(
             '"{k}": IPythonPyeval("r[\'{k}\']")'.format(k=k)
             for k in result))
