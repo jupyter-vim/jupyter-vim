@@ -274,7 +274,8 @@ def process_matches(matches, metadata, result):
         result.clear()
         result['word'] = c
         # vim can't handle null bytes in Python strings
-        result.update({k: v.replace('\0', '^@') for k, v in m.items()})
+        for k, v in m.items():
+          result[k] = v.replace('\0', '^@')
         vim.command('call add(res, {%s})' % ','.join(
             '"{k}": IPythonPyeval("r[\'{k}\']")'.format(k=k)
             for k in result))
