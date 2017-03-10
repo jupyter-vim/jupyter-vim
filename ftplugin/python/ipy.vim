@@ -92,26 +92,6 @@ if !exists('g:ipy_completefunc')
     let g:ipy_completefunc = 'omni'
 endif
 
-" reselect lines after sending from Visual mode
-if !exists('g:ipy_reselect')
-	let g:ipy_reselect = 0
-endif
-
-" wait to get numbers for In[43]: feedback?
-if !exists('g:ipy_show_execution_count')
-	let g:ipy_show_execution_count = 1
-endif
-
-" update vim-ipython 'shell' on every send?
-if !exists('g:ipy_monitor_subchannel')
-	let g:ipy_monitor_subchannel = 1
-endif
-
-" flags to for IPython's run magic when using <F5>
-if !exists('g:ipy_run_flags')
-	let g:ipy_run_flags = '-i'
-endif
-
 Python2or3 << endpython
 import vim
 import sys
@@ -169,13 +149,10 @@ augroup vim-ipython
 augroup END
 
 " Setup plugin mappings for the most common ways to interact with ipython.
-noremap  <Plug>(IPython-RunFile)            :python run_this_file()<CR>
-noremap  <Plug>(IPython-RunLine)            :python run_this_line()<CR>
-noremap  <Plug>(IPython-RunLines)           :python run_these_lines()<CR>
-noremap  <Plug>(IPython-RunCell)            :python run_this_cell()<CR>
 noremap  <Plug>(IPython-RunFile)            :update<CR>:Python2or3 run_this_file()<CR>
 noremap  <Plug>(IPython-ImportFile)         :update<CR>:Python2or3 run_this_file('-n')<CR>
 noremap  <Plug>(IPython-RunLine)            :Python2or3 run_this_line()<CR>
+noremap  <Plug>(IPython-RunCell)            :Python2or3 run_this_cell()<CR>
 if has('python3') && get(g:, 'pymode_python', '') !=# 'python'
     noremap  <Plug>(IPython-RunLines)           :python3 run_these_lines()<CR>
     xnoremap <Plug>(IPython-RunLinesAsTopLevel) :python3 dedent_run_these_lines()<CR>
@@ -195,8 +172,8 @@ noremap  <Plug>(IPython-ToggleSendOnSave)   :call <SID>toggle_send_on_save()<CR>
 noremap  <Plug>(IPython-PlotClearCurrent)   :Python2or3 run_command("plt.clf()")<CR>
 noremap  <Plug>(IPython-PlotCloseAll)       :Python2or3 run_command("plt.close('all')")<CR>
 noremap  <Plug>(IPython-RunLineAsTopLevel)  :Python2or3 dedent_run_this_line()<CR>
-noremap  <Plug>(IPython-RunTextObj)          :<C-u>set opfunc=<SID>opfunc<CR>g@
-noremap  <Plug>(IPython-RunCell)            :<C-u>set opfunc=<SID>opfunc<CR>g@ap
+noremap  <Plug>(IPython-RunTextObj)         :<C-u>set opfunc=<SID>opfunc<CR>g@
+noremap  <Plug>(IPython-RunParagraph)       :<C-u>set opfunc=<SID>opfunc<CR>g@ap
 
 function! s:DoMappings()
     let b:did_ipython = 1
@@ -226,13 +203,13 @@ function! s:DoMappings()
         "map  <buffer> <silent> <F11>          <Plug>(IPython-PlotCloseAll)
 
         "pi custom
-        "map  <buffer> <silent> <C-Return>        <Plug>(IPython-RunFile)
-        map  <buffer> <silent> <Leader>x         <Plug>(IPython-RunLine)
-        imap <buffer> <silent> <Leader>x         <Esc><Plug>(IPython-RunLine)
+        map  <buffer> <silent> <C-Return>        <Plug>(IPython-RunFile)
+        " map  <buffer> <silent> <Leader>x         <Plug>(IPython-RunLine)
+        " imap <buffer> <silent> <Leader>x         <Esc><Plug>(IPython-RunLine)
         map  <buffer> <silent> <M-S>             <Plug>(IPython-RunLineAsTopLevel)
         "xmap <buffer> <silent> <Leader>x         <Plug>(IPython-RunLinesAsTopLevel)
         xmap <buffer> <silent> <M-S>             <Plug>(IPython-RunLines)
-        map  <buffer> <silent> <C-Return>        <Plug>(IPython-RunCell)
+        map  <buffer> <silent> <Leader><Leader>x <Plug>(IPython-RunCell)
 
         " noremap  <buffer> <silent> <M-c>      I#<ESC>
         " xnoremap <buffer> <silent> <M-c>      I#<ESC>
@@ -384,7 +361,7 @@ endfun
 
 " Custom folding function to fold cells
 function! FoldByCell(lnum)
-    let pattern = '\v^\s*(##|' . escape('# <codecell>', '<>') . ').*$'
+    let pattern = '\v^\s*(##|' . escape('# <codecell>', '<>') . '|# %%).*$'
     if getline(a:lnum) =~? pattern
         return '>1'
     elseif getline(a:lnum+1) =~? pattern
