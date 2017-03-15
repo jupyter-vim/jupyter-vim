@@ -407,7 +407,7 @@ def get_doc_buffer(level=0, word=None):
     b = vim.current.buffer
     b[:] = None
     b[:] = doc
-    vim.command('setlocal nomodified bufhidden=wipe')
+    vim.command('setlocal nomodified bufhidden=wipe nomodifiable readonly nospell')
     #vim.command('setlocal previewwindow nomodifiable nomodified ro')
     #vim.command('set previewheight=%d'%len(b))# go to previous window
     vim.command('resize %d'%len(b))
