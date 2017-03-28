@@ -261,7 +261,7 @@ def km_from_string(s=''):
     else:
         vim.command('redraw')
         echo("IPython connection successful")
-        send('"_vim_client";_=_;__=__', store_history=False)
+        send('"_vim_client";_=_;__=__\n', store_history=False)
 
     #XXX: backwards compatibility for IPython < 0.13
     sc = kc.shell_channel
@@ -739,7 +739,7 @@ def run_these_lines(dedent=False):
         lines = "\n".join(x[leading:] for x in lines)
     else:
         lines = "\n".join(vim.current.buffer[r.start:r.end+1])
-    msg_id = send(lines)
+    msg_id = send(lines + "\n")
     #alternative way of doing this in more recent versions of ipython
     #but %paste only works on the local machine
     #vim.command("\"*yy")
