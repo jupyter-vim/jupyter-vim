@@ -608,8 +608,7 @@ def update_subchannel_msgs(debug=False, force=False):
             current_stdin_prompt['is_password'] = m['content']['password']
             current_stdin_prompt['parent_msg_id'] = m['parent_header']['msg_id']
             s += m['content']['prompt']
-            vim.command('autocmd InsertEnter <buffer> :py EnteredInsertMode()')
-            echo('Awaiting input. call :IPythonInput or edit last vim-ipython line')
+            echo('Awaiting input. call :IPythonInput to reply')
 
         if s.find('\n') == -1:
             # somewhat ugly unicode workaround from
@@ -1034,10 +1033,3 @@ def get_session_history(session=None, pattern=None):
         return []
     except KeyError:
         return []
-
-def EnteredInsertMode():
-    if current_stdin_prompt and vim.eval('line(".")')==vim.eval('line("$")'):
-        if InputPrompt():
-            vim.command('autocmd InsertLeave <buffer> :normal! G$')
-            vim.command('autocmd InsertLeave <buffer> :autocmd! InsertLeave <buffer>')
-            vim.command('call feedkeys("\\<Esc>", "n")')
