@@ -238,6 +238,8 @@ command! -nargs=0 IPythonXSelection :Python2or3 km_from_string(vim.eval('@*'))
 command! -nargs=* IPythonNew :Python2or3 new_ipy("<args>")
 command! -nargs=* IPythonInterrupt :Python2or3 interrupt_kernel_hack("<args>")
 command! -nargs=0 IPythonTerminate :Python2or3 terminate_kernel_hack()
+command! -nargs=0 -bang IPythonInput :Python2or3 InputPrompt(force='<bang>')
+command! -nargs=0 -bang IPythonInputSecret :Python2or3 InputPrompt(force='<bang>', hide_input=True)
 
 function! IPythonBalloonExpr()
 Python2or3 << endpython

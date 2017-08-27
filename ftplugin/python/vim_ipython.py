@@ -609,7 +609,7 @@ def update_subchannel_msgs(debug=False, force=False):
             current_stdin_prompt['parent_msg_id'] = m['parent_header']['msg_id']
             s += m['content']['prompt']
             vim.command('autocmd InsertEnter <buffer> :py EnteredInsertMode()')
-            echo('Awaiting input. Answer by editing last vim-ipython line')
+            echo('Awaiting input. call :IPythonInput or edit last vim-ipython line')
 
         if s.find('\n') == -1:
             # somewhat ugly unicode workaround from
@@ -769,9 +769,23 @@ def run_these_lines(dedent=False):
     print_prompt(prompt,msg_id)
 
 @with_subchannel
-def EnteredInsertMode():
-    # If there is a pending input and we are in the last line
-    if current_stdin_prompt and vim.eval('line(".")')==vim.eval('line("$")'):
+def InputPrompt(force=False, hide_input=False):
+    msgs = kc.stdin_channel.get_msgs()
+    for m in msgs:
+        global current_stdin_prompt
+        if 'msg_type' not in m['header']:
+            continue
+        current_stdin_prompt.clear()
+        header = m['header']['msg_type']
+        if header == 'input_request':
+            current_stdin_prompt['prompt'] = m['content']['prompt']
+            current_stdin_prompt['is_password'] = m['content']['password']
+            current_stdin_prompt['parent_msg_id'] = m['parent_header']['msg_id']
+
+    if not hide_input:
+        hide_input = current_stdin_prompt.get('is_password', False)
+    # If there is a pending input or we are forcing the input prompt
+    if (current_stdin_prompt or force) and kc:
         # save the current prompt, ask for input and restore the prompt
         vim.command('call inputsave()')
         input_call = (
@@ -780,8 +794,8 @@ def EnteredInsertMode():
             "|catch /^Vim:Interrupt$/"
             "|silent! unlet user_input"
             "|endtry"
-            ).format(input_command='inputsecret' if current_stdin_prompt['is_password'] else 'input',
-                     prompt=current_stdin_prompt['prompt'])
+            ).format(input_command='inputsecret' if hide_input else 'input',
+                     prompt=current_stdin_prompt.get('prompt', ''))
         vim.command(input_call)
         vim.command('call inputrestore()')
 
@@ -789,20 +803,40 @@ def EnteredInsertMode():
         if vim.eval('exists("user_input")'):
             reply = vim.eval('user_input')
             vim.command("silent! unlet user_input")
-            b = vim.current.buffer
-            last_line = b[-1]
-            del b[-1]
-            b.append((last_line+reply).splitlines())
-            vim.command('autocmd InsertLeave <buffer> :normal! G$')
-            vim.command('autocmd InsertLeave <buffer> :autocmd! InsertLeave <buffer>')
-            vim.command('call feedkeys("\\<Esc>", "n")')
-            kc.input(reply)
-            try:
-                child = get_child_msg(current_stdin_prompt['parent_msg_id'])
-            except Empty:
-                pass
-            current_stdin_prompt.clear()
+            # write the reply to the vim-ipython buffer if it's not a password
+            if not hide_input and vim_ipython_is_open():
 
+                currentwin = int(vim.eval('winnr()'))
+                previouswin = int(vim.eval('winnr("#")'))
+                vim.command(
+                    "try"
+                    "|silent! wincmd P"
+                    "|catch /^Vim\%((\a\+)\)\=:E441/"
+                    "|endtry")
+
+                if vim.eval('@%')=='vim-ipython':
+                    b = vim.current.buffer
+                    last_line = b[-1]
+                    del b[-1]
+                    b.append((last_line+reply).splitlines())
+                    vim.command(str(previouswin) + 'wincmd w')
+                    vim.command(str(currentwin) + 'wincmd w')
+
+            kc.input(reply)
+            if current_stdin_prompt:
+                try:
+                    child = get_child_msg(current_stdin_prompt['parent_msg_id'])
+                except Empty:
+                    pass
+
+            current_stdin_prompt.clear()
+            return True
+    else:
+        if not current_stdin_prompt:
+            echo('no input request detected')
+        if not kc:
+            echo('not connected to IPython')
+        return False
 
 
 def set_pid():
@@ -1000,3 +1034,10 @@ def get_session_history(session=None, pattern=None):
         return []
     except KeyError:
         return []
+
+def EnteredInsertMode():
+    if current_stdin_prompt and vim.eval('line(".")')==vim.eval('line("$")'):
+        if InputPrompt():
+            vim.command('autocmd InsertLeave <buffer> :normal! G$')
+            vim.command('autocmd InsertLeave <buffer> :autocmd! InsertLeave <buffer>')
+            vim.command('call feedkeys("\\<Esc>", "n")')
