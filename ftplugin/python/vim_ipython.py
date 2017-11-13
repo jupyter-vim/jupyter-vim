@@ -2,6 +2,8 @@ reselect = False             # reselect lines after sending from Visual mode
 show_execution_count = False # wait to get numbers for In[43]: feedback?
 monitor_subchannel = False   # update vim-ipython 'shell' on every send?
 current_line = ''
+allow_stdin = True          # whether or not to accept stdin requests
+current_stdin_prompt = {}
 
 try:
     from queue import Empty # python3 convention
@@ -236,7 +238,7 @@ def km_from_string(s=''):
         def send(msg, **kwargs):
             kwds = dict(
                 store_history=vim_vars.get('ipython_store_history', True),
-                allow_stdin=False,
+                allow_stdin=allow_stdin,
             )
             kwds.update(kwargs)
             return execute(msg, **kwds)
@@ -414,7 +416,7 @@ def get_doc_buffer(level=0, word=None):
     b = vim.current.buffer
     b[:] = None
     b[:] = doc
-    vim.command('setlocal nomodified bufhidden=wipe')
+    vim.command('setlocal nomodified bufhidden=wipe nomodifiable readonly nospell')
     #vim.command('setlocal previewwindow nomodifiable nomodified ro')
     #vim.command('set previewheight=%d'%len(b))# go to previous window
     vim.command('resize %d'%len(b))
@@ -509,6 +511,10 @@ def update_subchannel_msgs(debug=False, force=False):
     if kc is None or (not vim_ipython_is_open() and not force):
         return False
     msgs = kc.iopub_channel.get_msgs()
+    if allow_stdin:
+        msgs += kc.stdin_channel.get_msgs()
+
+    global current_stdin_prompt
     b = vim.current.buffer
     startedin_vimipython = vim.eval('@%')=='vim-ipython'
     nwindows = len(vim.windows)
@@ -563,6 +569,9 @@ def update_subchannel_msgs(debug=False, force=False):
     b = vim.current.buffer
     update_occured = False
     for m in msgs:
+        # if we received a message it means the kernel is not waiting for input
+        vim.command('autocmd! InsertEnter <buffer>')
+        current_stdin_prompt.clear()
         s = ''
         if 'msg_type' not in m['header']:
             # debug information
@@ -601,6 +610,12 @@ def update_subchannel_msgs(debug=False, force=False):
         elif header == 'pyerr' or header == 'error':
             c = m['content']
             s = "\n".join(map(strip_color_escapes,c['traceback']))
+        elif header == 'input_request':
+            current_stdin_prompt['prompt'] = m['content']['prompt']
+            current_stdin_prompt['is_password'] = m['content']['password']
+            current_stdin_prompt['parent_msg_id'] = m['parent_header']['msg_id']
+            s += m['content']['prompt']
+            echo('Awaiting input. call :IPythonInput to reply')
 
         if s.find('\n') == -1:
             # somewhat ugly unicode workaround from
@@ -615,11 +630,14 @@ def update_subchannel_msgs(debug=False, force=False):
                 b.append([l.encode(vim_encoding) for l in s.splitlines()])
         update_occured = True
     # make a newline so we can just start typing there
-    if status_blank_lines:
+    if status_blank_lines and not current_stdin_prompt:
         if b[-1] != '':
             b.append([''])
     if update_occured or force:
         vim.command('normal! G') # go to the end of the file
+        if current_stdin_prompt:
+            vim.command('normal! $') # also go to the end of the line
+
     if len(vim.windows) > nwindows:
         pwin = int(vim.current.window.number)
         if pwin <= previouswin:
@@ -656,7 +674,9 @@ def print_prompt(prompt,msg_id=None):
             count = child['content']['execution_count']
             echo("In[%d]: %s" %(count,prompt))
         except Empty:
-            echo("In[]: %s (no reply from IPython kernel)" % prompt)
+            # if the kernel it's waiting for input it's normal to get no reply
+            if not kc.stdin_channel.msg_ready():
+                echo("In[]: %s (no reply from IPython kernel)" % prompt)
     else:
         echo("In[]: %s" % prompt)
 
@@ -753,6 +773,76 @@ def run_these_lines(dedent=False):
     #print("lines %d-%d sent to ipython"% (r.start+1,r.end+1))
     prompt = "lines %d-%d "% (r.start+1,r.end+1)
     print_prompt(prompt,msg_id)
+
+@with_subchannel
+def InputPrompt(force=False, hide_input=False):
+    msgs = kc.stdin_channel.get_msgs()
+    for m in msgs:
+        global current_stdin_prompt
+        if 'msg_type' not in m['header']:
+            continue
+        current_stdin_prompt.clear()
+        header = m['header']['msg_type']
+        if header == 'input_request':
+            current_stdin_prompt['prompt'] = m['content']['prompt']
+            current_stdin_prompt['is_password'] = m['content']['password']
+            current_stdin_prompt['parent_msg_id'] = m['parent_header']['msg_id']
+
+    if not hide_input:
+        hide_input = current_stdin_prompt.get('is_password', False)
+    # If there is a pending input or we are forcing the input prompt
+    if (current_stdin_prompt or force) and kc:
+        # save the current prompt, ask for input and restore the prompt
+        vim.command('call inputsave()')
+        input_call = (
+            "try"
+            "|let user_input = {input_command}('{prompt}')"
+            "|catch /^Vim:Interrupt$/"
+            "|silent! unlet user_input"
+            "|endtry"
+            ).format(input_command='inputsecret' if hide_input else 'input',
+                     prompt=current_stdin_prompt.get('prompt', ''))
+        vim.command(input_call)
+        vim.command('call inputrestore()')
+
+        # if the user replied to the input request
+        if vim.eval('exists("user_input")'):
+            reply = vim.eval('user_input')
+            vim.command("silent! unlet user_input")
+            # write the reply to the vim-ipython buffer if it's not a password
+            if not hide_input and vim_ipython_is_open():
+
+                currentwin = int(vim.eval('winnr()'))
+                previouswin = int(vim.eval('winnr("#")'))
+                vim.command(
+                    "try"
+                    "|silent! wincmd P"
+                    "|catch /^Vim\%((\a\+)\)\=:E441/"
+                    "|endtry")
+
+                if vim.eval('@%')=='vim-ipython':
+                    b = vim.current.buffer
+                    last_line = b[-1]
+                    del b[-1]
+                    b.append((last_line+reply).splitlines())
+                    vim.command(str(previouswin) + 'wincmd w')
+                    vim.command(str(currentwin) + 'wincmd w')
+
+            kc.input(reply)
+            if current_stdin_prompt:
+                try:
+                    child = get_child_msg(current_stdin_prompt['parent_msg_id'])
+                except Empty:
+                    pass
+
+            current_stdin_prompt.clear()
+            return True
+    else:
+        if not current_stdin_prompt:
+            echo('no input request detected')
+        if not kc:
+            echo('not connected to IPython')
+        return False
 
 
 def set_pid():
