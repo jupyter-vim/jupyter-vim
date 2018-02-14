@@ -1,0 +1,159 @@
+*ipython.txt*
+
+==============================================================================
+Contents                                *vim-ipython-contents*
+
+1. Completion Metadata                     |vim-ipython-metadata|
+2. IPython Monitor                         |vim-ipython-monitor|
+3. IPython History Unite Source            |vim-ipython-history|
+4. Variables                               |vim-ipython-variables|
+    4.1. g:ipy_autostart                   |g:ipy_autostart|
+    4.2. g:ipy_completefunc                |g:ipy_completefunc|
+    4.3. g:ipy_input                       |g:ipy_input|
+    4.4. g:ipy_perform_mappings            |g:ipy_perform_mappings|
+    4.5. g:ipython_completion_timeout      |g:ipython_completion_timeout|
+    4.6. g:ipython_dictionary_completion   |g:ipython_dictionary_completion|
+    4.7. g:ipython_greedy_matching         |g:ipython_greedy_matching|
+    4.8. g:ipython_history_len             |g:ipython_history_len|
+    4.9. g:ipython_history_raw             |g:ipython_history_raw|
+    4.10. g:ipython_history_timeout        |g:ipython_history_timeout|
+    4.11. g:ipython_history_unique         |g:ipython_history_unique|
+    4.12. g:ipython_run_flags              |g:ipython_run_flags|
+    4.13. g:ipython_store_history          |g:ipython_store_history|
+    4.14. g:ipython_timeout                |g:ipython_timeout|
+
+==============================================================================
+1. Completion Metadata                   *vim-ipython-metadata*
+
+vim-ipython supports user-supplied metadata associated with completions from
+the IPython shell. The plugin fetches the metadata from the IPython kernel
+using the user-defined function `completion_metadata` which takes one
+parameter - the result of `get_ipython()`. If the function does not exist in
+IPython's namespace, completion will still work but without any menu/info
+entries in the completion menu. Each completion match should have a
+corresponding metadata dictionary with "word", "menu", and "info" fields. A
+basic (and slow) implementation of such a function follows: >
+
+    def completion_metadata(ip):
+        import inspect
+        import six
+        metadata = [dict(word=m) for m in ip.Completer.matches]
+        for m in metadata:
+            try:
+                obj = eval(m['word'], ip.user_ns)
+            except Exception:
+                continue
+            m['menu'] = six.moves.reprlib.repr(obj)
+            info = inspect.getdoc(obj)
+            if info:
+                m['info'] = info
+        return metadata
+
+==============================================================================
+2. IPython Monitor                       *vim-ipython-monitor*
+
+The included `monitor.py` script listens in on message from Vim to the IPython
+kernel to echo inputs and outputs to the kernel in real-time. The script must
+be started before connecting Vim to the IPython kernel so that it can
+differentiate between Vim and the Jupyter shell clients. The `:IPython`
+command can be executed multiple times without ill effect in case the monitor
+is started later on.
+
+Basic usage: >
+
+    $ python monitor.py &; jupyter console
+    :IPython
+
+Note: Currently the script looks for a connection file automatically and will
+connect to the first connection file it finds matching the glob pattern
+"kernel-[0-9]*.json'. This means the script will not connect to IPython
+notebook kernels by design.
+
+==============================================================================
+3. IPython History Unite Source          *vim-ipython-history*
+
+Note: Requires unite.vim: https://github.com/Shougo/unite.vim
+
+The plugin includes a Unite source named "history/ipython" providing an
+interface to the history messaging in IPython. The source will prompt for a
+glob pattern to search for. If no pattern is provided, the search results in
+up to |g:ipython_history_len| of the most recent IPython commands. If the
+pattern begins or ends with a '*', the other end of the pattern is anchored at
+the start or end of the match. For example, >
+
+    Pattern: def *
+
+will return results that start with a function definition and >
+
+    Pattern: *)
+
+will return results ending with ')'. Otherwise a '*' is both prepended
+and appended to the pattern, so >
+
+    Pattern: sys
+
+will return results containing "sys" anywhere.
+
+The input prompt allows completion from the IPython namespace.
+
+After selecting a history entry, the available actions are (in addition to
+Unite's common actions):
+
+    - `append` (insert the entry after the cursor line)
+    - `insert` (insert the entry before the cursor line)
+    - `macro` (prompt for a macro name and create an IPython macro to repeat
+      the commands)
+    - `send` (repeat the command in IPython)
+    - `session` (restart the history/ipython source showing entries only from
+      the same session as the selected entry)
+    - `session_info` (print session date and start time)
+    - `yank` (yank entries to unnamed and clipboard if 'clipboard' is set)
+
+Multiple history entries may be selected for all of the actions.
+
+==============================================================================
+4. Variables                             *vim-ipython-variables*
+
+------------------------------------------------------------------------------
+4.1. `g:ipy_autostart`                   *g:ipy_autostart*
+
+------------------------------------------------------------------------------
+4.2. `g:ipy_completefunc`                *g:ipy_completefunc*
+
+------------------------------------------------------------------------------
+4.3. `g:ipy_input`                       *g:ipy_input*
+
+------------------------------------------------------------------------------
+4.4. `g:ipy_perform_mappings`            *g:ipy_perform_mappings*
+
+------------------------------------------------------------------------------
+4.5. `g:ipython_completion_timeout`      *g:ipython_completion_timeout*
+
+------------------------------------------------------------------------------
+4.6. `g:ipython_dictionary_completion`   *g:ipython_dictionary_completion*
+
+------------------------------------------------------------------------------
+4.7. `g:ipython_greedy_matching`         *g:ipython_greedy_matching*
+
+------------------------------------------------------------------------------
+4.8. `g:ipython_history_len`             *g:ipython_history_len*
+
+------------------------------------------------------------------------------
+4.9. `g:ipython_history_raw`             *g:ipython_history_raw*
+
+------------------------------------------------------------------------------
+4.10. `g:ipython_history_timeout`        *g:ipython_history_timeout*
+
+------------------------------------------------------------------------------
+4.11. `g:ipython_history_unique`         *g:ipython_history_unique*
+
+------------------------------------------------------------------------------
+4.12. `g:ipython_run_flags`              *g:ipython_run_flags*
+
+------------------------------------------------------------------------------
+4.13. `g:ipython_store_history`          *g:ipython_store_history*
+
+------------------------------------------------------------------------------
+4.14. `g:ipython_timeout`                *g:ipython_timeout*
+
+ vim: textwidth=78 et filetype=help:norightleft:
