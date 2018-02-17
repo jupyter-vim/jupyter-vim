@@ -7,11 +7,12 @@ Usage:
     3. Connect Vim to console kernel using IPython command
 """
 from __future__ import print_function
+from glob import glob
 import ast
 import os
 import re
-import six
 import sys
+import six
 try:
     from jupyter_client import KernelManager, find_connection_file
 except ImportError:
@@ -20,7 +21,6 @@ try:
     from Queue import Empty
 except ImportError:
     from queue import Empty
-from glob import glob
 
 try:
     from pygments import highlight
@@ -35,60 +35,15 @@ else:
 colors = {k: i for i, k in enumerate([
     'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'])}
 
-
-def paths():
-    for fullpath in glob(os.path.join(os.path.dirname(filename), 'kernel*')):
-        if not re.match('^(.*/)?kernel-[0-9]+.json', fullpath):
-            continue
-        yield fullpath
-
-
-connected = False
-while not connected:
-    try:
-        filename = find_connection_file('kernel*')
-    except IOError:
-        continue
-
-    for fullpath in paths():
-        km = KernelManager(connection_file=fullpath)
-        km.load_connection_file()
-
-        kc = km.client()
-        kc.start_channels()
-        try:
-            send = kc.execute
-        except AttributeError:
-            send = kc.shell_channel.execute
-        if not hasattr(kc, 'iopub_channel'):
-            kc.iopub_channel = kc.sub_channel
-
-        send('', silent=True)
-        try:
-            msg = kc.shell_channel.get_msg(timeout=1)
-            connected = True
-            socket = km.connect_iopub()
-            print('IPython monitor connected successfully')
-            break
-        except KeyboardInterrupt:
-            sys.exit(0)
-        except (Empty, KeyError):
-            continue
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-        finally:
-            if not connected:
-                kc.stop_channels()
-
-
+#------------------------------------------------------------------------------ 
+#        Function definitions
+#------------------------------------------------------------------------------
 def colorize(string, color, bold=False, bright=False):
     if isinstance(color, str):
         code = ''.join(('\033[', str(colors[color] + (90 if bright else 30))))
     else:
         code = '\033[38;5;%d' % color
     return ''.join((code, ';1' if bold else '', 'm', string, '\033[0m'))
-
 
 def get_msgs():
     try:
@@ -102,25 +57,15 @@ def get_msgs():
             except Empty:
                 return msgs
 
-
-if len(sys.argv) > 1:
-    term = open(sys.argv[1], 'w')
-    sys.stdout = term
-else:
-    msg_id = send('import os as _os; _tty = _os.ttyname(1)', silent=True,
-                  user_expressions=dict(_tty='_tty'))
-    while True:
-        try:
-            msg = kc.shell_channel.get_msg(timeout=1.0)
-            if msg['parent_header']['msg_id'] == msg_id:
-                sys.stdout = open(ast.literal_eval(
-                    msg['content']['user_expressions']
-                    ['_tty']['data']['text/plain']), 'w+')
-                break
-        except Empty:
+def paths():
+    for fullpath in glob(os.path.join(os.path.dirname(filename), 'kernel*')):
+        if not re.match('^(.*/)?kernel-[0-9]+.json', fullpath):
             continue
+        yield fullpath
 
-
+#------------------------------------------------------------------------------ 
+#        Class definition
+#------------------------------------------------------------------------------
 class IPythonMonitor(object):
 
     def __init__(self):
@@ -217,6 +162,80 @@ class IPythonMonitor(object):
     execute_result = pyout
     error = pyerr
 
+#------------------------------------------------------------------------------ 
+#       Connect to the kernel
+#------------------------------------------------------------------------------
+connected = False
+while not connected:
+    try:
+        filename = find_connection_file('kernel*')
+    except IOError:
+        continue
 
+    # Find all paths to possible connection files
+    for fullpath in paths():
+        # Create the kernel manager and connect a client
+        km = KernelManager(connection_file=fullpath)
+        km.load_connection_file()
+
+        kc = km.client()
+        kc.start_channels()
+        try:
+            send = kc.execute
+        except AttributeError:
+            send = kc.shell_channel.execute
+        if not hasattr(kc, 'iopub_channel'):
+            kc.iopub_channel = kc.sub_channel
+
+        # Ping the kernel
+        send('', silent=True)
+        try:
+            msg = kc.shell_channel.get_msg(timeout=1)
+            connected = True
+            # Set the socket on which to listen for messages
+            socket = km.connect_iopub()
+            print('IPython monitor connected successfully')
+            break
+        except KeyboardInterrupt:
+            sys.exit(0)
+        except (Empty, KeyError):
+            continue
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+        finally:
+            if not connected:
+                kc.stop_channels()
+
+#------------------------------------------------------------------------------ 
+#       Set stdout
+#------------------------------------------------------------------------------
+if len(sys.argv) > 1:
+    # Set stdout to arbitrary file descriptor given as script argument
+    #   $ python monitor.py monitor_log.txt &
+    term = open(sys.argv[1], 'w')
+    sys.stdout = term
+else:
+    # Set stdout to terminal in which kernel is running
+    msg_id = send('import os as _os; _tty = _os.ttyname(1)', silent=True,
+                  user_expressions=dict(_tty='_tty'))
+    while True:
+        try:
+            msg = kc.shell_channel.get_msg(timeout=1.0)
+            if msg['parent_header']['msg_id'] == msg_id:
+                fd = ast.literal_eval(msg['content']['user_expressions']
+                        ['_tty']['data']['text/plain'])
+                # print("setting sys.stdout to file descriptor: {}".format(fd))
+                sys.stdout = open(fd, 'w+')
+                break
+        except Empty:
+            continue
+
+#------------------------------------------------------------------------------ 
+#        Create and run the monitor
+#------------------------------------------------------------------------------
 monitor = IPythonMonitor()
 monitor.listen()
+
+#==============================================================================
+#==============================================================================
