@@ -57,12 +57,6 @@ def get_msgs():
             except Empty:
                 return msgs
 
-def paths():
-    for fullpath in glob(os.path.join(os.path.dirname(filename), 'kernel*')):
-        if not re.match('^(.*/)?kernel-[0-9]+.json', fullpath):
-            continue
-        yield fullpath
-
 #------------------------------------------------------------------------------ 
 #        Class definition
 #------------------------------------------------------------------------------
@@ -167,45 +161,47 @@ class IPythonMonitor(object):
 #------------------------------------------------------------------------------
 connected = False
 while not connected:
+    # No need for old paths() function... find_connection_file guaranteed to
+    # return a single filename with absolute path
+    filename = find_connection_file('kernel*.json')
+
+    # Create the kernel manager and connect a client
+    km = KernelManager(connection_file=filename)
+    km.load_connection_file()
+    kc = km.client()
+    kc.start_channels()
+
+    # Get the right execution function given the version of KernelClient in use
     try:
-        filename = find_connection_file('kernel*')
-    except IOError:
+        send = kc.execute
+    except AttributeError:
+        send = kc.shell_channel.execute
+
+    # Update to newest channel name
+    if not hasattr(kc, 'iopub_channel'):
+        kc.iopub_channel = kc.sub_channel
+
+    # Ping the kernel
+    send('', silent=True)
+    try:
+        msg = kc.shell_channel.get_msg(timeout=1)
+        connected = True
+        # Set the socket on which to listen for messages
+        socket = km.connect_iopub()
+        print('IPython monitor connected successfully!')
+        break
+    # <C-c> or kill -SIGINT?
+    except KeyboardInterrupt:
+        sys.exit(0)
+    # if msg is empty, just try again
+    except (Empty, KeyError):
         continue
-
-    # Find all paths to possible connection files
-    for fullpath in paths():
-        # Create the kernel manager and connect a client
-        km = KernelManager(connection_file=fullpath)
-        km.load_connection_file()
-
-        kc = km.client()
-        kc.start_channels()
-        try:
-            send = kc.execute
-        except AttributeError:
-            send = kc.shell_channel.execute
-        if not hasattr(kc, 'iopub_channel'):
-            kc.iopub_channel = kc.sub_channel
-
-        # Ping the kernel
-        send('', silent=True)
-        try:
-            msg = kc.shell_channel.get_msg(timeout=1)
-            connected = True
-            # Set the socket on which to listen for messages
-            socket = km.connect_iopub()
-            print('IPython monitor connected successfully')
-            break
-        except KeyboardInterrupt:
-            sys.exit(0)
-        except (Empty, KeyError):
-            continue
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-        finally:
-            if not connected:
-                kc.stop_channels()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+    finally:
+        if not connected:
+            kc.stop_channels()
 
 #------------------------------------------------------------------------------ 
 #       Set stdout
