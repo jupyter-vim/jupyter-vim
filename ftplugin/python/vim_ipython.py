@@ -1,16 +1,22 @@
-reselect = False             # reselect lines after sending from Visual mode
-show_execution_count = False # wait to get numbers for In[43]: feedback?
-monitor_subchannel = False   # update vim-ipython 'shell' on every send?
-current_line = ''
-allow_stdin = True          # whether or not to accept stdin requests
-current_stdin_prompt = {}
+"""
+Python code for ipy.vim.
 
-try:
-    from queue import Empty # python3 convention
-    unicode = str
-except ImportError:
-    from Queue import Empty
+This module is loaded as:
+    from vim_ipython import *
+in ipy.vim, which is a filetype plugin for *.py files. It will only function
+when running within vim (+python[3]).
+"""
 
+import ast
+import os
+import sys
+import time
+
+from queue import Empty
+unicode = str
+
+# 'vim' can only be imported when running on the vim interpreter. Create NoOp
+# class to allow testing of functions outside of vim.
 try:
     import vim
 except ImportError:
@@ -18,16 +24,12 @@ except ImportError:
         def __getattribute__(self, key):
             return lambda *args: '0'
     vim = NoOp()
-    print("uh oh, not running inside vim")
+    print("Uh oh! Not running inside vim! Loading anyway...")
 
-import ast
-import os
-import sys
-import time
-PY3 = sys.version_info[0] == 3
-
+#------------------------------------------------------------------------------ 
+#        Define wrapper
+#------------------------------------------------------------------------------
 class VimVars(object):
-
     """Wrapper for vim.vars for converting bytes to str."""
 
     def get(self, name, default=None):
@@ -48,15 +50,21 @@ class VimVars(object):
 
 vim_vars = VimVars()
 
-# Read global configuration variables
+#------------------------------------------------------------------------------ 
+#        Read global configuration variables
+#------------------------------------------------------------------------------
+PY3 = sys.version_info[0] == 3
+
 reselect = bool(int(vim.eval("g:ipy_reselect")))
 show_execution_count = bool(int(vim.eval("g:ipy_show_execution_count")))
 monitor_subchannel = bool(int(vim.eval("g:ipy_monitor_subchannel")))
 run_flags = vim.eval("g:ipy_run_flags")
 current_line = ""
+allow_stdin = True          # whether or not to accept stdin requests
+current_stdin_prompt = {}
 
 # get around unicode problems when interfacing with vim
-vim_encoding=vim.eval('&encoding') or 'utf-8'
+vim_encoding = vim.eval('&encoding') or 'utf-8'
 
 try:
     sys.stdout.flush
