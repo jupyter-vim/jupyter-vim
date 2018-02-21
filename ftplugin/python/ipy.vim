@@ -47,14 +47,6 @@ if !exists('g:ipy_cell_folding')
     let g:ipy_cell_folding = 0
 endif
 
-if !exists('g:ipython_dictionary_completion')
-    let g:ipython_dictionary_completion = 0
-endif
-
-if !exists('g:ipython_greedy_matching')
-    let g:ipython_greedy_matching = 0
-endif
-
 if !exists('g:ipython_run_flags')
     let g:ipython_run_flags = ''
 endif
@@ -78,19 +70,6 @@ endif
 
 if !exists('g:ipython_history_timeout')
   let g:ipython_history_timeout = 2
-endif
-
-" Register IPython completefunc
-" 'global'   -- for all of vim (default).
-" 'local'    -- only for the current buffer.
-" 'omni'     -- set omnifunc for current buffer.
-" otherwise  -- don't register it at all.
-"
-" you can later set it using ':set completefunc=CompleteIPython', which will
-" correspond to the 'global' behavior, or with ':setl ...' to get the 'local'
-" behavior
-if !exists('g:ipy_completefunc')
-    let g:ipy_completefunc = 'omni'
 endif
 
 " reselect lines after sending from Visual mode
@@ -223,14 +202,12 @@ function! s:DoMappings()
         autocmd BufEnter,BufNewFile *.py,--Python-- if g:ipy_autostart | call s:DoMappings() | endif
         autocmd FileType python if g:ipy_autostart | call s:DoMappings() | endif
     augroup END
-
-    setlocal omnifunc=CompleteIPython
 endfunction
 
 "}}}-------------------------------------------------------------------------- 
 "        Commands: {{{
 "-----------------------------------------------------------------------------
-command! -nargs=* IPython :call <SID>DoMappings()|:pythonx km_from_string("<args>")
+command! -nargs=* IPython :call <SID>DoMappings()|:pythonx connect_to_kernel("<args>")
 command! -nargs=* IPythonInterrupt :pythonx interrupt_kernel_hack("<args>")
 command! -nargs=0 IPythonTerminate :pythonx terminate_kernel_hack()
 command! -nargs=0 -bang IPythonInput :pythonx InputPrompt(force='<bang>')
@@ -245,120 +222,6 @@ function! s:GetDocBuffer()
     nnoremap <buffer> <silent> q ZQ:undojoin<bar>startinsert!<CR>
     nnoremap <buffer> <silent> ` <C-w>p:if winheight(0)<30<bar>res 30<bar>endif<bar>undojoin<bar>startinsert!<CR>
 endfunction
-
-function! IPythonBalloonExpr()
-pythonx << endpython
-word = vim.eval('v:beval_text')
-reply = get_doc(word)
-vim.command("let l:doc = %s"% reply)
-endpython
-return l:doc
-endfunction
-
-if g:ipython_greedy_matching
-    let s:split_pattern = "[^= \r\n*().@-]"
-else
-    let s:split_pattern = '\k\|\.'
-endif
-
-pythonx << endpython
-def process_matches(matches, metadata, result):
-    if PY3:
-        completions = matches
-    else:
-        completions = [s.encode(vim_encoding) for s in matches]
-    if vim.vars['ipython_dictionary_completion'] and not vim.vars['ipython_greedy_matching']:
-        for char in '\'"':
-            if any(c.endswith(char + ']') for c in completions):
-                completions = [c for c in completions if c.endswith(char + ']')]
-                break
-    try:
-        completions, metadata = zip(*sorted(zip(completions, metadata),
-                                            key=lambda x: x[0].lstrip('%').lower()))
-    except ValueError:
-        pass
-    for c, m in zip(completions, metadata):
-        result.clear()
-        result['word'] = c
-        # vim can't handle null bytes in Python strings
-        for k, v in m.items():
-          result[k] = v.replace('\0', '^@')
-        vim.command('call add(res, {%s})' % ','.join(
-            '"{k}": pyxeval("r[\'{k}\']")'.format(k=k)
-            for k in result))
-endpython
-
-fun! CompleteIPython(findstart, base)
-    if a:findstart
-        " return immediately for imports
-        if getline('.')[:col('.')-1] =~#
-            \ '\v^\s*(from\s+\w+(\.\w+)*\s+import\s+(\w+,\s+)*|import\s+)'
-            let line = getline('.')
-            let s:start = col('.') - 1
-            while s:start && line[s:start - 1] =~ '[._[:alnum:]]'
-                let s:start -= 1
-            endwhile
-            pythonx current_line = vim.current.line
-            return s:start
-        endif
-        " locate the start of the word
-        let line = split(getline('.')[:col('.')-1], '\zs')
-        let s:start = col('.') - 1
-        if s:start == 0 || (len(line) == s:start &&
-            \ line[s:start-2] !~ s:split_pattern &&
-            \ !(g:ipython_greedy_matching && s:start >= 2
-            \   && line[s:start-3] =~ '\k') &&
-            \ join(line[s:start-3:s:start-2], '') !=# '].')
-            let s:start = -1
-            return s:start
-        endif
-        let s:start = strchars(getline('.')[:col('.')-1]) - 1
-        let bracket_level = 0
-        while s:start > 0 && (line[s:start-1] =~ s:split_pattern
-            \ || (g:ipython_greedy_matching && line[s:start-1] == '.'
-            \     && s:start >= 2 && line[s:start-2] =~ '\k')
-            \ || (g:ipython_greedy_matching && line[s:start-1] == '-'
-            \     && s:start >= 2 && line[s:start-2] == '[')
-            \ || join(line[s:start-2:s:start-1], '') ==# '].')
-            if g:ipython_greedy_matching && line[s:start-1] == '['
-                if (s:start == 1 || line[s:start-2] !~ '\k\|\]')
-                    \ || bracket_level > 0
-                    break
-                endif
-                let bracket_level += 1
-            elseif g:ipython_greedy_matching && line[s:start-1] == ']'
-                let bracket_level -= 1
-            endif
-            let s:start -= 1
-        endwhile
-        pythonx current_line = vim.current.line
-        return s:start + len(join(line[: s:start], '')) -
-            \ len(getline('.')[: s:start])
-    else
-        " find months matching with "a:base"
-        let res = []
-        if s:start == -1 | return [] | endif
-        " don't complete numeric literals
-        if a:base =~? '\v^[-+]?\d*\.?\d+(e[-+]?\d+)?\.$' | return [] | endif
-        " don't complete incomplete string literals
-        if a:base =~? '\v^(([^''].*)?['']|([^"].*)?["])\.$' | return [] | endif
-        let start = s:start
-        pythonx << endpython
-base = vim.eval("a:base")
-try:
-    matches, metadata = ipy_complete(base, current_line, int(vim.eval('start')) + len(base))
-except IOError:
-    if vim.eval('exists("*jedi#completions")') == '1':
-        vim.command('setlocal omnifunc=jedi#completions')
-    else:
-        vim.command('setlocal omnifunc=')
-    vim.command('return []')
-r = dict()  # result object to let vim access namespace while in a function
-process_matches(matches, metadata, r)
-endpython
-        return res
-    endif
-endfun
 
 " Custom folding function to fold cells
 function! FoldByCell(lnum)
@@ -380,50 +243,6 @@ endfunction
 if g:ipy_cell_folding != 0
     call EnableFoldByCell()
 endif
-
-function! IPythonCmdComplete(arglead, cmdline, cursorpos, ...)
-  let res = []
-pythonx << endpython
-arglead = vim.eval('a:arglead')
-if ' ' in arglead and not (arglead.strip().startswith('from ') or
-                           arglead.strip().startswith('import ')):
-    start = arglead.split()[-1]
-else:
-    start = arglead
-
-try:
-    matches, metadata = ipy_complete(start,
-                                     vim.eval('a:cmdline'),
-                                     int(vim.eval('a:cursorpos')))
-except IOError:
-    vim.command('return []')
-
-if ' ' in arglead:
-    arglead = arglead.rpartition(' ')[0]
-    matches = ['%s %s' % (arglead, m) for m in matches]
-if int(vim.eval('a:0')):
-    r = dict()
-    process_matches(matches, metadata, r)
-endpython
-  if a:0
-    return res
-  else
-    return pyxeval('matches')
-  endif
-endfunction
-
-function! GreedyCompleteIPython(findstart, base)
-  if a:findstart
-    let line = getline('.')
-    let start = col('.') - 1
-    while start && line[start - 1] =~ '\S'
-      let start -= 1
-    endwhile
-    return start
-  else
-    return IPythonCmdComplete(a:base, a:base, len(a:base), 1)
-  endif
-endfunction
 
 function! s:opfunc(type)
   " Originally from tpope/vim-scriptease
