@@ -1,41 +1,40 @@
-" Vim integration with IPython 0.11+
+"=============================================================================
+"    File: ftplugin/python/ipy.vim
+" Created: 07/28/11 22:14:58
+"  Author: Paul Ivanov (http://pirsquared.org)
+"  Updated: [11/13/2017] William Van Vliet
+"  Updated: [02/14/2018, 12:31] Bernie Roesler
 "
-" A two-way integration between Vim and IPython.
+" Description: Vim integration with IPython 6.1.0+
+"
+" A two-way integration between Vim and IPython (now Jupyter Console, etc.).
 "
 " Using this plugin, you can send lines or whole files for IPython to execute,
 " and also get back object introspection and word completions in Vim, like
-" what you get with: object?<enter> object.<tab> in IPython
+" what you get with: object?<enter>, or object.<tab> in IPython
 "
-" -----------------
-" Quickstart Guide:
-" -----------------
-" Start `ipython qtconsole`, `ipython console`, or  `ipython notebook` and
-" open a notebook using you web browser.  Source this file, which provides new
-" IPython command
+" This version of vim-ipython has been tested on the following:
+" $ ipython --version           # 6.1.0
+" $ jupyter --version           # 4.3.0
+" $ jupyter console --version   # 5.2.0
+" $ jupyter qtconsole --version # 4.3.1
+" $ jupyter notebook --version  # 5.0.0
 "
-"   :source ipy.vim
-"   :IPython
-"
-" written by Paul Ivanov (http://pirsquared.org)
-"
-if !(has('python') || has('python3'))
-    " exit if python is not available.
-    " XXX: raise an error message here
+"=============================================================================
+"       Compatibility check {{{
+"-----------------------------------------------------------------------------
+" if exists("g:loaded_ipy") || !has('pythonx') || &cp || version < 800
+if !has('pythonx') || &cp || version < 800
     finish
 endif
 
+"}}}-------------------------------------------------------------------------- 
+"        Configuration: {{{
+"-----------------------------------------------------------------------------
 if has('python3') && get(g:, 'pymode_python', '') !=# 'python'
-  command! -nargs=1 Python2or3 python3 <args>
-  Python2or3 PY3 = True
-  function! IPythonPyeval(arg)
-    return py3eval(a:arg)
-  endfunction
+  pythonx PY3 = True
 else
-  command! -nargs=1 Python2or3 python <args>
-  Python2or3 PY3 = False
-  function! IPythonPyeval(arg)
-    return pyeval(a:arg)
-  endfunction
+  pythonx PY3 = False
 endif
 
 " Allow custom mappings.
@@ -51,17 +50,16 @@ endif
 if !exists('g:ipython_dictionary_completion')
     let g:ipython_dictionary_completion = 0
 endif
+
 if !exists('g:ipython_greedy_matching')
     let g:ipython_greedy_matching = 0
 endif
 
-" Use -i with %run magic by default
 if !exists('g:ipython_run_flags')
-    let g:ipython_run_flags = '-i'
+    let g:ipython_run_flags = ''
 endif
 
-" Automatically run :IPython in python files after running :IPython the first
-" time
+" Automatically run :IPython in python files
 if !exists('g:ipy_autostart')
     let g:ipy_autostart = 1
 endif
@@ -69,12 +67,15 @@ endif
 if !exists('g:ipython_history_len')
   let g:ipython_history_len = 100
 endif
+
 if !exists('g:ipython_history_raw')
   let g:ipython_history_raw = 1
 endif
+
 if !exists('g:ipython_history_unique')
   let g:ipython_history_unique = 1
 endif
+
 if !exists('g:ipython_history_timeout')
   let g:ipython_history_timeout = 2
 endif
@@ -104,37 +105,29 @@ endif
 
 " update vim-ipython 'shell' on every send?
 if !exists('g:ipy_monitor_subchannel')
-       let g:ipy_monitor_subchannel = 1
+       let g:ipy_monitor_subchannel = 0
 endif
 
 " flags to for IPython's run magic when using <F5>
 if !exists('g:ipy_run_flags')
-       let g:ipy_run_flags = '-i'
+       let g:ipy_run_flags = ''
 endif
 
-Python2or3 << endpython
+"}}}-------------------------------------------------------------------------- 
+"        Execute Python Code: {{{
+"-----------------------------------------------------------------------------
+pythonx << endpython
 import vim
 import sys
 import itertools as it
-import operator as op
 vim_ipython_path = vim.eval("expand('<sfile>:h')")
 sys.path.append(vim_ipython_path)
 from vim_ipython import *
-
 endpython
 
-fun! <SID>toggle_send_on_save()
-    if exists("s:ssos") && s:ssos == 0
-        let s:ssos = 1
-        au BufWritePost *.py :Python2or3 run_this_file()
-        echo "Autosend On"
-    else
-        let s:ssos = 0
-        au! BufWritePost *.py
-        echo "Autosend Off"
-    endif
-endfun
-
+"}}}-------------------------------------------------------------------------- 
+"        Autocmds: {{{
+"-----------------------------------------------------------------------------
 augroup vim-ipython
     autocmd!
     au FileType python IPython
@@ -153,51 +146,40 @@ augroup vim-ipython
     " buffer we may have opened up doesn't get closed just because of an idle
     " event (i.e. user pressed \d and then left the buffer that popped up, but
     " expects it to stay there).
-    au CursorHold *.*,vim-ipython :Python2or3 if update_subchannel_msgs(): echo("vim-ipython shell updated (on idle)",'Operator')
-
-    " XXX: broken - cursor hold update for insert mode moves the cursor one
-    " character to the left of the last character (update_subchannel_msgs must be
-    " doing this)
-    "au CursorHoldI *.* :Python2or3 if update_subchannel_msgs(): echo("vim-ipython shell updated (on idle)",'Operator')
-
-    " Same as above, but on regaining window focus (mostly for GUIs)
-    au FocusGained *.*,vim-ipython :Python2or3 if update_subchannel_msgs(): echo("vim-ipython shell updated (on input focus)",'Operator')
+    au CursorHold *.*,vim-ipython :pythonx if update_subchannel_msgs(): vim_echo("vim-ipython shell updated (on idle)",'Operator')
 
     " Update vim-ipython buffer when we move the cursor there. A message is only
     " displayed if vim-ipython buffer has been updated.
-    au BufEnter vim-ipython :Python2or3 if update_subchannel_msgs(): echo("vim-ipython shell updated (on buffer enter)",'Operator')
+    au BufEnter vim-ipython :pythonx if update_subchannel_msgs(): vim_echo("vim-ipython shell updated (on buffer enter)",'Operator')
 augroup END
 
+"}}}-------------------------------------------------------------------------- 
+"        Key Mappings: {{{
+"-----------------------------------------------------------------------------
 " Setup plugin mappings for the most common ways to interact with ipython.
-noremap  <Plug>(IPython-RunFile)            :update<CR>:Python2or3 run_this_file()<CR>
-noremap  <Plug>(IPython-ImportFile)         :update<CR>:Python2or3 run_this_file('-n')<CR>
-noremap  <Plug>(IPython-RunLine)            :Python2or3 run_this_line()<CR>
-noremap  <Plug>(IPython-RunCell)            :Python2or3 run_this_cell()<CR>
-if has('python3') && get(g:, 'pymode_python', '') !=# 'python'
-    noremap  <Plug>(IPython-RunLines)           :python3 run_these_lines()<CR>
-    xnoremap <Plug>(IPython-RunLinesAsTopLevel) :python3 dedent_run_these_lines()<CR>
-else
-    noremap  <Plug>(IPython-RunLines)           :python run_these_lines()<CR>
-    xnoremap <Plug>(IPython-RunLinesAsTopLevel) :python dedent_run_these_lines()<CR>
-endif
-noremap  <Plug>(IPython-OpenPyDoc)          :Python2or3 get_doc_buffer()<CR>
-noremap  <Plug>(IPython-UpdateShell)        :Python2or3 if update_subchannel_msgs(force=True): echo("vim-ipython shell updated",'Operator')<CR>
-noremap  <Plug>(IPython-ToggleReselect)     :Python2or3 toggle_reselect()<CR>
-"noremap  <Plug>(IPython-StartDebugging)     :Python2or3 send('%pdb')<CR>
-"noremap  <Plug>(IPython-BreakpointSet)      :Python2or3 set_breakpoint()<CR>
-"noremap  <Plug>(IPython-BreakpointClear)    :Python2or3 clear_breakpoint()<CR>
-"noremap  <Plug>(IPython-DebugThisFile)      :Python2or3 run_this_file_pdb()<CR>
-"noremap  <Plug>(IPython-BreakpointClearAll) :Python2or3 clear_all_breaks()<CR>
-noremap  <Plug>(IPython-ToggleSendOnSave)   :call <SID>toggle_send_on_save()<CR>
-noremap  <Plug>(IPython-PlotClearCurrent)   :Python2or3 run_command("plt.clf()")<CR>
-noremap  <Plug>(IPython-PlotCloseAll)       :Python2or3 run_command("plt.close('all')")<CR>
-noremap  <Plug>(IPython-RunLineAsTopLevel)  :Python2or3 dedent_run_this_line()<CR>
+noremap  <Plug>(IPython-RunFile)            :update<CR>:pythonx run_this_file()<CR>
+noremap  <Plug>(IPython-ImportFile)         :update<CR>:pythonx run_this_file('-n')<CR>
+noremap  <Plug>(IPython-RunLine)            :pythonx run_this_line()<CR>
+noremap  <Plug>(IPython-RunCell)            :pythonx run_this_cell()<CR>
+noremap  <Plug>(IPython-RunLines)           :pythonx run_these_lines()<CR>
+xnoremap <Plug>(IPython-RunLinesAsTopLevel) :pythonx dedent_run_these_lines()<CR>
+noremap  <Plug>(IPython-OpenPyDoc)          :pythonx get_doc_buffer()<CR>
+noremap  <Plug>(IPython-UpdateShell)        :pythonx if update_subchannel_msgs(force=True): echo("vim-ipython shell updated",'Operator')<CR>
+noremap  <Plug>(IPython-ToggleReselect)     :pythonx toggle_reselect()<CR>
+"noremap  <Plug>(IPython-StartDebugging)     :pythonx send('%pdb')<CR>
+"noremap  <Plug>(IPython-BreakpointSet)      :pythonx set_breakpoint()<CR>
+"noremap  <Plug>(IPython-BreakpointClear)    :pythonx clear_breakpoint()<CR>
+"noremap  <Plug>(IPython-DebugThisFile)      :pythonx run_this_file_pdb()<CR>
+"noremap  <Plug>(IPython-BreakpointClearAll) :pythonx clear_all_breaks()<CR>
+noremap  <Plug>(IPython-PlotClearCurrent)   :pythonx run_command("plt.clf()")<CR>
+noremap  <Plug>(IPython-PlotCloseAll)       :pythonx run_command("plt.close('all')")<CR>
+noremap  <Plug>(IPython-RunLineAsTopLevel)  :pythonx dedent_run_this_line()<CR>
 noremap  <Plug>(IPython-RunTextObj)         :<C-u>set opfunc=<SID>opfunc<CR>g@
 noremap  <Plug>(IPython-RunParagraph)       :<C-u>set opfunc=<SID>opfunc<CR>g@ap
 
 function! s:DoMappings()
-    let b:did_ipython = 1
-    if g:ipy_perform_mappings != 0
+    " let b:did_ipython = 1
+    if g:ipy_perform_mappings
        if &buftype == ''
         map  <buffer> <silent> <F5>           <Plug>(IPython-RunFile)
         map  <buffer> <silent> g<F5>          <Plug>(IPython-ImportFile)
@@ -231,26 +213,32 @@ function! s:DoMappings()
         xmap <buffer> <silent> <M-S>             <Plug>(IPython-RunLines)
         map  <buffer> <silent> <Leader><Leader>x <Plug>(IPython-RunCell)
 
-        " noremap  <buffer> <silent> <M-c>      I#<ESC>
-        " xnoremap <buffer> <silent> <M-c>      I#<ESC>
-        " noremap  <buffer> <silent> <M-C>      :s/^\([ \t]*\)#/\1/<CR>
-        " xnoremap <buffer> <silent> <M-C>      :s/^\([ \t]*\)#/\1/<CR>
-
         nnoremap <buffer> <C-c> :<C-u>IPythonInterrupt<CR>
         inoremap <buffer> <Leader>K <Esc>:<C-u>call <SID>GetDocBuffer()<CR>
     endif
 
     augroup vim_ipython_autostart
         autocmd!
-        autocmd BufEnter,BufNewFile *.py,--Python-- if g:ipy_autostart && !exists('b:did_ipython')
-            \ | call s:DoMappings() | endif
-        autocmd FileType python if g:ipy_autostart && !exists('b:did_ipython')
-            \ | call s:DoMappings() | endif
+        "&& !exists('b:did_ipython')
+        autocmd BufEnter,BufNewFile *.py,--Python-- if g:ipy_autostart | call s:DoMappings() | endif
+        autocmd FileType python if g:ipy_autostart | call s:DoMappings() | endif
     augroup END
 
     setlocal omnifunc=CompleteIPython
 endfunction
 
+"}}}-------------------------------------------------------------------------- 
+"        Commands: {{{
+"-----------------------------------------------------------------------------
+command! -nargs=* IPython :call <SID>DoMappings()|:pythonx km_from_string("<args>")
+command! -nargs=* IPythonInterrupt :pythonx interrupt_kernel_hack("<args>")
+command! -nargs=0 IPythonTerminate :pythonx terminate_kernel_hack()
+command! -nargs=0 -bang IPythonInput :pythonx InputPrompt(force='<bang>')
+command! -nargs=0 -bang IPythonInputSecret :pythonx InputPrompt(force='<bang>', hide_input=True)
+
+"}}}-------------------------------------------------------------------------- 
+"        Functions: {{{
+"-----------------------------------------------------------------------------
 function! s:GetDocBuffer()
     python get_doc_buffer()
     nnoremap <buffer> <silent> gi ZQ:undojoin<bar>startinsert!<CR>
@@ -258,17 +246,8 @@ function! s:GetDocBuffer()
     nnoremap <buffer> <silent> ` <C-w>p:if winheight(0)<30<bar>res 30<bar>endif<bar>undojoin<bar>startinsert!<CR>
 endfunction
 
-command! -nargs=* IPython :call <SID>DoMappings()|:Python2or3 km_from_string("<args>")
-command! -nargs=0 IPythonClipboard :Python2or3 km_from_string(vim.eval('@+'))
-command! -nargs=0 IPythonXSelection :Python2or3 km_from_string(vim.eval('@*'))
-command! -nargs=* IPythonNew :Python2or3 new_ipy("<args>")
-command! -nargs=* IPythonInterrupt :Python2or3 interrupt_kernel_hack("<args>")
-command! -nargs=0 IPythonTerminate :Python2or3 terminate_kernel_hack()
-command! -nargs=0 -bang IPythonInput :Python2or3 InputPrompt(force='<bang>')
-command! -nargs=0 -bang IPythonInputSecret :Python2or3 InputPrompt(force='<bang>', hide_input=True)
-
 function! IPythonBalloonExpr()
-Python2or3 << endpython
+pythonx << endpython
 word = vim.eval('v:beval_text')
 reply = get_doc(word)
 vim.command("let l:doc = %s"% reply)
@@ -282,7 +261,7 @@ else
     let s:split_pattern = '\k\|\.'
 endif
 
-Python2or3 << endpython
+pythonx << endpython
 def process_matches(matches, metadata, result):
     if PY3:
         completions = matches
@@ -305,7 +284,7 @@ def process_matches(matches, metadata, result):
         for k, v in m.items():
           result[k] = v.replace('\0', '^@')
         vim.command('call add(res, {%s})' % ','.join(
-            '"{k}": IPythonPyeval("r[\'{k}\']")'.format(k=k)
+            '"{k}": pyxeval("r[\'{k}\']")'.format(k=k)
             for k in result))
 endpython
 
@@ -319,7 +298,7 @@ fun! CompleteIPython(findstart, base)
             while s:start && line[s:start - 1] =~ '[._[:alnum:]]'
                 let s:start -= 1
             endwhile
-            Python2or3 current_line = vim.current.line
+            pythonx current_line = vim.current.line
             return s:start
         endif
         " locate the start of the word
@@ -352,7 +331,7 @@ fun! CompleteIPython(findstart, base)
             endif
             let s:start -= 1
         endwhile
-        Python2or3 current_line = vim.current.line
+        pythonx current_line = vim.current.line
         return s:start + len(join(line[: s:start], '')) -
             \ len(getline('.')[: s:start])
     else
@@ -364,7 +343,7 @@ fun! CompleteIPython(findstart, base)
         " don't complete incomplete string literals
         if a:base =~? '\v^(([^''].*)?['']|([^"].*)?["])\.$' | return [] | endif
         let start = s:start
-        Python2or3 << endpython
+        pythonx << endpython
 base = vim.eval("a:base")
 try:
     matches, metadata = ipy_complete(base, current_line, int(vim.eval('start')) + len(base))
@@ -402,42 +381,9 @@ if g:ipy_cell_folding != 0
     call EnableFoldByCell()
 endif
 
-function! IPythonHistory(pattern, ...)
-    let session = a:0 > 0 ? a:1 : (-1)
-    let res = []
-    Python2or3 << endpython
-n = vim.vars.get('ipython_history_len', 100)
-pattern = vim.eval('a:pattern')
-if pattern:
-    if not pattern.startswith('*') and not pattern.endswith('*'):
-        pattern = '*{0}*'.format(pattern)
-    pattern = pattern.replace('[', '[[]')
-else:
-    pattern = None
-unique = vim.eval('get(g:, "ipython_history_unique", "")')
-unique = bool(int(unique)) if unique else pattern is not None
-if int(vim.eval('session')) >= 0:
-    history = get_session_history(session=int(vim.eval('session')),
-                                  pattern=pattern)
-else:
-    history = get_history(n, pattern=pattern, unique=unique)
-seen = set()
-for session, line, code in reversed(
-        [list(h)[-1] for _, h in it.groupby(
-         history, lambda i: (i[0], i[2]))]):
-    if not unique or code.strip() not in seen:
-        seen.add(code.strip())
-        vim.command('call add(res, {'
-        '"session": +IPythonPyeval("session"), '
-        '"line": +IPythonPyeval("line"), '
-        '"code": IPythonPyeval("code")})')
-endpython
-    return res
-endfunction
-
 function! IPythonCmdComplete(arglead, cmdline, cursorpos, ...)
   let res = []
-Python2or3 << endpython
+pythonx << endpython
 arglead = vim.eval('a:arglead')
 if ' ' in arglead and not (arglead.strip().startswith('from ') or
                            arglead.strip().startswith('import ')):
@@ -462,7 +408,7 @@ endpython
   if a:0
     return res
   else
-    return IPythonPyeval('matches')
+    return pyxeval('matches')
   endif
 endfunction
 
@@ -512,9 +458,14 @@ function! s:opfunc(type)
     call setpos("'<", left_save)
     call setpos("'>", right_save)
   endtry
-Python2or3 << EOF
+pythonx << EOF
 import textwrap
 import vim
 run_command(textwrap.dedent(vim.eval('l:cmd')))
 EOF
 endfunction
+"}}}
+
+let g:loaded_ipy = 1
+"=============================================================================
+"=============================================================================
