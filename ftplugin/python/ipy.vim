@@ -42,11 +42,6 @@ if !exists('g:ipy_perform_mappings')
     let g:ipy_perform_mappings = 1
 endif
 
-" Enable cell folding
-if !exists('g:ipy_cell_folding')
-    let g:ipy_cell_folding = 0
-endif
-
 if !exists('g:ipython_run_flags')
     let g:ipython_run_flags = ''
 endif
@@ -110,26 +105,9 @@ endpython
 augroup vim-ipython
     autocmd!
     au FileType python IPython
-    " Update the vim-ipython shell when the cursor is not moving.
-    " You can change how quickly this happens after you stop moving the cursor by
-    " setting 'updatetime' (in milliseconds). For example, to have this event
-    " trigger after 1 second:
-    "
-    "       :set updatetime 1000
-    "
-    " NOTE: This will only be triggered once, after the first 'updatetime'
-    " milliseconds, *not* every 'updatetime' milliseconds. see :help CursorHold
-    " for more info.
-    "
-    " TODO: Make this easily configurable on the fly, so that an introspection
-    " buffer we may have opened up doesn't get closed just because of an idle
-    " event (i.e. user pressed \d and then left the buffer that popped up, but
-    " expects it to stay there).
-    au CursorHold *.*,vim-ipython :pythonx if update_subchannel_msgs(): vim_echo("vim-ipython shell updated (on idle)",'Operator')
-
-    " Update vim-ipython buffer when we move the cursor there. A message is only
-    " displayed if vim-ipython buffer has been updated.
-    au BufEnter vim-ipython :pythonx if update_subchannel_msgs(): vim_echo("vim-ipython shell updated (on buffer enter)",'Operator')
+    " TODO mode this autocmd to an async process that only reports back
+    " important things like tracebacks, and sends all else to the console 
+    " au CursorHold *.*,vim-ipython :pythonx if update_subchannel_msgs(): vim_echo("vim-ipython shell updated (on idle)",'Operator')
 augroup END
 
 "}}}-------------------------------------------------------------------------- 
@@ -222,27 +200,6 @@ function! s:GetDocBuffer()
     nnoremap <buffer> <silent> q ZQ:undojoin<bar>startinsert!<CR>
     nnoremap <buffer> <silent> ` <C-w>p:if winheight(0)<30<bar>res 30<bar>endif<bar>undojoin<bar>startinsert!<CR>
 endfunction
-
-" Custom folding function to fold cells
-function! FoldByCell(lnum)
-    let pattern = '\v^\s*(##|' . escape('# <codecell>', '<>') . '|# %%).*$'
-    if getline(a:lnum) =~? pattern
-        return '>1'
-    elseif getline(a:lnum+1) =~? pattern
-        return '<1'
-    else
-        return '='
-    endif
-endfunction
-
-function! EnableFoldByCell()
-	setlocal foldmethod=expr
-	setlocal foldexpr=FoldByCell(v:lnum)
-endfunction
-
-if g:ipy_cell_folding != 0
-    call EnableFoldByCell()
-endif
 
 function! s:opfunc(type)
   " Originally from tpope/vim-scriptease
