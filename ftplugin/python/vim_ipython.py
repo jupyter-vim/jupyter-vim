@@ -57,7 +57,6 @@ vim_vars = VimVars()
 #------------------------------------------------------------------------------
 PY3 = sys.version_info[0] == 3
 
-reselect = bool(int(vim.eval("g:ipy_reselect")))
 show_execution_count = bool(int(vim.eval("g:ipy_show_execution_count")))
 monitor_subchannel = bool(int(vim.eval("g:ipy_monitor_subchannel")))
 run_flags = vim.eval("g:ipy_run_flags")
@@ -578,10 +577,6 @@ def run_these_lines(dedent=False):
     #but %paste only works on the local machine
     #vim.command("\"*yy")
     #send("'%paste')")
-    #reselect the previously highlighted block
-    vim.command("normal! gv")
-    if not reselect:
-        vim.command("normal! ")
 
     #vim lines start with 1
     #print("lines %d-%d sent to ipython"% (r.start+1,r.end+1))
@@ -841,12 +836,6 @@ def run_this_cell():
 #    #print("line \'%s\' set at ipython prompt"% vim.current.line)
 #    echo("line \'%s\' set at ipython prompt"% vim.current.line,'Statement')
 
-
-def toggle_reselect():
-    global reselect
-    reselect=not reselect
-    print("F9 will%sreselect lines after sending to ipython" %
-            (reselect and " " or " not "))
 
 #def set_breakpoint():
 #    send("__IP.InteractiveTB.pdb.set_break('%s',%d)" % (vim.current.buffer.name,

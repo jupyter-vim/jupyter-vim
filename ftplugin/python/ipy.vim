@@ -51,25 +51,12 @@ if !exists('g:ipy_autostart')
     let g:ipy_autostart = 1
 endif
 
-if !exists('g:ipython_history_len')
-  let g:ipython_history_len = 100
-endif
-
 if !exists('g:ipython_history_raw')
   let g:ipython_history_raw = 1
 endif
 
-if !exists('g:ipython_history_unique')
-  let g:ipython_history_unique = 1
-endif
-
 if !exists('g:ipython_history_timeout')
   let g:ipython_history_timeout = 2
-endif
-
-" reselect lines after sending from Visual mode
-if !exists('g:ipy_reselect')
-       let g:ipy_reselect = 0
 endif
 
 " wait to get numbers for In[43]: feedback?
