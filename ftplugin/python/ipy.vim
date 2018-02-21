@@ -31,17 +31,12 @@ endif
 "}}}-------------------------------------------------------------------------- 
 "        Configuration: {{{
 "-----------------------------------------------------------------------------
-if has('python3') && get(g:, 'pymode_python', '') !=# 'python'
-  pythonx PY3 = True
-else
-  pythonx PY3 = False
-endif
-
 " Allow custom mappings.
 if !exists('g:ipy_perform_mappings')
     let g:ipy_perform_mappings = 1
 endif
 
+" flags to for IPython's run file magic
 if !exists('g:ipython_run_flags')
     let g:ipython_run_flags = ''
 endif
@@ -51,28 +46,11 @@ if !exists('g:ipy_autostart')
     let g:ipy_autostart = 1
 endif
 
-if !exists('g:ipython_history_raw')
-  let g:ipython_history_raw = 1
-endif
-
-if !exists('g:ipython_history_timeout')
-  let g:ipython_history_timeout = 2
-endif
-
-" wait to get numbers for In[43]: feedback?
-if !exists('g:ipy_show_execution_count')
-       let g:ipy_show_execution_count = 1
-endif
-
 " update vim-ipython 'shell' on every send?
 if !exists('g:ipy_monitor_subchannel')
        let g:ipy_monitor_subchannel = 0
 endif
 
-" flags to for IPython's run magic when using <F5>
-if !exists('g:ipy_run_flags')
-       let g:ipy_run_flags = ''
-endif
 
 "}}}-------------------------------------------------------------------------- 
 "        Execute Python Code: {{{
@@ -101,70 +79,58 @@ augroup END
 "        Key Mappings: {{{
 "-----------------------------------------------------------------------------
 " Setup plugin mappings for the most common ways to interact with ipython.
-noremap  <Plug>(IPython-RunFile)            :update<CR>:pythonx run_this_file()<CR>
-noremap  <Plug>(IPython-ImportFile)         :update<CR>:pythonx run_this_file('-n')<CR>
-noremap  <Plug>(IPython-RunLine)            :pythonx run_this_line()<CR>
-noremap  <Plug>(IPython-RunCell)            :pythonx run_this_cell()<CR>
-noremap  <Plug>(IPython-RunLines)           :pythonx run_these_lines()<CR>
-xnoremap <Plug>(IPython-RunLinesAsTopLevel) :pythonx dedent_run_these_lines()<CR>
-noremap  <Plug>(IPython-OpenPyDoc)          :pythonx get_doc_buffer()<CR>
-noremap  <Plug>(IPython-UpdateShell)        :pythonx if update_subchannel_msgs(force=True): echo("vim-ipython shell updated",'Operator')<CR>
-noremap  <Plug>(IPython-ToggleReselect)     :pythonx toggle_reselect()<CR>
-"noremap  <Plug>(IPython-StartDebugging)     :pythonx send('%pdb')<CR>
-"noremap  <Plug>(IPython-BreakpointSet)      :pythonx set_breakpoint()<CR>
-"noremap  <Plug>(IPython-BreakpointClear)    :pythonx clear_breakpoint()<CR>
-"noremap  <Plug>(IPython-DebugThisFile)      :pythonx run_this_file_pdb()<CR>
-"noremap  <Plug>(IPython-BreakpointClearAll) :pythonx clear_all_breaks()<CR>
-noremap  <Plug>(IPython-PlotClearCurrent)   :pythonx run_command("plt.clf()")<CR>
-noremap  <Plug>(IPython-PlotCloseAll)       :pythonx run_command("plt.close('all')")<CR>
-noremap  <Plug>(IPython-RunLineAsTopLevel)  :pythonx dedent_run_this_line()<CR>
-noremap  <Plug>(IPython-RunTextObj)         :<C-u>set opfunc=<SID>opfunc<CR>g@
-noremap  <Plug>(IPython-RunParagraph)       :<C-u>set opfunc=<SID>opfunc<CR>g@ap
+noremap  <Plug>IPython-RunFile            :update<CR>:pythonx run_this_file()<CR>
+noremap  <Plug>IPython-ImportFile         :update<CR>:pythonx run_this_file('-n')<CR>
+noremap  <Plug>IPython-RunLine            :pythonx run_this_line()<CR>
+noremap  <Plug>IPython-RunCell            :pythonx run_this_cell()<CR>
+noremap  <Plug>IPython-RunLines           :pythonx run_these_lines()<CR>
+xnoremap <Plug>IPython-RunLinesAsTopLevel :pythonx dedent_run_these_lines()<CR>
+noremap  <Plug>IPython-OpenPyDoc          :pythonx get_doc_buffer()<CR>
+noremap  <Plug>IPython-UpdateShell        :pythonx if update_subchannel_msgs(force=True): echo("vim-ipython shell updated",'Operator')<CR>
+"noremap  <Plug>IPython-StartDebugging     :pythonx send('%pdb')<CR>
+"noremap  <Plug>IPython-BreakpointSet      :pythonx set_breakpoint()<CR>
+"noremap  <Plug>IPython-BreakpointClear    :pythonx clear_breakpoint()<CR>
+"noremap  <Plug>IPython-DebugThisFile      :pythonx run_this_file_pdb()<CR>
+"noremap  <Plug>IPython-BreakpointClearAll :pythonx clear_all_breaks()<CR>
+noremap  <Plug>IPython-PlotClearCurrent   :pythonx run_command("plt.clf()")<CR>
+noremap  <Plug>IPython-PlotCloseAll       :pythonx run_command("plt.close('all')")<CR>
+noremap  <Plug>IPython-RunLineAsTopLevel  :pythonx dedent_run_this_line()<CR>
+noremap  <Plug>IPython-RunTextObj         :<C-u>set opfunc=<SID>opfunc<CR>g@
 
 function! s:DoMappings()
-    " let b:did_ipython = 1
     if g:ipy_perform_mappings
        if &buftype == ''
-        map  <buffer> <silent> <F5>           <Plug>(IPython-RunFile)
-        map  <buffer> <silent> g<F5>          <Plug>(IPython-ImportFile)
+        map  <buffer> <silent> <F5>           <Plug>IPython-RunFile
+        map  <buffer> <silent> g<F5>          <Plug>IPython-ImportFile
        endif
-        " map  <buffer> <silent> <S-F5>         <Plug>(IPython-RunLine)
-        map  <buffer> <silent> <F6>           <Plug>(IPython-RunTextObj)
-        map  <buffer> <silent> <F9>           <Plug>(IPython-RunLines)
-        "map  <buffer> <silent> ,d             <Plug>(IPython-OpenPyDoc)
-        map  <buffer> <silent> <M-r>          <Plug>(IPython-UpdateShell)
-        map  <buffer> <silent> <S-F9>         <Plug>(IPython-ToggleReselect)
-        "map  <buffer> <silent> <C-F6>         <Plug>(IPython-StartDebugging)
-        "map  <buffer> <silent> <F6>           <Plug>(IPython-BreakpointSet)
-        "map  <buffer> <silent> <S-F6>         <Plug>(IPython-BreakpointClear)
-        "map  <buffer> <silent> <F7>           <Plug>(IPython-DebugThisFile)
-        "map  <buffer> <silent> <S-F7>         <Plug>(IPython-BreakpointClearAll)
-        imap <buffer>          <C-F5>         <C-o><Plug>(IPython-RunFile)
-        imap <buffer>          <S-F5>         <C-o><Plug>(IPython-RunLines)
-        " imap <buffer> <silent> <F5>           <C-o><Plug>(IPython-RunFile)
-        map  <buffer>          <C-F5>         <Plug>(IPython-ToggleSendOnSave)
-        "" Example of how to quickly clear the current plot with a keystroke
-        "map  <buffer> <silent> <F12>          <Plug>(IPython-PlotClearCurrent)
-        "" Example of how to quickly close all figures with a keystroke
-        "map  <buffer> <silent> <F11>          <Plug>(IPython-PlotCloseAll)
+        " map  <buffer> <silent> <S-F5>         <Plug>IPython-RunLine
+        map  <buffer> <silent> <F6>           <Plug>IPython-RunTextObj
+        map  <buffer> <silent> <F9>           <Plug>IPython-RunLines
+        "map  <buffer> <silent> ,d             <Plug>IPython-OpenPyDoc
+        map  <buffer> <silent> <M-r>          <Plug>IPython-UpdateShell
+        map  <buffer> <silent> <S-F9>         <Plug>IPython-ToggleReselect
+        "map  <buffer> <silent> <C-F6>         <Plug>IPython-StartDebugging
+        "map  <buffer> <silent> <F6>           <Plug>IPython-BreakpointSet
+        "map  <buffer> <silent> <S-F6>         <Plug>IPython-BreakpointClear
+        "map  <buffer> <silent> <F7>           <Plug>IPython-DebugThisFile
+        "map  <buffer> <silent> <S-F7>         <Plug>IPython-BreakpointClearAll
+        imap <buffer>          <C-F5>         <C-o><Plug>IPython-RunFile
+        imap <buffer>          <S-F5>         <C-o><Plug>IPython-RunLines
+        " imap <buffer> <silent> <F5>           <C-o><Plug>IPython-RunFile
 
         "pi custom
-        map  <buffer> <silent> <C-Return>        <Plug>(IPython-RunFile)
-        " map  <buffer> <silent> <Leader>x         <Plug>(IPython-RunLine)
-        " imap <buffer> <silent> <Leader>x         <Esc><Plug>(IPython-RunLine)
-        map  <buffer> <silent> <M-S>             <Plug>(IPython-RunLineAsTopLevel)
-        "xmap <buffer> <silent> <Leader>x         <Plug>(IPython-RunLinesAsTopLevel)
-        xmap <buffer> <silent> <M-S>             <Plug>(IPython-RunLines)
-        map  <buffer> <silent> <Leader><Leader>x <Plug>(IPython-RunCell)
+        map  <buffer> <silent> <C-Return>        <Plug>IPython-RunFile
+        map  <buffer> <silent> <M-S>             <Plug>IPython-RunLineAsTopLevel
+        xmap <buffer> <silent> <M-S>             <Plug>IPython-RunLines
+        map  <buffer> <silent> <Leader><Leader>x <Plug>IPython-RunCell
 
-        nnoremap <buffer> <C-c> :<C-u>IPythonInterrupt<CR>
-        inoremap <buffer> <Leader>K <Esc>:<C-u>call <SID>GetDocBuffer()<CR>
+        " nnoremap <buffer> <C-c> :<C-u>IPythonInterrupt<CR>
+        " inoremap <buffer> <Leader>K <Esc>:<C-u>call <SID>GetDocBuffer()<CR>
     endif
 
     augroup vim_ipython_autostart
         autocmd!
-        "&& !exists('b:did_ipython')
-        autocmd BufEnter,BufNewFile *.py,--Python-- if g:ipy_autostart | call s:DoMappings() | endif
+        autocmd BufEnter,BufNewFile *.py if g:ipy_autostart | call s:DoMappings() | endif
         autocmd FileType python if g:ipy_autostart | call s:DoMappings() | endif
     augroup END
 endfunction
@@ -172,7 +138,7 @@ endfunction
 "}}}-------------------------------------------------------------------------- 
 "        Commands: {{{
 "-----------------------------------------------------------------------------
-command! -nargs=* IPython :call <SID>DoMappings()|:pythonx connect_to_kernel("<args>")
+command! -nargs=0 IPython :call <SID>DoMappings()|:pythonx connect_to_kernel()
 command! -nargs=* IPythonInterrupt :pythonx interrupt_kernel_hack("<args>")
 command! -nargs=0 IPythonTerminate :pythonx terminate_kernel_hack()
 command! -nargs=0 -bang IPythonInput :pythonx InputPrompt(force='<bang>')

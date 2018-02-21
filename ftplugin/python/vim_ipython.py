@@ -36,10 +36,8 @@ class VimVars(object):
 
     def get(self, name, default=None):
         var = vim.vars.get(name, default)
-        if PY3 and isinstance(var, bytes):
+        if isinstance(var, bytes):
             var = str(var, vim_encoding)
-        elif not PY3 and isinstance(var, str):
-            var = unicode(var, vim_encoding)
         return var
 
     def __getitem__(self, name):
@@ -55,11 +53,8 @@ vim_vars = VimVars()
 #------------------------------------------------------------------------------ 
 #        Read global configuration variables
 #------------------------------------------------------------------------------
-PY3 = sys.version_info[0] == 3
-
-show_execution_count = bool(int(vim.eval("g:ipy_show_execution_count")))
+show_execution_count = True
 monitor_subchannel = bool(int(vim.eval("g:ipy_monitor_subchannel")))
-run_flags = vim.eval("g:ipy_run_flags")
 current_line = ""
 current_stdin_prompt = {}
 
@@ -131,12 +126,12 @@ def connect_to_kernel():
         try:
             # Default: filename='kernel-*.json'
             cfile = find_connection_file()
+            attempt += 1
         except IOError:
             vim_echo("IPython connection attempt #{:d} failed - no kernel file" \
                     .format(attempt), "Warning")
             time.sleep(1)
             continue
-        attempt += 1
 
         # Create the kernel manager and connect a client
         km = KernelManager(connection_file=cfile)
@@ -156,18 +151,16 @@ def connect_to_kernel():
             continue
         else:
             connected = True
-            vim.command('redraw')
             # Send command so that monitor knows vim is commected 
             send('"_vim_client";_=_;__=__\n', store_history=False)
             set_pid() # Ask kernel for its PID
+            vim.command('redraw')
             vim_echo("IPython connection successful")
         finally:
             if not connected:
                 kc.stop_channels()
                 vim_echo("IPython connection attempt timed out", "Error")
                 return
-
-    return km
 
 def vim_regex_escape(x):
     for old, new in (("[", "\\["), ("]", "\\]"), (":", "\\:"), (".", "\."),
@@ -200,10 +193,7 @@ def get_doc(word, level=0):
         request = ('_doc = get_ipython().object_inspect("{0}", '
                    'detail_level={1})\n'
                    'del _doc["argspec"]').format(word, level)
-        try:
-            msg_id = send(request, silent=True, user_variables=['_doc'])
-        except TypeError: # change in IPython 3.0+
-            msg_id = send(request, silent=True, user_expressions={'_doc':'_doc'})
+        msg_id = send(request, silent=True, user_expressions={'_doc':'_doc'})
     else:
         msg_id = kc.inspect(word, detail_level=level)
     doc = get_doc_msg(msg_id)
@@ -287,11 +277,6 @@ def get_doc_buffer(level=0, word=None):
     vim.command('nnoremap <buffer> m :<C-u>setfiletype man<CR>')
     vim.command('nnoremap <buffer> p :<C-u>setfiletype python<CR>')
     vim.command('nnoremap <buffer> r :<C-u>setfiletype rst<CR>')
-    # Known issue: to enable the use of arrow keys inside the terminal when
-    # viewing the documentation, comment out the next line
-    # vim.command('nnoremap <buffer> <Esc> :q<CR>')
-    # and uncomment this line (which will work if you have a timoutlen set)
-    #vim.command('nnoremap <buffer> <Esc><Esc> :q<CR>')
     b = vim.current.buffer
     b[:] = None
     b[:] = doc
@@ -695,13 +680,8 @@ def eval_ipy_input(var=None):
     result = child['content']['user_expressions']
     try:
         text = result['_expr']['data']['text/plain']
-        if not PY3 and isinstance(text, str):
-            text = unicode(text, vim_encoding)
         if var:
-            try:
-                from cStringIO import StringIO
-            except ImportError:
-                from io import StringIO
+            from io import StringIO
             from tokenize import STRING, generate_tokens
             if next(generate_tokens(StringIO(text).readline))[0] == STRING:
                 from ast import parse
@@ -857,50 +837,6 @@ def run_this_cell():
 #    send(' __IP.InteractiveTB.pdb.run(\'execfile("%s")\')' % (vim.current.buffer.name,))
 #    #send('run -d %s' % (vim.current.buffer.name,))
 #    echo("In[]: run -d %s (using pdb)" % vim.current.buffer.name)
-
-def get_history(n, pattern=None, unique=True):
-    msg_id = kc.history(
-        hist_access_type='search' if pattern else 'tail',
-        pattern=pattern, n=n, unique=unique,
-        raw=vim_vars.get('ipython_history_raw', True))
-    try:
-        child = get_child_msg(
-            msg_id, timeout=float(vim_vars.get('ipython_history_timeout', 2)))
-        results = [(session, line, code.encode(vim_encoding))
-                   for session, line, code in child['content']['history']]
-    except Empty:
-        vim_echo("no reply from IPython kernel")
-        return []
-    if unique:
-        results.extend(get_session_history(pattern=pattern))
-    return results
-
-def get_session_history(session=None, pattern=None):
-    from ast import literal_eval
-    from fnmatch import fnmatch
-    msg_id = send('', silent=True, user_expressions={
-        '_hist': '[h for h in get_ipython().history_manager.get_range('
-        '%s, raw=%s)]'
-        % (str(session) if session else
-           'get_ipython().history_manager.session_number',
-           vim_vars.get('ipython_history_raw', 'True')),
-        '_session': 'get_ipython().history_manager.session_number',
-    })
-    try:
-        child = get_child_msg(
-            msg_id, timeout=float(vim_vars.get('ipython_history_timeout', 2)))
-        hist = child['content']['user_expressions']['_hist']
-        session = child['content']['user_expressions']['_session']
-        session = int(session['data']['text/plain'].encode(vim_encoding))
-        hist = literal_eval(hist['data']['text/plain'])
-        return [(s if s > 0 else session, l, c.encode(vim_encoding))
-                for s, l, c in hist if fnmatch(c, pattern or '*')]
-    except Empty:
-        vim_echo("no reply from IPython kernel")
-        return []
-    except KeyError:
-        return []
-
 
 if not_in_vim:
     print('done.')
