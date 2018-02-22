@@ -35,7 +35,7 @@ except ImportError:
     not_in_vim = True
     print("Uh oh! Not running inside vim! Loading anyway...")
 
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 #        Define wrapper
 #------------------------------------------------------------------------------
 class VimVars(object):
@@ -59,13 +59,10 @@ class VimVars(object):
 
 vim_vars = VimVars()
 
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 #        Read global configuration variables
 #------------------------------------------------------------------------------
-show_execution_count = True
 monitor_subchannel = bool(int(vim.vars.get("g:ipy_monitor_subchannel", '0')))
-# monitor_subchannel = False
-current_line = ""
 current_stdin_prompt = {}
 
 # get around unicode problems when interfacing with vim
@@ -94,14 +91,14 @@ status_blank_lines = int(vim_variable('g:ipy_status_blank_lines', '1'))
 ip = '127.0.0.1'
 
 # this allows us to load vim_ipython multiple times
-# try:
-#     km
-#     kc
-#     pid
-# except NameError:
-#     km = None
-#     kc = None
-#     pid = None
+try:
+    km
+    kc
+    pid
+except NameError:
+    km = None
+    kc = None
+    pid = None
 
 _install_instructions = """You *must* install IPython into the Python that
 your vim is linked against. If you are seeing this message, this usually means
@@ -113,15 +110,15 @@ instance with which you communicate via vim-ipython needs to be running the
 same version of Python.
 """
 
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 #        Function Definitions:
 #------------------------------------------------------------------------------
 def connect_to_kernel():
-    """ Create kernel manager from IPython existing kernel file """
+    """ Create kernel manager from existing connection file """
     try:
         import IPython
     except ImportError:
-        raise ImportError("Could not find IPython. " + _install_instructions)
+        raise ImportError("Could not find kernel. " + _install_instructions)
 
     from jupyter_client import KernelManager, find_connection_file
 
@@ -129,15 +126,15 @@ def connect_to_kernel():
 
     # Test if connection is still alive
     connected = False
-    starttime = time.time()
     attempt = 0
-    while not connected and (time.time() - starttime) < 5.0:
+    max_attempts = 5
+    while not connected and attempt < max_attempts:
         try:
             # Default: filename='kernel-*.json'
             cfile = find_connection_file()
             attempt += 1
         except IOError:
-            vim_echo("IPython connection attempt #{:d} failed - no kernel file"\
+            vim_echo("kernel connection attempt #{:d} failed - no kernel file"\
                     .format(attempt), "Warning")
             time.sleep(1)
             continue
@@ -160,16 +157,15 @@ def connect_to_kernel():
             continue
         else:
             connected = True
-            # Send command so that monitor knows vim is commected 
-            # send('"_vim_client";_=_;__=__\n', store_history=False)
-            send('"_vim_client"\n', store_history=False)
+            # Send command so that monitor knows vim is commected
+            send('"_vim_client"', store_history=False)
             set_pid() # Ask kernel for its PID
             vim.command('redraw')
-            vim_echo("IPython connection successful!")
+            vim_echo("kernel connection successful! pid = {}".format(pid))
         finally:
             if not connected:
                 kc.stop_channels()
-                vim_echo("IPython connection attempt timed out", "Error")
+                vim_echo("kernel connection attempt timed out", "Error")
                 return
 
 def vim_regex_escape(x):
@@ -179,8 +175,8 @@ def vim_regex_escape(x):
     return x
 
 def vim_echo(arg, style="Question"):
-    """ Report arg using vim's echo command. 
-    
+    """ Report arg using vim's echo command.
+
     Keyword args:
     style -- the vim highlighting style to use
     """
@@ -328,9 +324,10 @@ def update_subchannel_msgs(debug=False, force=False):
     """
     if kc is None or (not vim_ipython_is_open() and not force):
         return False
-    msgs = kc.iopub_channel.get_msgs()
-    msgs += kc.stdin_channel.get_msgs()
 
+    #-------------------------------------------------------------------------- 
+    #        Set up 'vim-ipython' console window
+    #--------------------------------------------------------------------------
     # Check if cursor is in 'vim-ipython' console window.
     startedin_vimipython = vim.eval('@%')=='vim-ipython'
     if not startedin_vimipython:
@@ -351,21 +348,23 @@ def update_subchannel_msgs(debug=False, force=False):
             vim.command("pcl")
             vim.command("silent pedit +set\ ma vim-ipython")
             vim.command("wincmd P") #switch to preview window
-            # subchannel window quick quit key 'q'
-            vim.command('nnoremap <buffer> q :q<CR>')
-            vim.command("set bufhidden=hide buftype=nofile ft=python")
-            vim.command("setlocal nobuflisted") # don't come up in buffer lists
-            vim.command("setlocal nonumber") # no line numbers, we have in/out nums
-            vim.command("setlocal noswapfile") # no swap file (so no complaints cross-instance)
-            # make shift-enter and control-enter in insert mode behave same as in ipython notebook
-            # shift-enter send the current line, control-enter send the line
-            # but keeps it around for further editing.
-            vim.command("inoremap <buffer> <s-Enter> <esc>dd:python run_command('''<C-r>\"''')<CR>i")
-            # pkddA: paste, go up one line which is blank after run_command,
-            # delete it, and then back to insert mode
-            vim.command("inoremap <buffer> <c-Enter> <esc>dd:python run_command('''<C-r>\"''')<CR>pkddA")
-            # ctrl-C gets sent to the IPython process as a signal on POSIX
-            vim.command("noremap <buffer>  :IPythonInterrupt<cr>")
+
+    # Now we're in the preview window...
+    # subchannel window quick quit key 'q'
+    vim.command('nnoremap <buffer> q :q<CR>')
+    vim.command("set bufhidden=hide buftype=nofile ft=python")
+    vim.command("setlocal nobuflisted") # don't come up in buffer lists
+    vim.command("setlocal nonumber") # no line numbers, we have in/out nums
+    vim.command("setlocal noswapfile") # no swap file (so no complaints cross-instance)
+    # Emulate jupyter notebook maps:
+    # shift-enter: send the current line
+    # control-enter: send the line, but keep it for further editing
+    vim.command("inoremap <buffer> <s-Enter> <esc>dd:pythonx jupyter_vim.run_command('''<C-r>\"''')<CR>i")
+    # pkddA: paste, go up one line which is blank after run_command,
+    # delete it, and then back to insert mode
+    vim.command("inoremap <buffer> <c-Enter> <esc>dd:pythonx jupyter_vim.run_command('''<C-r>\"''')<CR>pkddA")
+    # ctrl-C gets sent to the IPython process as a signal on POSIX
+    vim.command("noremap <buffer>  :IPythonInterrupt<cr>")
 
     #syntax highlighting for python prompt
     # QtConsole In[] is blue, but I prefer the oldschool green
@@ -380,7 +379,12 @@ def update_subchannel_msgs(debug=False, force=False):
     vim.command("syn match IPyPromptOut /^%s/" % out_expression)
     vim.command("syn match IPyPromptOut2 /^\\.\\.\\.* /")
 
+    #-------------------------------------------------------------------------- 
+    #        Message handler
+    #--------------------------------------------------------------------------
     global current_stdin_prompt
+    msgs = kc.iopub_channel.get_msgs()
+    msgs += kc.stdin_channel.get_msgs() # get prompts from kernel
     b = vim.current.buffer
     update_occured = False
     for m in msgs:
@@ -393,24 +397,21 @@ def update_subchannel_msgs(debug=False, force=False):
             #echo('skipping a message on sub_channel','WarningMsg')
             #echo(str(m))
             continue
-        header = m['header']['msg_type']
-        if header == 'status':
+        msg_type = m['header']['msg_type']
+        if msg_type == 'status':
             continue
-        elif header == 'stream':
+        elif msg_type == 'stream':
             # TODO: alllow for distinguishing between stdout and stderr (using
             # custom syntax markers in the vim-ipython buffer perhaps), or by
             # also echoing the message to the status bar
-            try:
-                s = strip_color_escapes(m['content']['data'])
-            except KeyError:    # changed in IPython 3.0.0
-                s = strip_color_escapes(m['content']['text'])
-        elif header == 'pyout' or header == 'execute_result':
+            s = strip_color_escapes(m['content']['text'])
+        elif msg_type == 'pyout' or msg_type == 'execute_result':
             s = status_prompt_out % {'line': m['content']['execution_count']}
             s += m['content']['data']['text/plain']
-        elif header == 'display_data':
+        elif msg_type == 'display_data':
             # TODO: handle other display data types (HMTL? images?)
             s += m['content']['data']['text/plain']
-        elif header == 'pyin' or header == 'execute_input':
+        elif msg_type == 'pyin' or msg_type == 'execute_input':
             # TODO: the next line allows us to resend a line to ipython if
             # %doctest_mode is on. In the future, IPython will send the
             # execution_count on subchannel, so this will need to be updated
@@ -422,10 +423,10 @@ def update_subchannel_msgs(debug=False, force=False):
             dots = '.' * len(prompt.rstrip())
             dots += prompt[len(prompt.rstrip()):]
             s += m['content']['code'].rstrip().replace('\n', '\n' + dots)
-        elif header == 'pyerr' or header == 'error':
+        elif msg_type == 'pyerr' or msg_type == 'error':
             c = m['content']
             s = "\n".join(map(strip_color_escapes,c['traceback']))
-        elif header == 'input_request':
+        elif msg_type == 'input_request':
             current_stdin_prompt['prompt'] = m['content']['prompt']
             current_stdin_prompt['is_password'] = m['content']['password']
             current_stdin_prompt['parent_msg_id'] = m['parent_header']['msg_id']
@@ -474,8 +475,7 @@ def get_child_msg(msg_id):
 
 def print_prompt(prompt,msg_id=None):
     """Print In[] or In[42] style messages"""
-    global show_execution_count
-    if show_execution_count and msg_id:
+    if msg_id:
         # wait to get message back from kernel
         try:
             child = get_child_msg(msg_id)
