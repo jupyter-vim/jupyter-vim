@@ -5,6 +5,7 @@ Contents                                *vim-ipython-contents*
 
 1. Completion Metadata                     |vim-ipython-metadata|
 2. IPython Monitor                         |vim-ipython-monitor|
+    2.1 Quickstart Guide                   |vim-ipython-quickstart|
 3. IPython History Unite Source            |vim-ipython-history|
 4. Variables                               |vim-ipython-variables|
     4.1. g:ipy_autostart                   |g:ipy_autostart|
@@ -59,11 +60,18 @@ differentiate between Vim and the Jupyter shell clients. The `:IPython`
 command can be executed multiple times without ill effect in case the monitor
 is started later on.
 
-Basic usage: >
+------------------------------------------------------------------------------
+2.1 Quickstart Guide                    *vim-ipython-quickstart*
+ Start `jupyter qtconsole` or `jupyter console` and open a console using
+ a separate terminal window or tmux pane. This plugin provides the IPython
+ command for .py files.
 
-    $ python monitor.py &; jupyter console
-    :IPython
-
+    In a terminal:
+        $ python monitor.py &
+        $ jupyter console
+    In vim:
+        :IPython
+    
 Note: Currently the script looks for a connection file automatically and will
 connect to the first connection file it finds matching the glob pattern
 "kernel-[0-9]*.json'. This means the script will not connect to IPython

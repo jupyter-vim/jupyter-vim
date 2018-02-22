@@ -67,33 +67,29 @@ class IPythonMonitor(object):
     def listen(self):
         """ Listen for mesages on the kernel socket once connected. """
         while socket.recv():
-            try:
-                for msg in kc.iopub_channel.get_msgs():
-                    # See this URL for descriptions of all message types:
-                    # <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
-                    msg_type = msg['msg_type']
+            for msg in kc.iopub_channel.get_msgs():
+                # See this URL for descriptions of all message types:
+                # <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
+                msg_type = msg['msg_type']
 
-                    if msg_type == 'shutdown_reply':
-                        sys.exit(0)
+                if msg_type == 'shutdown_reply':
+                    sys.exit(0)
 
-                    # UUID of the client sending the message
-                    client = msg['parent_header'].get('session', '')
+                # UUID of the client sending the message
+                client = msg['parent_header'].get('session', '')
 
-                    # Check for the message from vim :IPython command to add vim as
-                    # an acceptable client
-                    if (client and msg_type in ('execute_input', 'pyin') and
-                            msg['content']['code'] == '"_vim_client"'):
-                        self.clients.add(client)
-                        continue
+                # Check for the message from vim :IPython command to add vim as
+                # an acceptable client
+                if (client and msg_type in ('execute_input', 'pyin') and
+                        msg['content']['code'] == '"_vim_client"'):
+                    self.clients.add(client)
+                    continue
 
-                    # If vim has sent the message to the kernel, process it
-                    if client in self.clients:
-                        # Handle the message with an IPythonMonitor function
-                        getattr(self, msg_type, self.other)(msg)
-                        sys.stdout.flush()
-            except KeyboardInterrupt:
-                print("Shutting down monitor.")
-                sys.exit(0)
+                # If vim has sent the message to the kernel, process it
+                if client in self.clients:
+                    # Handle the message with an IPythonMonitor function
+                    getattr(self, msg_type, self.other)(msg)
+                    sys.stdout.flush()
 
     def clear_output(self, msg):
         if self.last_msg_type in ('execute_input', 'pyin'):
@@ -213,7 +209,7 @@ if len(sys.argv) > 1:
 else:
     # Set stdout to terminal in which kernel is running
     msg_id = kc.execute('import os as _os; _tty = _os.ttyname(1)', silent=True,
-                  user_expressions=dict(_tty='_tty'))
+            user_expressions=dict(_tty='_tty'))
     while True:
         try:
             msg = kc.shell_channel.get_msg(timeout=1.0)
