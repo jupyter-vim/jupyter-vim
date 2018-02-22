@@ -1,5 +1,5 @@
 #=============================================================================
-#    File: pythonx/jupyter.vim
+#    File: pythonx/jupyter_vim.py
 # Created: 07/28/11 22:14:58
 #  Author: Paul Ivanov (http://pirsquared.org)
 #  Updated: [11/13/2017] William Van Vliet
@@ -7,12 +7,7 @@
 #
 # Description:
 """
-Python code for ipy.vim.
-
-This module is loaded as:
-    from vim_ipython import *
-in ipy.vim, which is a filetype plugin for *.py files. It will only function
-when running within vim (+python[3]).
+Python code for ftplugin/python/jupyter.vim.
 """
 #=============================================================================
 
@@ -68,7 +63,8 @@ vim_vars = VimVars()
 #        Read global configuration variables
 #------------------------------------------------------------------------------
 show_execution_count = True
-monitor_subchannel = bool(int(vim.eval("g:ipy_monitor_subchannel")))
+monitor_subchannel = bool(int(vim.vars.get("g:ipy_monitor_subchannel", '0')))
+# monitor_subchannel = False
 current_line = ""
 current_stdin_prompt = {}
 
@@ -128,7 +124,6 @@ def connect_to_kernel():
         raise ImportError("Could not find IPython. " + _install_instructions)
 
     from jupyter_client import KernelManager, find_connection_file
-    from traitlets.config.loader import KeyValueConfigLoader
 
     global km, kc, send
 
@@ -142,7 +137,7 @@ def connect_to_kernel():
             cfile = find_connection_file()
             attempt += 1
         except IOError:
-            vim_echo("IPython connection attempt #{:d} failed - no kernel file" \
+            vim_echo("IPython connection attempt #{:d} failed - no kernel file"\
                     .format(attempt), "Warning")
             time.sleep(1)
             continue
@@ -170,7 +165,7 @@ def connect_to_kernel():
             send('"_vim_client"\n', store_history=False)
             set_pid() # Ask kernel for its PID
             vim.command('redraw')
-            vim_echo("IPython connection successful")
+            vim_echo("IPython connection successful!")
         finally:
             if not connected:
                 kc.stop_channels()

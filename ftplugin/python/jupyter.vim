@@ -1,5 +1,5 @@
 "=============================================================================
-"    File: ftplugin/python/jupyter.vim
+"    File: ftplugin/python/jupyter_vim.vim
 " Created: 07/28/11 22:14:58
 "  Author: Paul Ivanov (http://pirsquared.org)
 "  Updated: [11/13/2017] William Van Vliet
@@ -22,8 +22,12 @@
 "
 "=============================================================================
 
-" if exists("g:loaded_jupyter") || !has('pythonx') || &cp || !has('channel')
+" if exists("b:loaded_jupyter") || !has('pythonx') || &cp || !has('channel')
 if !has('pythonx') || !has('job') || &cp
+    finish
+endif
+
+if !jupyter#init_python()
     finish
 endif
 
@@ -31,7 +35,7 @@ endif
 "        Configuration: {{{
 "-----------------------------------------------------------------------------
 if !exists("g:jupyter_mapkeys")
-    let g:jupyter_mapkeys = 0
+    let g:jupyter_mapkeys = 1
 endif
 
 if !exists("g:jupyter_auto_connect")
@@ -43,12 +47,6 @@ if !exists('g:ipython_run_flags')
     let g:ipython_run_flags = ''
 endif
 
-" Automatically run :IPython in python files
-if !exists('g:ipy_autostart')
-    let g:ipy_autostart = 1
-endif
-
-" update vim-ipython 'shell' on every send?
 if !exists('g:ipy_monitor_subchannel')
        let g:ipy_monitor_subchannel = 0
 endif
@@ -77,72 +75,63 @@ augroup END
 "        Key Mappings: {{{
 "-----------------------------------------------------------------------------
 " Setup plugin mappings for the most common ways to interact with ipython.
-noremap  <Plug>IPython-RunFile            :update<CR>:pythonx run_this_file()<CR>
-noremap  <Plug>IPython-ImportFile         :update<CR>:pythonx run_this_file('-n')<CR>
-noremap  <Plug>IPython-RunLine            :pythonx run_this_line()<CR>
-noremap  <Plug>IPython-RunCell            :pythonx run_this_cell()<CR>
-noremap  <Plug>IPython-RunLines           :pythonx run_these_lines()<CR>
-xnoremap <Plug>IPython-RunLinesAsTopLevel :pythonx dedent_run_these_lines()<CR>
-noremap  <Plug>IPython-OpenPyDoc          :pythonx get_doc_buffer()<CR>
-noremap  <Plug>IPython-UpdateShell        :pythonx if update_subchannel_msgs(force=True): echo("vim-ipython shell updated",'Operator')<CR>
+noremap  <Plug>IPython-RunFile            :update<CR>:pythonx jupyter_vim.run_this_file()<CR>
+noremap  <Plug>IPython-ImportFile         :update<CR>:pythonx jupyter_vim.run_this_file('-n')<CR>
+noremap  <Plug>IPython-RunLine            :pythonx jupyter_vim.run_this_line()<CR>
+noremap  <Plug>IPython-RunCell            :pythonx jupyter_vim.run_this_cell()<CR>
+noremap  <Plug>IPython-RunLines           :pythonx jupyter_vim.run_these_lines()<CR>
+xnoremap <Plug>IPython-RunLinesAsTopLevel :pythonx jupyter_vim.dedent_run_these_lines()<CR>
+noremap  <Plug>IPython-OpenPyDoc          :pythonx jupyter_vim.get_doc_buffer()<CR>
+noremap  <Plug>IPython-UpdateShell        :pythonx if jupyter_vim.update_subchannel_msgs(force=True): jupyter_vim.vim_echo("vim-ipython shell updated",'Operator')<CR>
 "noremap  <Plug>IPython-StartDebugging     :pythonx send('%pdb')<CR>
 "noremap  <Plug>IPython-BreakpointSet      :pythonx set_breakpoint()<CR>
 "noremap  <Plug>IPython-BreakpointClear    :pythonx clear_breakpoint()<CR>
 "noremap  <Plug>IPython-DebugThisFile      :pythonx run_this_file_pdb()<CR>
 "noremap  <Plug>IPython-BreakpointClearAll :pythonx clear_all_breaks()<CR>
-noremap  <Plug>IPython-PlotClearCurrent   :pythonx run_command("plt.clf()")<CR>
-noremap  <Plug>IPython-PlotCloseAll       :pythonx run_command("plt.close('all')")<CR>
-noremap  <Plug>IPython-RunLineAsTopLevel  :pythonx dedent_run_this_line()<CR>
+noremap  <Plug>IPython-PlotClearCurrent   :pythonx jupyter_vim.run_command("plt.clf()")<CR>
+noremap  <Plug>IPython-PlotCloseAll       :pythonx jupyter_vim.run_command("plt.close('all')")<CR>
+noremap  <Plug>IPython-RunLineAsTopLevel  :pythonx jupyter_vim.dedent_run_this_line()<CR>
 noremap  <Plug>IPython-RunTextObj         :<C-u>set opfunc=<SID>opfunc<CR>g@
 
-function! s:DoMappings()
-    if g:ipy_perform_mappings
-       if &buftype == ''
-        map  <buffer> <silent> <F5>           <Plug>IPython-RunFile
-        map  <buffer> <silent> g<F5>          <Plug>IPython-ImportFile
-       endif
-        " map  <buffer> <silent> <S-F5>         <Plug>IPython-RunLine
-        map  <buffer> <silent> <F6>           <Plug>IPython-RunTextObj
-        map  <buffer> <silent> <F9>           <Plug>IPython-RunLines
-        "map  <buffer> <silent> ,d             <Plug>IPython-OpenPyDoc
-        map  <buffer> <silent> <M-r>          <Plug>IPython-UpdateShell
-        map  <buffer> <silent> <S-F9>         <Plug>IPython-ToggleReselect
-        "map  <buffer> <silent> <C-F6>         <Plug>IPython-StartDebugging
-        "map  <buffer> <silent> <F6>           <Plug>IPython-BreakpointSet
-        "map  <buffer> <silent> <S-F6>         <Plug>IPython-BreakpointClear
-        "map  <buffer> <silent> <F7>           <Plug>IPython-DebugThisFile
-        "map  <buffer> <silent> <S-F7>         <Plug>IPython-BreakpointClearAll
-        imap <buffer>          <C-F5>         <C-o><Plug>IPython-RunFile
-        imap <buffer>          <S-F5>         <C-o><Plug>IPython-RunLines
-        " imap <buffer> <silent> <F5>           <C-o><Plug>IPython-RunFile
+if g:jupyter_mapkeys
+    map  <buffer> <silent> <F5>           <Plug>IPython-RunFile
+    map  <buffer> <silent> g<F5>          <Plug>IPython-ImportFile
+    " map  <buffer> <silent> <S-F5>         <Plug>IPython-RunLine
+    map  <buffer> <silent> <F6>           <Plug>IPython-RunTextObj
+    map  <buffer> <silent> <F9>           <Plug>IPython-RunLines
+    "map  <buffer> <silent> ,d             <Plug>IPython-OpenPyDoc
+    map  <buffer> <silent> <M-r>          <Plug>IPython-UpdateShell
+    map  <buffer> <silent> <S-F9>         <Plug>IPython-ToggleReselect
+    "map  <buffer> <silent> <C-F6>         <Plug>IPython-StartDebugging
+    "map  <buffer> <silent> <F6>           <Plug>IPython-BreakpointSet
+    "map  <buffer> <silent> <S-F6>         <Plug>IPython-BreakpointClear
+    "map  <buffer> <silent> <F7>           <Plug>IPython-DebugThisFile
+    "map  <buffer> <silent> <S-F7>         <Plug>IPython-BreakpointClearAll
+    imap <buffer>          <C-F5>         <C-o><Plug>IPython-RunFile
+    imap <buffer>          <S-F5>         <C-o><Plug>IPython-RunLines
+    " imap <buffer> <silent> <F5>           <C-o><Plug>IPython-RunFile
 
-        "pi custom
-        map  <buffer> <silent> <C-Return>        <Plug>IPython-RunFile
-        map  <buffer> <silent> <M-S>             <Plug>IPython-RunLineAsTopLevel
-        xmap <buffer> <silent> <M-S>             <Plug>IPython-RunLines
-        map  <buffer> <silent> <Leader><Leader>x <Plug>IPython-RunCell
+    "pi custom
+    map  <buffer> <silent> <C-Return>        <Plug>IPython-RunFile
+    map  <buffer> <silent> <M-S>             <Plug>IPython-RunLineAsTopLevel
+    xmap <buffer> <silent> <M-S>             <Plug>IPython-RunLines
+    map  <buffer> <silent> <Leader><Leader>x <Plug>IPython-RunCell
 
-        " nnoremap <buffer> <C-c> :<C-u>IPythonInterrupt<CR>
-        " inoremap <buffer> <Leader>K <Esc>:<C-u>call <SID>GetDocBuffer()<CR>
-    endif
-
-    augroup vim_ipython_autostart
-        autocmd!
-        autocmd BufEnter,BufNewFile *.py if g:ipy_autostart | call s:DoMappings() | endif
-        autocmd FileType python if g:ipy_autostart | call s:DoMappings() | endif
-    augroup END
-endfunction
+    " nnoremap <buffer> <C-c> :<C-u>IPythonInterrupt<CR>
+    " inoremap <buffer> <Leader>K <Esc>:<C-u>call <SID>GetDocBuffer()<CR>
+endif
 
 "}}}-------------------------------------------------------------------------- 
 "        Commands: {{{
 "-----------------------------------------------------------------------------
-command! -nargs=0 IPython :call <SID>DoMappings()|:pythonx connect_to_kernel()
-command! -nargs=* IPythonInterrupt :pythonx interrupt_kernel_hack("<args>")
-command! -nargs=0 IPythonTerminate :pythonx terminate_kernel_hack()
+command! -nargs=0 IPython :pythonx jupyter_vim.connect_to_kernel()
+command! -nargs=* IPythonInterrupt :pythonx jupyter_vim.interrupt_kernel_hack("<args>")
+command! -nargs=0 IPythonTerminate :pythonx jupyter_vim.terminate_kernel_hack()
 command! -nargs=0 -bang IPythonInput :pythonx InputPrompt(force='<bang>')
 command! -nargs=0 -bang IPythonInputSecret :pythonx InputPrompt(force='<bang>', hide_input=True)
 
 "}}}-------------------------------------------------------------------------- 
+" TODO move to autoload
 "        Functions: {{{
 "-----------------------------------------------------------------------------
 function! s:GetDocBuffer()
@@ -193,6 +182,6 @@ EOF
 endfunction
 "}}}
 
-let g:loaded_jupyter = 1
+let b:loaded_jupyter = 1
 "=============================================================================
 "=============================================================================
