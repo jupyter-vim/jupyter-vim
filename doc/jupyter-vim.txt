@@ -1,0 +1,93 @@
+*jupyter-vim* Integrate your jupyter console process with vim!
+
+A two-way integration between Vim and Jupyter [Qt]Console.
+
+Using this plugin, send lines or files for the IPython kernel to execute.
+Receive tracebacks for debugging.
+
+Author:  Bernie Roesler <insert_site_here>
+License: Distributed under the MIT license (see |jupyter-vim-license|)
+
+This plugin is only available if 'compatible' is not set.
+
+CONTENTS 					*jupyter-vim-contents*
+
+	1. Introduction ......... |jupyter-vim-introduction|
+	2. Usage ................ |jupyter-vim-usage|
+	3. Mappings ............. |jupyter-vim-mappings|
+	4. Configuration ........ |jupyter-vim-configuration|
+	5. License .............. |jupyter-vim-license|
+	6. Bugs ................. |jupyter-vim-bugs|
+	7. Changelog ............ |jupyter-vim-changelog|
+	8. Contributing ......... |jupyter-vim-contributing|
+	9. Credits .............. |jupyter-vim-credits|
+
+================================================================================
+INTRODUCTION 					*jupyter-vim*
+
+Whenever you edit a python file, a set of commands is defined that serve as
+a gateway to the ipython kernel. If you do not have a kernel running, the plugin
+will silently fail and the functionality will not be available. This feature
+prevents "error vomit" at startup on systems where it is not compatible. If you
+manually run the configure command, you will indeed get the appropriate errors
+to assist in debugging.
+
+USAGE 						*jupyter-vim-usage*
+
+COMMANDS 					*jupyter-vim-commands*
+
+MAPPINGS					*jupyter-vim-mappings*
+
+CONFIGURATION					*jupyter-vim-configuration*
+
+LICENSE 					*jupyter-vim-license*
+
+MIT License
+
+Copyright (c) 2018-present Bernard Roesler
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+BUGS 						*jupyter-vim-bugs*
+
+Known issues will be reported here.
+
+This version of jupyter-vim has been tested on the following:
+$ ipython --version           # 6.1.0
+$ jupyter --version           # 4.3.0
+$ jupyter console --version   # 5.2.0
+$ jupyter qtconsole --version # 4.3.1
+
+CHANGELOG					*jupyter-vim-changelog*
+
+[v0.0]
+
+CONTRIBUTING					*jupyter-vim-contributing*
+
+Please feel free to contact me at: 
+	bernard.roesler@gmail.com 
+with the subject line 
+	"[jupyter-vim]: Contributing".
+
+CREDITS 					*jupyter-vim-credits*
+I owe significant thanks to Steve Losh's "Learn Vimscript the Hard Way"
+<http://learnvimscriptthehardway.stevelosh.com/>
+
+vim:tw=78:ts=8:noet:ft=text:norl:
+
