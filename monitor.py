@@ -12,9 +12,10 @@
 Monitor for Jupyter console commands run from Vim.
 
 Usage:
-    1. Run jupyter console.
-    2. Run python monitor.py
-    3. Connect Vim to console kernel using :IPython command
+    $ jupyter kernel
+    $ python monitor.py
+    $ vim my_script.py
+    :Jupyter
 """
 
 import ast
@@ -73,6 +74,7 @@ class IPythonMonitor(object):
                 msg_type = msg['msg_type']
 
                 if msg_type == 'shutdown_reply':
+                    print("Shutting down monitor")
                     sys.exit(0)
 
                 # UUID of the client sending the message
@@ -81,15 +83,16 @@ class IPythonMonitor(object):
                 # Check for the message from vim :IPython command to add vim as
                 # an acceptable client
                 if (client and msg_type in ('execute_input', 'pyin') and
-                        msg['content']['code'] == '"_vim_client"'):
+                        msg['content']['code'].strip("\n") == '"_vim_client"'):
                     self.clients.add(client)
+                    print("Added vim as client")
                     continue
 
-                # If vim has sent the message to the kernel, process it
-                if client in self.clients:
-                    # Handle the message with an IPythonMonitor function
-                    getattr(self, msg_type, self.other)(msg)
-                    sys.stdout.flush()
+                # If vim has sent the message to the kernel,
+                # Handle the message with an IPythonMonitor function
+                # if client in self.clients:
+                getattr(self, msg_type, self.other)(msg)
+                sys.stdout.flush()
 
     def clear_output(self, msg):
         if self.last_msg_type in ('execute_input', 'pyin'):
@@ -157,7 +160,7 @@ class IPythonMonitor(object):
         print('msg_type = %s' % str(msg['msg_type']))
         print('msg = %s' % str(msg))
 
-    # Alias functions to attributes
+    # Alias some functions to attributes (IPython names changed)
     execute_input = pyin
     execute_result = pyout
     error = pyerr
@@ -199,28 +202,30 @@ while not connected:
             kc.stop_channels()
 
 #------------------------------------------------------------------------------
-#       Set stdout to proper tty
+#       Set stdout to desired tty
 #------------------------------------------------------------------------------
+term = ''
 if len(sys.argv) > 1:
     # Set stdout to arbitrary file descriptor given as script argument
-    #   $ python monitor.py monitor_log.txt &
+    #   $ python monitor.py '/dev/ttys003' &
     term = open(sys.argv[1], 'w')
     sys.stdout = term
 else:
-    # Set stdout to terminal in which kernel is running
-    msg_id = kc.execute('import os as _os; _tty = _os.ttyname(1)', silent=True,
-            user_expressions=dict(_tty='_tty'))
-    while True:
-        try:
-            msg = kc.shell_channel.get_msg(timeout=1.0)
-            if msg['parent_header']['msg_id'] == msg_id:
-                fd = ast.literal_eval(msg['content']['user_expressions']
-                        ['_tty']['data']['text/plain'])
-                # print("setting sys.stdout to fd: {}".format(fd))
-                sys.stdout = open(fd, 'w+')
-                break
-        except Empty:
-            continue
+    term = os.ttyname(1) # use monitor's terminal
+    # # Set stdout to terminal in which kernel is running
+    # msg_id = kc.execute('import os as _os; _tty = _os.ttyname(1)', silent=True,
+    #         user_expressions=dict(_tty='_tty'))
+    # while True:
+    #     try:
+    #         msg = kc.shell_channel.get_msg(timeout=1.0)
+    #         if msg['parent_header']['msg_id'] == msg_id:
+    #             term = ast.literal_eval(msg['content']['user_expressions']
+    #                     ['_tty']['data']['text/plain'])
+    #             # print("setting sys.stdout to term: {}".format(term))
+    #             sys.stdout = open(term, 'w+')
+    #             break
+    #     except Empty:
+    #         continue
 
 #------------------------------------------------------------------------------
 #        Create and run the monitor
