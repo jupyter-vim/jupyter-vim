@@ -1,3 +1,11 @@
+#=============================================================================
+#    File: pythonx/jupyter.vim
+# Created: 07/28/11 22:14:58
+#  Author: Paul Ivanov (http://pirsquared.org)
+#  Updated: [11/13/2017] William Van Vliet
+#  Updated: [02/14/2018, 12:31] Bernie Roesler
+#
+# Description:
 """
 Python code for ipy.vim.
 
@@ -6,6 +14,7 @@ This module is loaded as:
 in ipy.vim, which is a filetype plugin for *.py files. It will only function
 when running within vim (+python[3]).
 """
+#=============================================================================
 
 import ast
 import os
@@ -13,10 +22,13 @@ import sys
 import time
 
 from queue import Empty
-unicode = str
+
+is_py3 = sys.version_info[0] >= 3
+if is_py3:
+    unicode = str
 
 # 'vim' can only be imported when running on the vim interpreter. Create NoOp
-# class to allow testing of functions outside of vim.
+# class to allow testing of functions outside of vim (sortof... a lot break)
 not_in_vim = False
 try:
     import vim
@@ -25,8 +37,8 @@ except ImportError:
         def __getattribute__(self, key):
             return lambda *args: '0'
     vim = NoOp()
-    print("Uh oh! Not running inside vim! Loading anyway...")
     not_in_vim = True
+    print("Uh oh! Not running inside vim! Loading anyway...")
 
 #------------------------------------------------------------------------------ 
 #        Define wrapper
@@ -36,8 +48,10 @@ class VimVars(object):
 
     def get(self, name, default=None):
         var = vim.vars.get(name, default)
-        if isinstance(var, bytes):
+        if is_py3 and isinstance(var, bytes):
             var = str(var, vim_encoding)
+        elif not is_py3 and isinstance(var, str):
+            var = unicode(var, vim_encoding)
         return var
 
     def __getitem__(self, name):
@@ -152,7 +166,8 @@ def connect_to_kernel():
         else:
             connected = True
             # Send command so that monitor knows vim is commected 
-            send('"_vim_client";_=_;__=__\n', store_history=False)
+            # send('"_vim_client";_=_;__=__\n', store_history=False)
+            send('"_vim_client"\n', store_history=False)
             set_pid() # Ask kernel for its PID
             vim.command('redraw')
             vim_echo("IPython connection successful")
@@ -680,6 +695,8 @@ def eval_ipy_input(var=None):
     result = child['content']['user_expressions']
     try:
         text = result['_expr']['data']['text/plain']
+        if not is_py3 and isinstance(text, str):
+            text = unicode(text, vim_encoding)
         if var:
             from io import StringIO
             from tokenize import STRING, generate_tokens

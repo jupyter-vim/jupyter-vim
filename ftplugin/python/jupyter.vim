@@ -1,5 +1,5 @@
 "=============================================================================
-"    File: ftplugin/python/ipy.vim
+"    File: ftplugin/python/jupyter.vim
 " Created: 07/28/11 22:14:58
 "  Author: Paul Ivanov (http://pirsquared.org)
 "  Updated: [11/13/2017] William Van Vliet
@@ -21,19 +21,21 @@
 " $ jupyter notebook --version  # 5.0.0
 "
 "=============================================================================
-"       Compatibility check {{{
-"-----------------------------------------------------------------------------
-" if exists("g:loaded_ipy") || !has('pythonx') || &cp || version < 800
-if !has('pythonx') || &cp || version < 800
+
+" if exists("g:loaded_jupyter") || !has('pythonx') || &cp || !has('channel')
+if !has('pythonx') || !has('job') || &cp
     finish
 endif
 
-"}}}-------------------------------------------------------------------------- 
+"----------------------------------------------------------------------------- 
 "        Configuration: {{{
 "-----------------------------------------------------------------------------
-" Allow custom mappings.
-if !exists('g:ipy_perform_mappings')
-    let g:ipy_perform_mappings = 1
+if !exists("g:jupyter_mapkeys")
+    let g:jupyter_mapkeys = 0
+endif
+
+if !exists("g:jupyter_auto_connect")
+    let g:jupyter_auto_connect = 0
 endif
 
 " flags to for IPython's run file magic
@@ -51,18 +53,14 @@ if !exists('g:ipy_monitor_subchannel')
        let g:ipy_monitor_subchannel = 0
 endif
 
-
-"}}}-------------------------------------------------------------------------- 
-"        Execute Python Code: {{{
-"-----------------------------------------------------------------------------
-pythonx << endpython
-import vim
-import sys
-import itertools as it
-vim_ipython_path = vim.eval("expand('<sfile>:h')")
-sys.path.append(vim_ipython_path)
-from vim_ipython import *
-endpython
+"}}}---------------------------------------------------------------------------- 
+"       Connect to IPython Kernel  {{{
+"-------------------------------------------------------------------------------
+if g:jupyter_auto_connect
+    " General idea: open a channel to the python kernel with vim, use a callback
+    " function to determine what to do with the information
+endif
+"}}}
 
 "}}}-------------------------------------------------------------------------- 
 "        Autocmds: {{{
@@ -195,6 +193,6 @@ EOF
 endfunction
 "}}}
 
-let g:loaded_ipy = 1
+let g:loaded_jupyter = 1
 "=============================================================================
 "=============================================================================

@@ -39,7 +39,7 @@ else:
 colors = {k: i for i, k in enumerate([
     'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'])}
 
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 #        Function definitions
 #------------------------------------------------------------------------------
 def colorize(string, color, bold=False, bright=False):
@@ -49,11 +49,11 @@ def colorize(string, color, bold=False, bright=False):
         code = '\033[38;5;%d' % color
     return ''.join((code, ';1' if bold else '', 'm', string, '\033[0m'))
 
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 #        Class definition
 #------------------------------------------------------------------------------
 class IPythonMonitor(object):
-    """ 
+    """
     Class to keep track of the ipython kernel.
     Track clients, and messages published on iopub_channel
     """
@@ -67,29 +67,33 @@ class IPythonMonitor(object):
     def listen(self):
         """ Listen for mesages on the kernel socket once connected. """
         while socket.recv():
-            for msg in kc.iopub_channel.get_msgs():
-                # See this URL for descriptions of all message types:
-                # <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
-                msg_type = msg['msg_type']
+            try:
+                for msg in kc.iopub_channel.get_msgs():
+                    # See this URL for descriptions of all message types:
+                    # <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
+                    msg_type = msg['msg_type']
 
-                if msg_type == 'shutdown_reply':
-                    sys.exit(0)
+                    if msg_type == 'shutdown_reply':
+                        sys.exit(0)
 
-                # UUID of the client sending the message
-                client = msg['parent_header'].get('session', '')
+                    # UUID of the client sending the message
+                    client = msg['parent_header'].get('session', '')
 
-                # Check for the message from vim :IPython command to add vim as
-                # an acceptable client
-                if (client and msg_type in ('execute_input', 'pyin') and
-                        msg['content']['code'] == '"_vim_client";_=_;__=__'):
-                    self.clients.add(client)
-                    continue
+                    # Check for the message from vim :IPython command to add vim as
+                    # an acceptable client
+                    if (client and msg_type in ('execute_input', 'pyin') and
+                            msg['content']['code'] == '"_vim_client"'):
+                        self.clients.add(client)
+                        continue
 
-                # If vim has sent the message to the kernel, process it
-                if client in self.clients:
-                    # Handle the message with an IPythonMonitor function
-                    getattr(self, msg_type, self.other)(msg)
-                    sys.stdout.flush()
+                    # If vim has sent the message to the kernel, process it
+                    if client in self.clients:
+                        # Handle the message with an IPythonMonitor function
+                        getattr(self, msg_type, self.other)(msg)
+                        sys.stdout.flush()
+            except KeyboardInterrupt:
+                print("Shutting down monitor.")
+                sys.exit(0)
 
     def clear_output(self, msg):
         if self.last_msg_type in ('execute_input', 'pyin'):
@@ -162,7 +166,7 @@ class IPythonMonitor(object):
     execute_result = pyout
     error = pyerr
 
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 #       Connect to the kernel
 #------------------------------------------------------------------------------
 connected = False
@@ -180,29 +184,25 @@ while not connected:
     # Ping the kernel
     kc.execute('', silent=True)
     try:
-        msg = kc.shell_channel.get_msg(timeout=1)
+        # msg = kc.shell_channel.get_msg(timeout=1)
+        msg = kc.get_shell_msg(timeout=1)
+    except Empty:               # if msg is empty, just try again
+        continue
+    except Exception:
+        import traceback
+        traceback.print_exc()
+    except KeyboardInterrupt:   # <C-c> or kill -SIGINT?
+        sys.exit(0)
+    else:
+        connected = True
         # Set the socket on which to listen for messages
         socket = km.connect_iopub()
         print('IPython monitor connected successfully!')
-        connected = True
-
-    # <C-c> or kill -SIGINT?
-    except KeyboardInterrupt:
-        sys.exit(0)
-
-    # if msg is empty, just try again
-    except (Empty, KeyError):
-        continue
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-
     finally:
         if not connected:
             kc.stop_channels()
 
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 #       Set stdout to proper tty
 #------------------------------------------------------------------------------
 if len(sys.argv) > 1:
@@ -226,7 +226,7 @@ else:
         except Empty:
             continue
 
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 #        Create and run the monitor
 #------------------------------------------------------------------------------
 monitor = IPythonMonitor()
