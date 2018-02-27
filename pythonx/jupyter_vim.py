@@ -129,14 +129,13 @@ def connect_to_kernel():
     attempt = 0
     max_attempts = 5
     while not connected and attempt < max_attempts:
+        attempt += 1
         try:
             # Default: filename='kernel-*.json'
             cfile = find_connection_file()
-            attempt += 1
         except IOError:
-            vim_echo("kernel connection attempt #{:d} failed - no kernel file"\
-                    .format(attempt), "Warning")
-            time.sleep(1)
+            vim_echom("kernel connection attempt #{:d} failed - no kernel file"\
+                    .format(attempt), "Error")
             continue
 
         # Create the kernel manager and connect a client
@@ -145,7 +144,7 @@ def connect_to_kernel():
         kc = km.client()
         kc.start_channels()
 
-        # Alias execution function (previously allowed altering "allow_stdin")
+        # Alias execute function
         def send(msg, **kwargs):
             return kc.execute(msg, **kwargs)
 
@@ -161,11 +160,11 @@ def connect_to_kernel():
             send('"_vim_client"', store_history=False)
             set_pid() # Ask kernel for its PID
             vim.command('redraw')
-            vim_echo("kernel connection successful! pid = {}".format(pid))
+            vim_echom("kernel connection successful! pid = {}".format(pid))
         finally:
             if not connected:
                 kc.stop_channels()
-                vim_echo("kernel connection attempt timed out", "Error")
+                vim_echom("kernel connection attempt timed out", "Error")
                 return
 
 def vim_regex_escape(x):
@@ -174,8 +173,8 @@ def vim_regex_escape(x):
         x = x.replace(old, new)
     return x
 
-def vim_echo(arg, style="Question"):
-    """ Report arg using vim's echo command.
+def vim_echom(arg, style="Question"):
+    """ Report arg using vim's echomessage command.
 
     Keyword args:
     style -- the vim highlighting style to use
@@ -272,7 +271,7 @@ def get_doc_buffer(level=0, word=None):
     vim.command("let &isk = isk_save") # restore iskeyword list
     doc = get_doc(word, level)
     if len(doc) ==0:
-        vim_echo(repr(word)+" not found","Error")
+        vim_echom(repr(word)+" not found","Error")
         return
     # documentation buffer name is same as the query made to ipython
     vim.command('new '+word.lstrip('%'))
@@ -325,6 +324,7 @@ def update_subchannel_msgs(debug=False, force=False):
     if kc is None or (not vim_ipython_is_open() and not force):
         return False
 
+    # TODO move this block to its own vim function... doesn't require python
     #-------------------------------------------------------------------------- 
     #        Set up 'vim-ipython' console window
     #--------------------------------------------------------------------------
@@ -348,14 +348,14 @@ def update_subchannel_msgs(debug=False, force=False):
             vim.command("pcl")
             vim.command("silent pedit +set\ ma vim-ipython")
             vim.command("wincmd P") #switch to preview window
+            # Now we're in the preview window...
+            # subchannel window quick quit key 'q'
+            vim.command('nnoremap <buffer> q :q<CR>')
+            vim.command("set bufhidden=hide buftype=nofile ft=python")
+            vim.command("setlocal nobuflisted") # don't come up in buffer lists
+            vim.command("setlocal nonumber") # no line numbers, we have in/out nums
+            vim.command("setlocal noswapfile") # no swap file (so no complaints cross-instance)
 
-    # Now we're in the preview window...
-    # subchannel window quick quit key 'q'
-    vim.command('nnoremap <buffer> q :q<CR>')
-    vim.command("set bufhidden=hide buftype=nofile ft=python")
-    vim.command("setlocal nobuflisted") # don't come up in buffer lists
-    vim.command("setlocal nonumber") # no line numbers, we have in/out nums
-    vim.command("setlocal noswapfile") # no swap file (so no complaints cross-instance)
     # Emulate jupyter notebook maps:
     # shift-enter: send the current line
     # control-enter: send the line, but keep it for further editing
@@ -431,7 +431,7 @@ def update_subchannel_msgs(debug=False, force=False):
             current_stdin_prompt['is_password'] = m['content']['password']
             current_stdin_prompt['parent_msg_id'] = m['parent_header']['msg_id']
             s += m['content']['prompt']
-            vim_echo('Awaiting input. call :IPythonInput to reply')
+            vim_echom('Awaiting input. call :IPythonInput to reply')
 
         if s.find('\n') == -1:
             # somewhat ugly unicode workaround from
@@ -474,19 +474,19 @@ def get_child_msg(msg_id):
             return m
 
 def print_prompt(prompt,msg_id=None):
-    """Print In[] or In[42] style messages"""
+    """Print In[] or In[42] style messages on Vim's display line."""
     if msg_id:
         # wait to get message back from kernel
         try:
             child = get_child_msg(msg_id)
             count = child['content']['execution_count']
-            vim_echo("In[%d]: %s" %(count,prompt))
+            vim_echom("In[%d]: %s" %(count,prompt))
         except Empty:
-            # if the kernel it's waiting for input it's normal to get no reply
+            # if the kernel is waiting for input it's normal to get no reply
             if not kc.stdin_channel.msg_ready():
-                vim_echo("In[]: %s (no reply from IPython kernel)" % prompt)
+                vim_echom("In[]: %s (no reply from IPython kernel)" % prompt)
     else:
-        vim_echo("In[]: %s" % prompt)
+        vim_echom("In[]: %s" % prompt)
 
 def with_subchannel(f,*args,**kwargs):
     """ Conditionally monitor subchannel. """
@@ -496,7 +496,7 @@ def with_subchannel(f,*args,**kwargs):
             if monitor_subchannel:
                 update_subchannel_msgs(force=True)
         except AttributeError: #if kc is None
-            vim_echo("not connected to IPython", 'Error')
+            vim_echom("not connected to IPython", 'Error')
     return f_with_update
 
 @with_subchannel
@@ -508,6 +508,8 @@ def run_this_file(flags=''):
             vim_vars.get('cython_run_flags', ''),
             repr(vim.current.buffer.name))))
     else:
+        # Double the leading '%' so it is interpreted as a literal '%', not
+        # a '%r' format string
         cmd = '%%run %s %s' % (flags or vim_vars['ipython_run_flags'],
                                repr(vim.current.buffer.name))
     msg_id = send(cmd)
@@ -643,9 +645,9 @@ def InputPrompt(force=False, hide_input=False):
             return True
     else:
         if not current_stdin_prompt:
-            vim_echo('no input request detected')
+            vim_echom('no input request detected')
         if not kc:
-            vim_echo('not connected to IPython')
+            vim_echom('not connected to IPython')
         return False
 
 
@@ -661,13 +663,13 @@ def set_pid():
     try:
         child = get_child_msg(msg_id)
     except Empty:
-        vim_echo("no reply from IPython kernel")
+        vim_echom("no reply from IPython kernel")
         return
     try:
         pid = int(child['content']['user_expressions']\
                         ['_pid']['data']['text/plain'])
     except KeyError:
-        vim_echo("Could not get PID information, kernel not running Python?")
+        vim_echom("Could not get PID information, kernel not running Python?")
     return pid
 
 
@@ -685,7 +687,7 @@ def eval_ipy_input(var=None):
     try:
         child = get_child_msg(msg_id)
     except Empty:
-        vim_echo("no reply from IPython kernel")
+        vim_echom("no reply from IPython kernel")
         return
     result = child['content']['user_expressions']
     try:
@@ -707,11 +709,11 @@ def eval_ipy_input(var=None):
     except KeyError:
         try:
             try:
-                vim_echo('{ename}: {evalue}'.format(**child['content']))
+                vim_echom('{ename}: {evalue}'.format(**child['content']))
             except KeyError:
-                vim_echo('{ename}: {evalue}'.format(**result['_expr']))
+                vim_echom('{ename}: {evalue}'.format(**result['_expr']))
         except Exception:
-            vim_echo('Unknown error occurred')
+            vim_echom('Unknown error occurred')
     else:
         if not var:
             vim.command('let @+ = @"')
@@ -738,17 +740,17 @@ def interrupt_kernel_hack(signal_to_send=None):
         pid = set_pid()
 
         if pid is None:
-            vim_echo("cannot get kernel PID, Ctrl-C will not be supported")
+            vim_echom("cannot get kernel PID, Ctrl-C will not be supported")
             return
     if not signal_to_send:
         signal_to_send = signal.SIGINT
 
-    vim_echo("KeyboardInterrupt (sent to ipython: pid " +
+    vim_echom("KeyboardInterrupt (sent to ipython: pid " +
         "%i with signal %s)" % (pid, signal_to_send),"Operator")
     try:
         os.kill(pid, int(signal_to_send))
     except OSError:
-        vim_echo("unable to kill pid %d" % pid)
+        vim_echom("unable to kill pid %d" % pid)
         pid = None
 
 def dedent_run_this_line():
