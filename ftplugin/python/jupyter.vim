@@ -68,18 +68,18 @@ augroup END
 "}}}-------------------------------------------------------------------------- 
 "        Commands: {{{
 "-----------------------------------------------------------------------------
-command! -buffer -nargs=0 Jupyter                  :pythonx jupyter_vim.connect_to_kernel()
-command! -buffer -nargs=* JupyterInterrupt         :pythonx jupyter_vim.interrupt_kernel_hack("<args>")
-command! -buffer -nargs=0 JupyterTerminate         :pythonx jupyter_vim.terminate_kernel_hack()
-" command! -buffer -nargs=0 -bang JupyterInput       :pythonx InputPrompt(force='<bang>')
-" command! -buffer -nargs=0 -bang JupyterInputSecret :pythonx InputPrompt(force='<bang>', hide_input=True)
+command! -buffer -nargs=0 JupyterConnect    call jupyter#Connect()
+" command! -buffer -nargs=* JupyterInterrupt         :pythonx jupyter_vim.interrupt_kernel_hack("<args>")
+" command! -buffer -nargs=0 JupyterTerminate         :pythonx jupyter_vim.terminate_kernel_hack()
+
+command! -buffer -nargs=* -complete=file JupyterRunFile 
+            \ update | call jupyter#RunFile(<f-args>)
 
 "}}}-------------------------------------------------------------------------- 
 "        Key Mappings: {{{
 "-----------------------------------------------------------------------------
 " Setup plugin mappings for the most common ways to interact with ipython.
-noremap  <Plug>Jupyter-RunFile            :update<CR>:pythonx jupyter_vim.run_this_file()<CR>
-noremap  <Plug>Jupyter-ImportFile         :update<CR>:pythonx jupyter_vim.run_this_file('-n')<CR>
+" noremap  <Plug>Jupyter-ImportFile         :update<CR>:pythonx jupyter_vim.run_this_file('-n')<CR>
 noremap  <Plug>Jupyter-RunLine            :pythonx jupyter_vim.run_this_line()<CR>
 noremap  <Plug>Jupyter-RunCell            :pythonx jupyter_vim.run_this_cell()<CR>
 noremap  <Plug>Jupyter-RunLines           :pythonx jupyter_vim.run_these_lines()<CR>
@@ -90,40 +90,32 @@ noremap  <Plug>Jupyter-UpdateShell        :pythonx if jupyter_vim.update_subchan
 "noremap  <Plug>Jupyter-BreakpointClear    :pythonx clear_breakpoint()<CR>
 "noremap  <Plug>Jupyter-DebugThisFile      :pythonx run_this_file_pdb()<CR>
 "noremap  <Plug>Jupyter-BreakpointClearAll :pythonx clear_all_breaks()<CR>
-noremap  <Plug>Jupyter-PlotClearCurrent   :pythonx jupyter_vim.run_command("plt.clf()")<CR>
-noremap  <Plug>Jupyter-PlotCloseAll       :pythonx jupyter_vim.run_command("plt.close('all')")<CR>
 noremap  <Plug>Jupyter-RunLineAsTopLevel  :pythonx jupyter_vim.dedent_run_this_line()<CR>
 noremap  <Plug>Jupyter-RunTextObj         :<C-u>set opfunc=<SID>opfunc<CR>g@
 
+noremap  <Plug>Jupyter-PlotClearCurrent   :pythonx jupyter_vim.run_command("plt.clf()")<CR>
+noremap  <Plug>Jupyter-PlotCloseAll       :pythonx jupyter_vim.run_command("plt.close('all')")<CR>
+
 if g:jupyter_mapkeys
-    map  <buffer> <silent> <F5>           <Plug>Jupyter-RunFile
-    map  <buffer> <silent> g<F5>          <Plug>Jupyter-ImportFile
+    nmap  <buffer> <silent> <localleader>R           :JupyterRunFile<CR>
+    nmap  <buffer> <silent> g<F5>          <Plug>Jupyter-ImportFile
     map  <buffer> <silent> <S-F5>         <Plug>Jupyter-RunLine
     map  <buffer> <silent> <F6>           <Plug>Jupyter-RunTextObj
     map  <buffer> <silent> <F9>           <Plug>Jupyter-RunLines
-    "map  <buffer> <silent> ,d             <Plug>Jupyter-OpenPyDoc
     map  <buffer> <silent> <M-r>          <Plug>Jupyter-UpdateShell
-    map  <buffer> <silent> <S-F9>         <Plug>Jupyter-ToggleReselect
+
+    " Debugging maps (not yet implemented)
     "map  <buffer> <silent> <C-F6>         <Plug>Jupyter-StartDebugging
     "map  <buffer> <silent> <F6>           <Plug>Jupyter-BreakpointSet
     "map  <buffer> <silent> <S-F6>         <Plug>Jupyter-BreakpointClear
     "map  <buffer> <silent> <F7>           <Plug>Jupyter-DebugThisFile
     "map  <buffer> <silent> <S-F7>         <Plug>Jupyter-BreakpointClearAll
-    imap <buffer>          <C-F5>         <C-o><Plug>Jupyter-RunFile
-    imap <buffer>          <S-F5>         <C-o><Plug>Jupyter-RunLines
-    " imap <buffer> <silent> <F5>           <C-o><Plug>Jupyter-RunFile
-
-    "pi custom
-    map  <buffer> <silent> <C-Return>        <Plug>Jupyter-RunFile
-    map  <buffer> <silent> <M-S>             <Plug>Jupyter-RunLineAsTopLevel
-    xmap <buffer> <silent> <M-S>             <Plug>Jupyter-RunLines
-    map  <buffer> <silent> <Leader><Leader>x <Plug>Jupyter-RunCell
 
     " nnoremap <buffer> <C-c> :<C-u>JupyterInterrupt<CR>
-    " inoremap <buffer> <Leader>K <Esc>:<C-u>call <SID>GetDocBuffer()<CR>
 endif
 
 "}}}---------------------------------------------------------------------------- 
+" TODO move to vim-ipython/plugin/jupyter.vim
 "       Connect to Jupyter Kernel  {{{
 "-------------------------------------------------------------------------------
 if g:jupyter_auto_connect

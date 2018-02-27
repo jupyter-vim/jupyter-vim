@@ -56,5 +56,22 @@ function! jupyter#init_python() abort
     return s:_init_python
 endfunction
 "}}}
+
+"----------------------------------------------------------------------------- 
+"        Vim -> Python Functions:
+"-----------------------------------------------------------------------------
+function! jupyter#Connect() abort
+    pythonx jupyter_vim.connect_to_kernel()
+endfunction
+
+function! jupyter#RunFile(...) abort
+    " filename is the last argument on the command line
+    let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
+    let l:filename = a:0 ? a:000[-1] : expand("%:p")
+    " not the prettiest way to do kwargs... but it works.
+    execute "pythonx jupyter_vim.run_file(flags='" . l:flags
+                \ . "', filename='" . l:filename . "')"
+endfunction
+
 "=============================================================================
 "=============================================================================

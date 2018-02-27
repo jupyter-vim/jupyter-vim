@@ -458,18 +458,19 @@ def with_subchannel(f,*args,**kwargs):
     return f_with_update
 
 @with_subchannel
-def run_this_file(flags=''):
-    ext = os.path.splitext(vim.current.buffer.name)[-1][1:]
+def run_file(flags='', filename=''):
+    # default filename = vim.current.buffer.name? handled in vim for now...
+    ext = os.path.splitext(filename)[-1][1:]
     if ext in ('pxd', 'pxi', 'pyx', 'pyxbld'):
         cmd = ' '.join(filter(None, (
             '%run_cython',
             vim_vars.get('cython_run_flags', ''),
-            repr(vim.current.buffer.name))))
+            repr(filename))))
     else:
         # Double the leading '%' so it is interpreted as a literal '%', not
         # a '%r' format string
         cmd = '%%run %s %s' % (flags or vim_vars['ipython_run_flags'],
-                               repr(vim.current.buffer.name))
+                               repr(filename))
     msg_id = send(cmd)
     print_prompt(cmd, msg_id)
 
