@@ -191,19 +191,19 @@ def disconnect():
     # XXX: make a prompt here if this km owns the kernel
     pass
 
-def get_doc(word, level=0):
-    if kc is None:
-        return ["Not connected to IPython, cannot query: %s" % word]
-    if word.startswith('%'):  # request for magic documentation
-        request = ('_doc = get_ipython().object_inspect("{0}", '
-                   'detail_level={1})\n'
-                   'del _doc["argspec"]').format(word, level)
-        msg_id = send(request, silent=True, user_expressions={'_doc':'_doc'})
-    else:
-        msg_id = kc.inspect(word, detail_level=level)
-    doc = get_doc_msg(msg_id)
-    # get around unicode problems when interfacing with vim
-    return [d.encode(vim_encoding) for d in doc]
+# def get_doc(word, level=0):
+#     if kc is None:
+#         return ["Not connected to IPython, cannot query: %s" % word]
+#     if word.startswith('%'):  # request for magic documentation
+#         request = ('_doc = get_ipython().object_inspect("{0}", '
+#                    'detail_level={1})\n'
+#                    'del _doc["argspec"]').format(word, level)
+#         msg_id = send(request, silent=True, user_expressions={'_doc':'_doc'})
+#     else:
+#         msg_id = kc.inspect(word, detail_level=level)
+#     doc = get_doc_msg(msg_id)
+#     # get around unicode problems when interfacing with vim
+#     return [d.encode(vim_encoding) for d in doc]
 
 import re
 # from http://serverfault.com/questions/71285/in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file
@@ -262,48 +262,6 @@ def get_doc_msg(msg_id):
                 b.append(s)
                 b.extend(c.splitlines())
     return b
-
-def get_doc_buffer(level=0, word=None):
-    # empty string in case vim.eval return None
-    vim.command("let isk_save = &isk") # save iskeyword list
-    vim.command("let &isk = '@,48-57,_,192-255,.'")
-    word = word or vim.eval('expand("<cword>")')
-    vim.command("let &isk = isk_save") # restore iskeyword list
-    doc = get_doc(word, level)
-    if len(doc) ==0:
-        vim_echom(repr(word)+" not found","Error")
-        return
-    # documentation buffer name is same as the query made to ipython
-    vim.command('new '+word.lstrip('%'))
-    vim.command('setlocal modifiable noro')
-    # doc window quick quit keys: 'q' and 'escape'
-    vim.command('nnoremap <buffer> q :q<CR>')
-    # shortcuts to change filetype/syntax
-    vim.command('nnoremap <buffer> m :<C-u>setfiletype man<CR>')
-    vim.command('nnoremap <buffer> p :<C-u>setfiletype python<CR>')
-    vim.command('nnoremap <buffer> r :<C-u>setfiletype rst<CR>')
-    b = vim.current.buffer
-    b[:] = None
-    b[:] = doc
-    vim.command('setlocal nomodified bufhidden=wipe nomodifiable readonly nospell')
-    #vim.command('setlocal previewwindow nomodifiable nomodified ro')
-    #vim.command('set previewheight=%d'%len(b))# go to previous window
-    vim.command('resize %d'%len(b))
-    #vim.command('pcl')
-    #vim.command('pedit doc')
-    #vim.command('normal! ') # go to previous window
-    if level == 0:
-        # highlight python code within rst
-        vim.command(r'unlet! b:current_syntax')
-        vim.command(r'syn include @rstPythonScript syntax/python.vim')
-        # 4 spaces
-        vim.command(r'syn region rstPythonRegion start=/^\v {4}/ end=/\v^( {4}|\n)@!/ contains=@rstPythonScript')
-        # >>> python code -> (doctests)
-        vim.command(r'syn region rstPythonRegion matchgroup=pythonDoctest start=/^>>>\s*/ end=/\n/ contains=@rstPythonScript')
-        vim.command(r'set syntax=rst')
-    else:
-        # use Python syntax highlighting
-        vim.command('setlocal syntax=python')
 
 def vim_ipython_is_open():
     """
@@ -516,38 +474,10 @@ def run_this_file(flags=''):
     print_prompt(cmd, msg_id)
 
 @with_subchannel
-def run_ipy_input(**kwargs):
-    lines = vim_vars['ipy_input']
-    if lines.strip().endswith('?'):
-        return get_doc_buffer(level=1 if lines.strip().endswith('??') else 0,
-                              word=lines.strip().rstrip('?'))
-    msg_id = send(lines, **kwargs)
-    lines = lines.replace('\n', u'\xac')
-    print_prompt(lines[:(int(vim.options['columns']) - 22)], msg_id)
-
-@with_subchannel
 def run_this_line(dedent=False):
     line = vim.current.line
     if dedent:
         line = line.lstrip()
-    if line.rstrip().endswith('?'):
-        # intercept question mark queries -- move to the word just before the
-        # question mark and call the get_doc_buffer on it
-        w = vim.current.window
-        original_pos =  w.cursor
-        new_pos = (original_pos[0], vim.current.line.index('?')-1)
-        w.cursor = new_pos
-        if line.rstrip().endswith('??'):
-            # double question mark should display source
-            # XXX: it's not clear what level=2 is for, level=1 is sufficient
-            # to get the code -- follow up with IPython team on this
-            get_doc_buffer(1)
-        else:
-            get_doc_buffer()
-        # leave insert mode, so we're in command mode
-        vim.command('stopi')
-        w.cursor = original_pos
-        return
     msg_id = send(line)
     print_prompt(line, msg_id)
 
@@ -580,83 +510,11 @@ def run_these_lines(dedent=False):
     prompt = "lines %d-%d "% (r.start+1,r.end+1)
     print_prompt(prompt,msg_id)
 
-@with_subchannel
-def InputPrompt(force=False, hide_input=False):
-    msgs = kc.stdin_channel.get_msgs()
-    for m in msgs:
-        global current_stdin_prompt
-        if 'msg_type' not in m['header']:
-            continue
-        current_stdin_prompt.clear()
-        header = m['header']['msg_type']
-        if header == 'input_request':
-            current_stdin_prompt['prompt'] = m['content']['prompt']
-            current_stdin_prompt['is_password'] = m['content']['password']
-            current_stdin_prompt['parent_msg_id'] = m['parent_header']['msg_id']
-
-    if not hide_input:
-        hide_input = current_stdin_prompt.get('is_password', False)
-    # If there is a pending input or we are forcing the input prompt
-    if (current_stdin_prompt or force) and kc:
-        # save the current prompt, ask for input and restore the prompt
-        vim.command('call inputsave()')
-        input_call = (
-            "try"
-            "|let user_input = {input_command}('{prompt}')"
-            "|catch /^Vim:Interrupt$/"
-            "|silent! unlet user_input"
-            "|endtry"
-            ).format(input_command='inputsecret' if hide_input else 'input',
-                     prompt=current_stdin_prompt.get('prompt', ''))
-        vim.command(input_call)
-        vim.command('call inputrestore()')
-
-        # if the user replied to the input request
-        if vim.eval('exists("user_input")'):
-            reply = vim.eval('user_input')
-            vim.command("silent! unlet user_input")
-            # write the reply to the vim-ipython buffer if it's not a password
-            if not hide_input and vim_ipython_is_open():
-
-                currentwin = int(vim.eval('winnr()'))
-                previouswin = int(vim.eval('winnr("#")'))
-                vim.command(
-                    "try"
-                    "|silent! wincmd P"
-                    "|catch /^Vim\%((\a\+)\)\=:E441/"
-                    "|endtry")
-
-                if vim.eval('@%')=='vim-ipython':
-                    b = vim.current.buffer
-                    last_line = b[-1]
-                    del b[-1]
-                    b.append((last_line+reply).splitlines())
-                    vim.command(str(previouswin) + 'wincmd w')
-                    vim.command(str(currentwin) + 'wincmd w')
-
-            kc.input(reply)
-            if current_stdin_prompt:
-                try:
-                    child = get_child_msg(current_stdin_prompt['parent_msg_id'])
-                except Empty:
-                    pass
-
-            current_stdin_prompt.clear()
-            return True
-    else:
-        if not current_stdin_prompt:
-            vim_echom('no input request detected')
-        if not kc:
-            vim_echom('not connected to IPython')
-        return False
-
-
 def set_pid():
-    """
-    Explicitly ask the ipython kernel for its pid
+    """Explicitly ask the ipython kernel for its pid.
     """
     global pid
-    code = 'import os as _os; _pid = _os.getpid()'
+    code = 'import os; _pid = os.getpid()'
     msg_id = send(code, silent=True, user_expressions={'_pid':'_pid'})
 
     # wait to get message back from kernel
@@ -671,54 +529,6 @@ def set_pid():
     except KeyError:
         vim_echom("Could not get PID information, kernel not running Python?")
     return pid
-
-
-def eval_ipy_input(var=None):
-    ipy_input = vim_vars['ipy_input']
-    if not ipy_input:
-        return
-    if ipy_input.startswith(('%', '!', '$')):
-        msg_id = send('', silent=True,
-                      user_expressions={'_expr': ipy_input})
-    else:
-        msg_id = send('from __future__ import division; '
-                      '_expr = %s' % ipy_input, silent=True,
-                      user_expressions={'_expr': '_expr'})
-    try:
-        child = get_child_msg(msg_id)
-    except Empty:
-        vim_echom("no reply from IPython kernel")
-        return
-    result = child['content']['user_expressions']
-    try:
-        text = result['_expr']['data']['text/plain']
-        if not is_py3 and isinstance(text, str):
-            text = unicode(text, vim_encoding)
-        if var:
-            from io import StringIO
-            from tokenize import STRING, generate_tokens
-            if next(generate_tokens(StringIO(text).readline))[0] == STRING:
-                from ast import parse
-                vim_vars[var.replace('g:', '')] = parse(text).body[0].value.s
-            else:
-                vim.command('let %s = "%s"' % (
-                    var, text.replace('\\', '\\\\').replace('"', '\\"')))
-        else:
-            vim.command('call setreg(\'"\', "%s")' %
-                        text.replace('\\', '\\\\').replace('"', '\\"'))
-    except KeyError:
-        try:
-            try:
-                vim_echom('{ename}: {evalue}'.format(**child['content']))
-            except KeyError:
-                vim_echom('{ename}: {evalue}'.format(**result['_expr']))
-        except Exception:
-            vim_echom('Unknown error occurred')
-    else:
-        if not var:
-            vim.command('let @+ = @"')
-            vim.command('let @* = @"')
-
 
 def terminate_kernel_hack():
     "Send SIGTERM to our the IPython kernel"
@@ -823,13 +633,6 @@ def run_this_cell():
     # Re-indent
     if min_indent > 0:
         vim.command("silent undo")
-
-#def set_this_line():
-#    # not sure if there's a way to do this, since we have multiple clients
-#    send("get_ipython().shell.set_next_input(\'%s\')" % vim.current.line.replace("\'","\\\'"))
-#    #print("line \'%s\' set at ipython prompt"% vim.current.line)
-#    echo("line \'%s\' set at ipython prompt"% vim.current.line,'Statement')
-
 
 #def set_breakpoint():
 #    send("__IP.InteractiveTB.pdb.set_break('%s',%d)" % (vim.current.buffer.name,

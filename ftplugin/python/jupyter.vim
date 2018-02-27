@@ -34,6 +34,7 @@ endif
 "----------------------------------------------------------------------------- 
 "        Configuration: {{{
 "-----------------------------------------------------------------------------
+" TODO set defaults via dictionary + loop like in jedi-vim
 if !exists("g:jupyter_mapkeys")
     let g:jupyter_mapkeys = 1
 endif
@@ -42,7 +43,7 @@ if !exists("g:jupyter_auto_connect")
     let g:jupyter_auto_connect = 1
 endif
 
-" flags to for Jupyter's run file magic
+" flags for Jupyter's run file magic
 if !exists('g:ipython_run_flags')
     let g:ipython_run_flags = ''
 endif
@@ -50,18 +51,6 @@ endif
 if !exists('g:ipy_monitor_subchannel')
     let g:ipy_monitor_subchannel = 0
 endif
-
-"}}}---------------------------------------------------------------------------- 
-"       Connect to Jupyter Kernel  {{{
-"-------------------------------------------------------------------------------
-if g:jupyter_auto_connect
-    " General idea: open a channel to the python kernel with vim, use a callback
-    " function to determine what to do with the information
-    " let s:script_path = fnameescape(expand('<sfile>:p:h:h:h'))
-    " let g:logjob = job_start("python " . s:script_path . "/monitor.py", 
-    "             \ {'out_io': 'buffer', 'out_name': 'dummy'})
-endif
-"}}}
 
 "}}}-------------------------------------------------------------------------- 
 "        Autocmds: {{{
@@ -71,10 +60,19 @@ augroup vim-ipython
     au FileType python Jupyter
     " TODO mode this autocmd to an async process that only reports back
     " important things like tracebacks, and sends all else to the console 
-    au CursorHold *.*,vim-ipython :pythonx 
-                \ if jupyter_vim.update_subchannel_msgs(): 
-                \   jupyter_vim.vim_echo("vim-ipython shell updated (on idle)",'Operator')
+    " au CursorHold *.*,vim-ipython :pythonx 
+    "             \ if jupyter_vim.update_subchannel_msgs(): 
+    "             \   jupyter_vim.vim_echo("vim-ipython shell updated (on idle)",'Operator')
 augroup END
+
+"}}}-------------------------------------------------------------------------- 
+"        Commands: {{{
+"-----------------------------------------------------------------------------
+command! -buffer -nargs=0 Jupyter                  :pythonx jupyter_vim.connect_to_kernel()
+command! -buffer -nargs=* JupyterInterrupt         :pythonx jupyter_vim.interrupt_kernel_hack("<args>")
+command! -buffer -nargs=0 JupyterTerminate         :pythonx jupyter_vim.terminate_kernel_hack()
+" command! -buffer -nargs=0 -bang JupyterInput       :pythonx InputPrompt(force='<bang>')
+" command! -buffer -nargs=0 -bang JupyterInputSecret :pythonx InputPrompt(force='<bang>', hide_input=True)
 
 "}}}-------------------------------------------------------------------------- 
 "        Key Mappings: {{{
@@ -86,7 +84,6 @@ noremap  <Plug>Jupyter-RunLine            :pythonx jupyter_vim.run_this_line()<C
 noremap  <Plug>Jupyter-RunCell            :pythonx jupyter_vim.run_this_cell()<CR>
 noremap  <Plug>Jupyter-RunLines           :pythonx jupyter_vim.run_these_lines()<CR>
 xnoremap <Plug>Jupyter-RunLinesAsTopLevel :pythonx jupyter_vim.dedent_run_these_lines()<CR>
-noremap  <Plug>Jupyter-OpenPyDoc          :pythonx jupyter_vim.get_doc_buffer()<CR>
 noremap  <Plug>Jupyter-UpdateShell        :pythonx if jupyter_vim.update_subchannel_msgs(force=True): jupyter_vim.vim_echo("vim-ipython shell updated",'Operator')<CR>
 "noremap  <Plug>Jupyter-StartDebugging     :pythonx send('%pdb')<CR>
 "noremap  <Plug>Jupyter-BreakpointSet      :pythonx set_breakpoint()<CR>
@@ -101,7 +98,7 @@ noremap  <Plug>Jupyter-RunTextObj         :<C-u>set opfunc=<SID>opfunc<CR>g@
 if g:jupyter_mapkeys
     map  <buffer> <silent> <F5>           <Plug>Jupyter-RunFile
     map  <buffer> <silent> g<F5>          <Plug>Jupyter-ImportFile
-    " map  <buffer> <silent> <S-F5>         <Plug>Jupyter-RunLine
+    map  <buffer> <silent> <S-F5>         <Plug>Jupyter-RunLine
     map  <buffer> <silent> <F6>           <Plug>Jupyter-RunTextObj
     map  <buffer> <silent> <F9>           <Plug>Jupyter-RunLines
     "map  <buffer> <silent> ,d             <Plug>Jupyter-OpenPyDoc
@@ -126,26 +123,22 @@ if g:jupyter_mapkeys
     " inoremap <buffer> <Leader>K <Esc>:<C-u>call <SID>GetDocBuffer()<CR>
 endif
 
-"}}}-------------------------------------------------------------------------- 
-"        Commands: {{{
-"-----------------------------------------------------------------------------
-command! -nargs=0 Jupyter                  :pythonx jupyter_vim.connect_to_kernel()
-command! -nargs=* JupyterInterrupt         :pythonx jupyter_vim.interrupt_kernel_hack("<args>")
-command! -nargs=0 JupyterTerminate         :pythonx jupyter_vim.terminate_kernel_hack()
-command! -nargs=0 -bang JupyterInput       :pythonx InputPrompt(force='<bang>')
-command! -nargs=0 -bang JupyterInputSecret :pythonx InputPrompt(force='<bang>', hide_input=True)
+"}}}---------------------------------------------------------------------------- 
+"       Connect to Jupyter Kernel  {{{
+"-------------------------------------------------------------------------------
+if g:jupyter_auto_connect
+    " General idea: open a channel to the python kernel with vim, use a callback
+    " function to determine what to do with the information
+    " let s:script_path = fnameescape(expand('<sfile>:p:h:h:h'))
+    " let g:logjob = job_start("python " . s:script_path . "/monitor.py", 
+    "             \ {'out_io': 'buffer', 'out_name': 'dummy'})
+endif
+"}}}
 
 "}}}-------------------------------------------------------------------------- 
 " TODO move to autoload
 "        Functions: {{{
 "-----------------------------------------------------------------------------
-function! s:GetDocBuffer()
-    python get_doc_buffer()
-    nnoremap <buffer> <silent> gi ZQ:undojoin<bar>startinsert!<CR>
-    nnoremap <buffer> <silent> q ZQ:undojoin<bar>startinsert!<CR>
-    nnoremap <buffer> <silent> ` <C-w>p:if winheight(0)<30<bar>res 30<bar>endif<bar>undojoin<bar>startinsert!<CR>
-endfunction
-
 function! s:opfunc(type)
   " Originally from tpope/vim-scriptease
   let sel_save = &selection
