@@ -68,12 +68,19 @@ augroup END
 "}}}-------------------------------------------------------------------------- 
 "        Commands: {{{
 "-----------------------------------------------------------------------------
+" TODO lookup <Plug> usage vs just defining a command
+"   - a little nicer to define commands so user does not necessarily need
+"   a keymap
+"   - cleaner to use <Plug> and not have so many commands created
+"
 command! -buffer -nargs=0 JupyterConnect    call jupyter#Connect()
-" command! -buffer -nargs=* JupyterInterrupt         :pythonx jupyter_vim.interrupt_kernel_hack("<args>")
-" command! -buffer -nargs=0 JupyterTerminate         :pythonx jupyter_vim.terminate_kernel_hack()
-
 command! -buffer -nargs=* -complete=file JupyterRunFile 
             \ update | call jupyter#RunFile(<f-args>)
+command! -buffer -nargs=0 -complete=file JupyterImportThisFile
+            \ update | call jupyter#RunFile('-n', expand("%:p"))
+
+" command! -buffer -nargs=* JupyterInterrupt         :pythonx jupyter_vim.interrupt_kernel_hack("<args>")
+" command! -buffer -nargs=0 JupyterTerminate         :pythonx jupyter_vim.terminate_kernel_hack()
 
 "}}}-------------------------------------------------------------------------- 
 "        Key Mappings: {{{
@@ -91,14 +98,17 @@ noremap  <Plug>Jupyter-UpdateShell        :pythonx if jupyter_vim.update_subchan
 "noremap  <Plug>Jupyter-DebugThisFile      :pythonx run_this_file_pdb()<CR>
 "noremap  <Plug>Jupyter-BreakpointClearAll :pythonx clear_all_breaks()<CR>
 noremap  <Plug>Jupyter-RunLineAsTopLevel  :pythonx jupyter_vim.dedent_run_this_line()<CR>
-noremap  <Plug>Jupyter-RunTextObj         :<C-u>set opfunc=<SID>opfunc<CR>g@
 
 noremap  <Plug>Jupyter-PlotClearCurrent   :pythonx jupyter_vim.run_command("plt.clf()")<CR>
 noremap  <Plug>Jupyter-PlotCloseAll       :pythonx jupyter_vim.run_command("plt.close('all')")<CR>
 
 if g:jupyter_mapkeys
-    nmap  <buffer> <silent> <localleader>R           :JupyterRunFile<CR>
-    nmap  <buffer> <silent> g<F5>          <Plug>Jupyter-ImportFile
+    nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
+    nnoremap <buffer> <silent> <localleader>I       :JupyterImportThisFile<CR>
+
+    nmap <buffer> <silent> <localleader>e            <Plug>JupyterRunTextObj
+    vmap <buffer> <silent> <localleader>e            <Plug>JupyterRunVisual
+
     map  <buffer> <silent> <S-F5>         <Plug>Jupyter-RunLine
     map  <buffer> <silent> <F6>           <Plug>Jupyter-RunTextObj
     map  <buffer> <silent> <F9>           <Plug>Jupyter-RunLines
@@ -125,51 +135,6 @@ if g:jupyter_auto_connect
     " let g:logjob = job_start("python " . s:script_path . "/monitor.py", 
     "             \ {'out_io': 'buffer', 'out_name': 'dummy'})
 endif
-"}}}
-
-"}}}-------------------------------------------------------------------------- 
-" TODO move to autoload
-"        Functions: {{{
-"-----------------------------------------------------------------------------
-function! s:opfunc(type)
-  " Originally from tpope/vim-scriptease
-  let sel_save = &selection
-  let cb_save = &clipboard
-  let reg_save = @@
-  let left_save = getpos("'<")
-  let right_save = getpos("'>")
-  let vimode_save = visualmode()
-  try
-    set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
-    if a:type =~ '^\d\+$'
-      silent exe 'normal! ^v'.a:type.'$hy'
-    elseif a:type =~# '^.$'
-      silent exe "normal! `<" . a:type . "`>y"
-    elseif a:type ==# 'line'
-      silent exe "normal! '[V']y"
-    elseif a:type ==# 'block'
-      silent exe "normal! `[\<C-V>`]y"
-    elseif a:type ==# 'visual'
-      silent exe "normal! gvy"
-    else
-      silent exe "normal! `[v`]y"
-    endif
-    redraw
-    let l:cmd = @@
-  finally
-    let @@ = reg_save
-    let &selection = sel_save
-    let &clipboard = cb_save
-    exe "normal! " . vimode_save . "\<Esc>"
-    call setpos("'<", left_save)
-    call setpos("'>", right_save)
-  endtry
-pythonx << EOF
-import textwrap
-import vim
-jupyter_vim.run_command(textwrap.dedent(vim.eval('l:cmd')))
-EOF
-endfunction
 "}}}
 
 let b:loaded_jupyter = 1

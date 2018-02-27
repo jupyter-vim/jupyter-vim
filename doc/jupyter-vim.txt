@@ -6,6 +6,7 @@ Using this plugin, send lines or files for the IPython kernel to execute.
 Receive tracebacks for debugging.
 
 Author:  Bernie Roesler <insert_site_here>
+Forked from: vim-ipython <insert_url_here>
 License: Distributed under the MIT license (see |jupyter-vim-license|)
 
 This plugin is only available if 'compatible' is not set.
@@ -32,13 +33,91 @@ prevents "error vomit" at startup on systems where it is not compatible. If you
 manually run the configure command, you will indeed get the appropriate errors
 to assist in debugging.
 
+This plugin was originally forked from [vim-ipython](<link_here>), but has
+been updated substantially to stay up-to-date with the most recent versions of
+the jupyter console. For a more complete list of changes, see
+|jupyter-vim-vs-vim-ipython|.
+
+
 USAGE 						*jupyter-vim-usage*
+
+This plugin is intended to be used with side-by-side terminals, or with
+a multiplexer such as `tmux`. The idea is to edit your python script in vim,
+and be able to send commands to ipython, which is running in the other
+terminal. No more copy/alt-tab/paste! 
+
+To begin:
+	1. Open a terminal separate from vim
+	2. $ jupyter console
+	3. $ vim my_script.py
+By default, 'g:jupyter_auto_connect' == 1, so a FileType autocmd will attempt to
+connect to a running jupyter kernel. With this option turned off, you may
+manually run the command |:JupyterConnect| while in a *.py buffer to attempt
+a connection.
 
 COMMANDS 					*jupyter-vim-commands*
 
+:JupyterConnect 			    *jupyter-connect* *:JupyterConnect*
+			Connect to an existing `jupyter kernel`. Kernel may be
+			any type (not just ipython). Connection attempt will
+			timeout after five seconds, and give a warning. Other
+			functionality of the plugin will not be available unless
+			connected to a kernel.
+
+			Note that a `jupyter console` need not be running to
+			connect to a `jupyter kernel`, but the console is
+			necessary to display any output from your python code!
+
+:JupyterRunFile [flags] [filename] 	    *jupyter-runfile* *:JupyterRunFile*
+			Run an entire python script using the `ipython` "%run"
+			magic (with __name__ == "__main__"). If [flags] and
+			[filename] are empty, the filename of the current buffer
+			is used. The [filename] is taken as the last argument to
+			the command. Execute "%run?" in an ipython console to
+			read the documentation about the "%run" magic.
+
+			Global flags may also be set via |g:ipython_run_flags|.
+			These flags will be applied to any call without flags:
+				:JupyterRunFile my_script.py
+			Inclusion of [flags] will override the global flags.
+			For example, to run the current buffer in the
+			interactive ipython environment:
+				:JupyterRunFile -i %:p
+
+:JupyterImportThisFile 	      *jupyter-importthisfile* *:JupyterImportThisFile*
+			Import the current buffer as a python module.
+			Essentially, this command runs
+				:JupyterRunFile -n %:p
+			The IPython "%run" magic handles stripping the
+			extension and running the `import` command.
+
 MAPPINGS					*jupyter-vim-mappings*
 
+<LocalLeader>R 		:JupyterRunFile on the current file.
+<LocalLeader>I 		:JupyterImportThisFile on the current file.
+
 CONFIGURATION					*jupyter-vim-configuration*
+
+JUPYTER-VIM VS. VIM-IPYTHON 			*jupyter-vim-vs-vim-ipython*
+
+Major changes include:
+	- The pseudo-terminal vim pane functionality has been removed. The
+	  `jupyter qtconsole` allows the configuration option:
+		c.ConsoleWidget.include_other_output = True
+	  and `jupyter console` allows:
+		c.ZMQTerminalInteractiveShell.include_other_output = True
+	  which allow the console to echo the commands sent by vim (or any
+	  other client), as well as the output of the commands. There is no
+	  need to replicate this functionality within vim.
+	  (NOTE: at present, the `jupyter console` will only refresh on
+	  <Enter>, so it does not quite do what we're hoping for regarding vim
+	  interaction. I am working on a patch to the jupyter terminal-based
+	  console to fix this issue.)
+	- The original python documentation look-up and completion code has
+	  been removed. Instead, use [jedi-vim](<link_here>).
+	- Many of the original <Plug> mappings have been replaced with vim
+	  commands, so they may be used without a user mapping.
+	- Default keymaps now use <localleader>.
 
 LICENSE 					*jupyter-vim-license*
 

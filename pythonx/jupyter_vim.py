@@ -15,6 +15,7 @@ import ast
 import os
 import sys
 import time
+import textwrap
 
 from queue import Empty
 
@@ -459,7 +460,6 @@ def with_subchannel(f,*args,**kwargs):
 
 @with_subchannel
 def run_file(flags='', filename=''):
-    # default filename = vim.current.buffer.name? handled in vim for now...
     ext = os.path.splitext(filename)[-1][1:]
     if ext in ('pxd', 'pxi', 'pyx', 'pyxbld'):
         cmd = ' '.join(filter(None, (
@@ -565,10 +565,10 @@ def interrupt_kernel_hack(signal_to_send=None):
         pid = None
 
 def dedent_run_this_line():
-    run_this_line(True)
+    run_this_line(dedent=True)
 
 def dedent_run_these_lines():
-    run_these_lines(True)
+    run_these_lines(dedent=True)
 
 def is_cell_separator(line):
     '''Determines whether a given line is a cell separator'''
