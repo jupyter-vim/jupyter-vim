@@ -60,20 +60,57 @@ endfunction
 "----------------------------------------------------------------------------- 
 "        Vim -> Python Functions:
 "-----------------------------------------------------------------------------
-function! jupyter#Connect() abort
+function! jupyter#Connect() abort "{{{
     pythonx jupyter_vim.connect_to_kernel()
 endfunction
-
-function! jupyter#RunFile(...) abort
+"}}}
+function! jupyter#RunFile(...) abort "{{{
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
     let l:filename = a:0 ? a:000[-1] : expand("%:p")
-    " not the prettiest way to do kwargs... but it works.
-    execute "pythonx jupyter_vim.run_file(flags='" . l:flags
-                \ . "', filename='" . l:filename . "')"
+    pythonx jupyter_vim.run_file(flags=vim.eval('l:flags'),
+                               \ filename=vim.eval('l:filename'))
 endfunction
-
-"----------------------------------------------------------------------------- 
+"}}}
+function! jupyter#SendCode(code) abort "{{{
+    pythonx jupyter_vim.send(vim.eval('a:code'))
+endfunction
+"}}}
+function! jupyter#SendRange() range abort "{{{
+    " Python way to do it:
+    execute a:firstline . ',' . a:lastline . 'pythonx jupyter_vim.send_range()'
+    " Vim way to do it:
+    " let sel_save = &selection
+    " let cb_save = &clipboard
+    " let reg_save = @@
+    " try
+    "     set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
+    "     silent execute a:firstline . ',' . a:lastline . 'y'
+    "     let l:cmd = @@
+    " finally
+    "     let @@ = reg_save
+    "     let &selection = sel_save
+    "     let &clipboard = cb_save
+    " endtry
+    " call jupyter#SendCode(l:cmd)
+endfunction
+" }}}
+function! jupyter#SendCount(count) abort "{{{
+    let sel_save = &selection
+    let cb_save = &clipboard
+    let reg_save = @@
+    try
+        set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
+        silent execute 'normal! ' . a:count . 'yy'
+        let l:cmd = @@
+    finally
+        let @@ = reg_save
+        let &selection = sel_save
+        let &clipboard = cb_save
+    endtry
+    call jupyter#SendCode(l:cmd)
+endfunction
+"}}}-------------------------------------------------------------------------- 
 "        Operator Function: {{{
 "-----------------------------------------------------------------------------
 " TODO rewrite this function as a general wrapper that accepts a function (of
@@ -114,7 +151,8 @@ function! s:opfunc(type)
         call setpos("'>", right_save)
     endtry
     " Send the text to ipython
-    pythonx jupyter_vim.send(textwrap.dedent(vim.eval('l:cmd')))
+    call jupyter#SendCode(l:cmd)
+    " pythonx jupyter_vim.send(vim.eval('l:cmd'))
 endfunction
 "}}}
 "

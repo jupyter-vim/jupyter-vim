@@ -31,7 +31,7 @@ if !jupyter#init_python()
     finish
 endif
 
-"----------------------------------------------------------------------------- 
+"-----------------------------------------------------------------------------
 "        Configuration: {{{
 "-----------------------------------------------------------------------------
 " TODO set defaults via dictionary + loop like in jedi-vim
@@ -52,29 +52,33 @@ if !exists('g:ipy_monitor_subchannel')
     let g:ipy_monitor_subchannel = 0
 endif
 
-"}}}-------------------------------------------------------------------------- 
+"}}}--------------------------------------------------------------------------
 "        Autocmds: {{{
 "-----------------------------------------------------------------------------
 augroup vim-ipython
     autocmd!
     au FileType python Jupyter
     " TODO mode this autocmd to an async process that only reports back
-    " important things like tracebacks, and sends all else to the console 
-    " au CursorHold *.*,vim-ipython :pythonx 
-    "             \ if jupyter_vim.update_subchannel_msgs(): 
+    " important things like tracebacks, and sends all else to the console
+    " au CursorHold *.*,vim-ipython :pythonx
+    "             \ if jupyter_vim.update_subchannel_msgs():
     "             \   jupyter_vim.vim_echo("vim-ipython shell updated (on idle)",'Operator')
 augroup END
 
-"}}}-------------------------------------------------------------------------- 
+"}}}--------------------------------------------------------------------------
 "        Commands: {{{
 "-----------------------------------------------------------------------------
 " TODO lookup <Plug> usage vs just defining a command
 "   - a little nicer to define commands so user does not necessarily need
 "   a keymap
 "   - cleaner to use <Plug> and not have so many commands created
-"
-command! -buffer -nargs=0 JupyterConnect    call jupyter#Connect()
-command! -buffer -nargs=* -complete=file JupyterRunFile 
+
+command! -buffer -nargs=0    JupyterConnect         call jupyter#Connect()
+command! -buffer -nargs=1    JupyterSendCode        call jupyter#SendCode(<args>)
+command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<count>)
+command! -buffer -range -bar JupyterSendRange       <line1>,<line2>call jupyter#SendRange()
+
+command! -buffer -nargs=* -complete=file JupyterRunFile
             \ update | call jupyter#RunFile(<f-args>)
 command! -buffer -nargs=0 -complete=file JupyterImportThisFile
             \ update | call jupyter#RunFile('-n', expand("%:p"))
@@ -82,22 +86,19 @@ command! -buffer -nargs=0 -complete=file JupyterImportThisFile
 " command! -buffer -nargs=* JupyterInterrupt         :pythonx jupyter_vim.interrupt_kernel_hack("<args>")
 " command! -buffer -nargs=0 JupyterTerminate         :pythonx jupyter_vim.terminate_kernel_hack()
 
-"}}}-------------------------------------------------------------------------- 
+"}}}--------------------------------------------------------------------------
 "        Key Mappings: {{{
 "-----------------------------------------------------------------------------
 " Setup plugin mappings for the most common ways to interact with ipython.
 " noremap  <Plug>Jupyter-ImportFile         :update<CR>:pythonx jupyter_vim.run_this_file('-n')<CR>
 noremap  <Plug>Jupyter-RunLine            :pythonx jupyter_vim.run_this_line()<CR>
 noremap  <Plug>Jupyter-RunCell            :pythonx jupyter_vim.run_this_cell()<CR>
-noremap  <Plug>Jupyter-RunLines           :pythonx jupyter_vim.run_these_lines()<CR>
-xnoremap <Plug>Jupyter-RunLinesAsTopLevel :pythonx jupyter_vim.dedent_run_these_lines()<CR>
 noremap  <Plug>Jupyter-UpdateShell        :pythonx if jupyter_vim.update_subchannel_msgs(force=True): jupyter_vim.vim_echo("vim-ipython shell updated",'Operator')<CR>
 "noremap  <Plug>Jupyter-StartDebugging     :pythonx send('%pdb')<CR>
 "noremap  <Plug>Jupyter-BreakpointSet      :pythonx set_breakpoint()<CR>
 "noremap  <Plug>Jupyter-BreakpointClear    :pythonx clear_breakpoint()<CR>
 "noremap  <Plug>Jupyter-DebugThisFile      :pythonx run_this_file_pdb()<CR>
 "noremap  <Plug>Jupyter-BreakpointClearAll :pythonx clear_all_breaks()<CR>
-noremap  <Plug>Jupyter-RunLineAsTopLevel  :pythonx jupyter_vim.dedent_run_this_line()<CR>
 
 noremap  <Plug>Jupyter-PlotClearCurrent   :pythonx jupyter_vim.run_command("plt.clf()")<CR>
 noremap  <Plug>Jupyter-PlotCloseAll       :pythonx jupyter_vim.run_command("plt.close('all')")<CR>
@@ -106,13 +107,10 @@ if g:jupyter_mapkeys
     nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
     nnoremap <buffer> <silent> <localleader>I       :JupyterImportThisFile<CR>
 
+    " Send just the current line
+    nmap <buffer> <silent> <localleader>E            :JupyterSendRange<CR>
     nmap <buffer> <silent> <localleader>e            <Plug>JupyterRunTextObj
     vmap <buffer> <silent> <localleader>e            <Plug>JupyterRunVisual
-
-    map  <buffer> <silent> <S-F5>         <Plug>Jupyter-RunLine
-    map  <buffer> <silent> <F6>           <Plug>Jupyter-RunTextObj
-    map  <buffer> <silent> <F9>           <Plug>Jupyter-RunLines
-    map  <buffer> <silent> <M-r>          <Plug>Jupyter-UpdateShell
 
     " Debugging maps (not yet implemented)
     "map  <buffer> <silent> <C-F6>         <Plug>Jupyter-StartDebugging
@@ -124,7 +122,7 @@ if g:jupyter_mapkeys
     " nnoremap <buffer> <C-c> :<C-u>JupyterInterrupt<CR>
 endif
 
-"}}}---------------------------------------------------------------------------- 
+"}}}----------------------------------------------------------------------------
 " TODO move to vim-ipython/plugin/jupyter.vim
 "       Connect to Jupyter Kernel  {{{
 "-------------------------------------------------------------------------------
@@ -132,7 +130,7 @@ if g:jupyter_auto_connect
     " General idea: open a channel to the python kernel with vim, use a callback
     " function to determine what to do with the information
     " let s:script_path = fnameescape(expand('<sfile>:p:h:h:h'))
-    " let g:logjob = job_start("python " . s:script_path . "/monitor.py", 
+    " let g:logjob = job_start("python " . s:script_path . "/monitor.py",
     "             \ {'out_io': 'buffer', 'out_name': 'dummy'})
 endif
 "}}}

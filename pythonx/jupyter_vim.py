@@ -16,6 +16,7 @@ import os
 import sys
 import time
 import textwrap
+import signal
 
 from queue import Empty
 
@@ -147,7 +148,8 @@ def connect_to_kernel():
 
         # Alias execute function
         def send(msg, **kwargs):
-            return kc.execute(msg, **kwargs)
+            # Include dedent of msg so we don't get odd indentation errors.
+            return kc.execute(textwrap.dedent(msg), **kwargs)
 
         # Ping the kernel
         send('', silent=True)
@@ -432,7 +434,7 @@ def get_child_msg(msg_id):
         if m['parent_header']['msg_id'] == msg_id:
             return m
 
-def print_prompt(prompt,msg_id=None):
+def print_prompt(prompt, msg_id=None):
     """Print In[] or In[42] style messages on Vim's display line."""
     if msg_id:
         # wait to get message back from kernel
@@ -472,44 +474,22 @@ def run_file(flags='', filename=''):
         cmd = '%%run %s %s' % (flags or vim_vars['ipython_run_flags'],
                                repr(filename))
     msg_id = send(cmd)
-    print_prompt(cmd, msg_id)
-
-@with_subchannel
-def run_this_line(dedent=False):
-    line = vim.current.line
-    if dedent:
-        line = line.lstrip()
-    msg_id = send(line)
-    print_prompt(line, msg_id)
+    # print_prompt(cmd, msg_id)
 
 @with_subchannel
 def run_command(cmd):
     msg_id = send(cmd)
-    print_prompt(cmd, msg_id)
+    # print_prompt(cmd, msg_id)
 
 @with_subchannel
-def run_these_lines(dedent=False):
+def send_range():
+    """Send a range of lines from the current vim buffer to the kernel."""
     r = vim.current.range
-    if dedent:
-        lines = list(vim.current.buffer[r.start:r.end+1])
-        nonempty_lines = [x for x in lines if x.strip()]
-        if not nonempty_lines:
-            return
-        first_nonempty = nonempty_lines[0]
-        leading = len(first_nonempty) - len(first_nonempty.lstrip())
-        lines = "\n".join(x[leading:] for x in lines)
-    else:
-        lines = "\n".join(vim.current.buffer[r.start:r.end+1])
-    msg_id = send(lines + "\n")
-    #alternative way of doing this in more recent versions of ipython
-    #but %paste only works on the local machine
-    #vim.command("\"*yy")
-    #send("'%paste')")
-
-    #vim lines start with 1
-    #print("lines %d-%d sent to ipython"% (r.start+1,r.end+1))
-    prompt = "lines %d-%d "% (r.start+1,r.end+1)
-    print_prompt(prompt,msg_id)
+    print("range = {},{}".format(r.start, r.end))
+    lines = "\n".join(vim.current.buffer[r.start:r.end+1])
+    msg_id = send(lines)
+    # prompt = "lines %d-%d "% (r.start+1,r.end+1)
+    # print_prompt(prompt,msg_id)
 
 def set_pid():
     """Explicitly ask the ipython kernel for its pid.
@@ -533,18 +513,15 @@ def set_pid():
 
 def terminate_kernel_hack():
     "Send SIGTERM to our the IPython kernel"
-    import signal
     interrupt_kernel_hack(signal.SIGTERM)
 
 def interrupt_kernel_hack(signal_to_send=None):
     """
-    Sends the interrupt signal to the remote kernel.  This side steps the
+    Sends the interrupt signal to the remote kernel. This side steps the
     (non-functional) ipython interrupt mechanisms.
     Only works on posix.
     """
     global pid
-    import signal
-    import os
     if pid is None:
         # Avoid errors if we couldn't get pid originally,
         # by trying to obtain it now
@@ -563,12 +540,6 @@ def interrupt_kernel_hack(signal_to_send=None):
     except OSError:
         vim_echom("unable to kill pid %d" % pid)
         pid = None
-
-def dedent_run_this_line():
-    run_this_line(dedent=True)
-
-def dedent_run_these_lines():
-    run_these_lines(dedent=True)
 
 def is_cell_separator(line):
     '''Determines whether a given line is a cell separator'''
