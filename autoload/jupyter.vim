@@ -6,16 +6,10 @@
 "  Description: Autoload vim functions for use in jupyter-vim plugin
 "
 "=============================================================================
-
-"----------------------------------------------------------------------------- 
-"        Default Setings: {{{
-"-----------------------------------------------------------------------------
-
-"}}}-------------------------------------------------------------------------- 
 "        Python Initialization: {{{
 "-----------------------------------------------------------------------------
 " See ~/.vim/bundle/jedi-vim/autoload/jedi.vim for initialization routine
-function! s:init_python() abort
+function! s:init_python() abort "{{{
     let s:init_outcome = 0
     let init_lines = [
           \ 'import vim',
@@ -41,9 +35,10 @@ function! s:init_python() abort
 
     return 1
 endfunction
-
+"}}}
+" Public initialization routine
 let s:_init_python = -1
-function! jupyter#init_python() abort
+function! jupyter#init_python() abort "{{{
     if s:_init_python == -1
         try
             let s:_init_python = s:init_python()
@@ -56,9 +51,8 @@ function! jupyter#init_python() abort
     return s:_init_python
 endfunction
 "}}}
-
-"----------------------------------------------------------------------------- 
-"        Vim -> Python Functions:
+"}}}-------------------------------------------------------------------------- 
+"        Vim -> Python Public Functions: {{{
 "-----------------------------------------------------------------------------
 function! jupyter#Connect() abort "{{{
     pythonx jupyter_vim.connect_to_kernel()
@@ -77,25 +71,11 @@ function! jupyter#SendCode(code) abort "{{{
 endfunction
 "}}}
 function! jupyter#SendRange() range abort "{{{
-    " Python way to do it:
     execute a:firstline . ',' . a:lastline . 'pythonx jupyter_vim.send_range()'
-    " Vim way to do it:
-    " let sel_save = &selection
-    " let cb_save = &clipboard
-    " let reg_save = @@
-    " try
-    "     set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
-    "     silent execute a:firstline . ',' . a:lastline . 'y'
-    "     let l:cmd = @@
-    " finally
-    "     let @@ = reg_save
-    "     let &selection = sel_save
-    "     let &clipboard = cb_save
-    " endtry
-    " call jupyter#SendCode(l:cmd)
 endfunction
 " }}}
 function! jupyter#SendCount(count) abort "{{{
+    " TODO move this function to pure(ish) python like SendRange
     let sel_save = &selection
     let cb_save = &clipboard
     let reg_save = @@
@@ -152,15 +132,51 @@ function! s:opfunc(type)
     endtry
     " Send the text to ipython
     call jupyter#SendCode(l:cmd)
-    " pythonx jupyter_vim.send(vim.eval('l:cmd'))
 endfunction
 "}}}
-"
-"----------------------------------------------------------------------------- 
-"        Create <Plug> for user mappings
+"}}}-------------------------------------------------------------------------- 
+"        Auxiliary Functions: {{{
+"-----------------------------------------------------------------------------
+function! jupyter#PythonDbstop() "{{{
+    " Set a debugging breakpoint for use with pdb
+    normal! Oimport pdb; pdb.set_trace()j
+endfunction
+"}}}
+function! jupyter#OpenJupyterTerm() abort "{{{
+    " Set up console display window
+    " If we're in the console display already, just go to the bottom.
+    " Otherwise, create a new buffer in a split (or jump to it if open)
+    if @% ==# '__jupyter_term__'
+        normal! G
+    else
+        try
+            silent sbuffer __jupyter_term__
+            setlocal bufhidden=hide buftype=nofile
+            setlocal nobuflisted nonumber noswapfile
+            setlocal syntax=python
+        catch
+            return 0
+        endtry
+    endif
+
+    " Syntax highlighting for prompt
+    syn match JupyterPromptIn /^In \[[ 0-9]*\]: /
+    syn match JupyterPromptOut /^Out\[[ 0-9]*\]: /
+    syn match JupyterPromptOut2 /^\\.\\.\\.* /
+
+    hi JupyterPromptIn   ctermfg=Blue
+    hi JupyterPromptOut  ctermfg=Red
+    hi JupyterPromptOut2 ctermfg=Grey
+
+    return 1
+endfunction
+"}}}
+
+"}}}-------------------------------------------------------------------------- 
+"        Create <Plug> for user mappings {{{
 "-----------------------------------------------------------------------------
 noremap <silent> <Plug>JupyterRunTextObj    :<C-u>set operatorfunc=<SID>opfunc<CR>g@
 noremap <silent> <Plug>JupyterRunVisual     :<C-u>call <SID>opfunc(visualmode())<CR>
-
+"}}}
 "=============================================================================
 "=============================================================================
