@@ -28,6 +28,7 @@ endif
 "   - cleaner to use <Plug> and not have so many commands created
 
 command! -buffer -nargs=0    JupyterConnect         call jupyter#Connect()
+command! -buffer -nargs=0    JupyterSendCell        call jupyter#SendCell()
 command! -buffer -nargs=1    JupyterSendCode        call jupyter#SendCode(<args>)
 command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<count>)
 command! -buffer -range -bar JupyterSendRange       <line1>,<line2>call jupyter#SendRange()
@@ -54,9 +55,6 @@ noremap  <Plug>Jupyter-RunCell            :pythonx jupyter_vim.run_this_cell()<C
 "noremap  <Plug>Jupyter-DebugThisFile      :pythonx run_this_file_pdb()<CR>
 "noremap  <Plug>Jupyter-BreakpointClearAll :pythonx clear_all_breaks()<CR>
 
-" noremap  <Plug>Jupyter-PlotClearCurrent   :pythonx jupyter_vim.run_command("plt.clf()")<CR>
-" noremap  <Plug>Jupyter-PlotCloseAll       :pythonx jupyter_vim.run_command("plt.close('all')")<CR>
-
 if g:jupyter_mapkeys
     nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
     nnoremap <buffer> <silent> <localleader>I       :JupyterImportThisFile<CR>
@@ -65,6 +63,7 @@ if g:jupyter_mapkeys
     nnoremap <buffer> <silent> <localleader>d       :JupyterCd %:p:h<CR>
 
     " Send just the current line
+    nnoremap <buffer> <silent> <localleader>X       :JupyterSendCell<CR>
     nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
     nmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunTextObj
     vmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunVisual

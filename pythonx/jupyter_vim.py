@@ -113,12 +113,10 @@ def set_pid():
     return the_pid
 
 def is_cell_separator(line):
-    """Determines whether a given line is a cell separator"""
-    cell_sep = ['##', '#%%%%', '# <codecell>']
-    for sep in cell_sep:
-        if line.strip().startswith(sep):
-            return True
-    return False
+    """ Determine whether a given line is a cell separator """
+    # TODO allow users to define their own cell separators
+    cell_sep = ('##', '#%%', '# %%', '# <codecell>')
+    return line.startswith(cell_sep)
 
 # from <http://serverfault.com/questions/71285/\
 # in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file>
@@ -192,7 +190,7 @@ def disconnect_from_kernel():
     kc.stop_channels()
     vim_echom("Client disconnected from kernel with pid = {}".format(pid))
 
-def update_subchannel_msgs(force=False):
+def update_console_msgs(force=False):
     """Grab any pending messages and place them inside the vim-ipython shell.
     This function will do nothing if the vim-ipython shell is not visible,
     unless force=True argument is passed.
@@ -243,7 +241,7 @@ def update_subchannel_msgs(force=False):
         elif msg_type == 'pyin' or msg_type == 'execute_input':
             # TODO: the next line allows us to resend a line to ipython if
             # %doctest_mode is on. In the future, IPython will send the
-            # execution_count on subchannel, so this will need to be updated
+            # execution_count on console, so this will need to be updated
             # once that happens
             line_number = msg['content'].get('execution_count', 0)
             prompt = prompt_in.format(line=line_number)
@@ -291,6 +289,7 @@ def get_reply_msg(msg_id):
     """Get kernel reply from sent client message with msg_id."""
     while True:
         try:
+            #block=False?
             m = kc.get_shell_msg(timeout=1)
         except Empty:
             continue
@@ -314,31 +313,43 @@ def print_prompt(prompt, msg_id=None):
         vim_echom("In[]: {}".format(prompt))
 
 # Decorator for all sending commands
-def with_subchannel(f):
-    """Decorator for sending messages to the kernel. Conditionally monitor
+def with_console(f):
+    """
+    Decorator for sending messages to the kernel. Conditionally monitor
     the kernel replies, as well as messages from other clients.
     """
     def wrapper(*args, **kwargs):
         if not check_connection():
             vim_echom('WARNING: Not connected to IPython!', 'WarningMsg')
             return
-
-        monitor_subchannel = bool(int(vim.vars.get('ipy_monitor_subchannel', 0)))
-        try:
-            f(*args, **kwargs)
-            if monitor_subchannel:
-                update_subchannel_msgs(force=True)
-        except AttributeError: #if kc is None
-            vim_echom("not connected to IPython", 'Error')
+        monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
+        f(*args, **kwargs)
+        if monitor_console:
+            update_console_msgs(force=True)
     return wrapper
 
-@with_subchannel
+# Include verbose output to vim command line
+def with_verbose(f):
+    """
+    Decorator to receive message id from sending function, and report back to
+    vim with output.
+    """
+    def wrapper(*args, **kwargs):
+        verbose = bool(int(vim.vars.get('jupyter_verbose', 0)))
+        (prompt, msg_id) = f(*args, **kwargs)
+        if verbose:
+            print_prompt(prompt, msg_id=msg_id)
+    return wrapper
+
+@with_console
+@with_verbose
 def run_command(cmd):
     """Send a single command to the kernel."""
     msg_id = send(cmd)
-    # print_prompt(cmd, msg_id)
+    return (cmd, msg_id)
 
-@with_subchannel
+@with_console
+@with_verbose
 def run_file(flags='', filename=''):
     """Run a given python file using ipython's %run magic."""
     ext = os.path.splitext(filename)[-1][1:]
@@ -352,21 +363,23 @@ def run_file(flags='', filename=''):
         cmd = '%run {} {}'.format((flags or vim2py_str(b.vars['ipython_run_flags'])),
                                   repr(filename))
     msg_id = send(cmd)
-    # print_prompt(cmd, msg_id)
+    return (cmd, msg_id)
 
-@with_subchannel
+@with_console
+@with_verbose
 def send_range():
     """Send a range of lines from the current vim buffer to the kernel."""
     r = vim.current.range
     print("range = {},{}".format(r.start, r.end))
     lines = "\n".join(vim.current.buffer[r.start:r.end+1])
     msg_id = send(lines)
-    # prompt = "lines %d-%d "% (r.start+1,r.end+1)
-    # print_prompt(prompt,msg_id)
+    prompt = "execute lines %d-%d "% (r.start+1,r.end+1)
+    return (prompt, msg_id)
 
-@with_subchannel
-def run_this_cell():
-    """Runs all the code in between two cell separators"""
+@with_console
+@with_verbose
+def run_cell():
+    """Run all the code between two cell separators"""
     cur_buf = vim.current.buffer
     (cur_line, cur_col) = vim.current.window.cursor
     cur_line -= 1
@@ -383,7 +396,8 @@ def run_this_cell():
     # Search downwards for cell separator
     lower_bound = min(upper_bound+1, len(cur_buf)-1)
 
-    while lower_bound < len(cur_buf)-1 and not is_cell_separator(cur_buf[lower_bound]):
+    while lower_bound < len(cur_buf)-1 and \
+            not is_cell_separator(cur_buf[lower_bound]):
         lower_bound += 1
 
     # Move before the last cell separator if it exists
@@ -397,29 +411,11 @@ def run_this_cell():
     # Make sure of proper ordering of bounds
     lower_bound = max(upper_bound, lower_bound)
 
-    # Calculate minimum indentation level of entire cell
-    shiftwidth = vim.eval('&shiftwidth')
-    count = lambda x: int(vim.eval('indent({:d})/{:s}'.format(x, shiftwidth)))
-
-    min_indent = count(upper_bound+1)
-    for i in range(upper_bound+1, lower_bound):
-        indent = count(i)
-        if indent < min_indent:
-            min_indent = indent
-
-    # Perform dedent
-    if min_indent > 0:
-        vim.command('{:d},{:d}{:s}'.format(upper_bound+1, lower_bound+1, '<'*min_indent))
-
     # Execute cell
     lines = "\n".join(cur_buf[upper_bound:lower_bound+1])
     msg_id = send(lines)
-    prompt = "lines %d-%d "% (upper_bound+1, lower_bound+1)
-    print_prompt(prompt, msg_id)
-
-    # Re-indent
-    if min_indent > 0:
-        vim.command("silent undo")
+    prompt = "execute lines {:d}-{:d} ".format(upper_bound+1, lower_bound+1)
+    return (prompt, msg_id)
 
 def signal_kernel(sig=signal.SIGTERM):
     """
@@ -433,11 +429,15 @@ def signal_kernel(sig=signal.SIGTERM):
 
     try:
         os.kill(pid, int(sig))
-        vim_echom("KeyboardInterrupt (pid {p:d} with signal #{v:d}, {n:s})"\
-                  .format(p=pid, v=sig.value, n=sig.name), "WarningMsg")
+        vim_echom("kill pid {p:d} with signal #{v:d}, {n:s}"\
+                  .format(p=pid, v=sig.value, n=sig.name), style='WarningMsg')
+    except ProcessLookupError:
+        vim_echom("pid {p:d} does not exist! " +\
+                  "Kernel may have been terminated by outside process"\
+                  .format(p=pid), style='Error')
     except OSError as e:
         vim_echom("signal #{v:d}, {n:s} failed to kill pid {p:d}"\
-                .format(v=sig.value, n=sig.name, p=pid))
+                .format(v=sig.value, n=sig.name, p=pid), style='Error')
         raise(e)
 
 #def set_breakpoint():

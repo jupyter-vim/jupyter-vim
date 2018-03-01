@@ -18,6 +18,7 @@ endif
 "-----------------------------------------------------------------------------
 "        Configuration: {{{
 "-----------------------------------------------------------------------------
+" TODO rewrite as dictionary w/ loop so it's easy to add more
 if !exists("g:jupyter_auto_connect")
     let g:jupyter_auto_connect = 1
 endif
@@ -26,8 +27,12 @@ if !exists("g:jupyter_mapkeys")
     let g:jupyter_mapkeys = 1
 endif
 
-if !exists('g:ipy_monitor_subchannel')
-    let g:ipy_monitor_subchannel = 1
+if !exists('g:jupyter_monitor_console')
+    let g:jupyter_monitor_console = 1
+endif
+
+if !exists('g:jupyter_verbose')
+    let g:jupyter_verbose = 0
 endif
 
 "}}}----------------------------------------------------------------------------

@@ -72,6 +72,10 @@ function! jupyter#RunFile(...) abort "{{{
                                \ filename=vim.eval('l:filename'))
 endfunction
 "}}}
+function! jupyter#SendCell() abort "{{{
+    pythonx jupyter_vim.run_cell()
+endfunction
+"}}}
 function! jupyter#SendCode(code) abort "{{{
     pythonx jupyter_vim.send(vim.eval('a:code'))
 endfunction
@@ -107,7 +111,7 @@ function! jupyter#TerminateKernel() abort "{{{
 endfunction
 "}}}
 function! jupyter#UpdateShell() abort "{{{
-    pythonx jupyter_vim.update_subchannel_msgs(force=True)
+    pythonx jupyter_vim.update_console_msgs(force=True)
 endfunction
 "}}}
 "}}}-------------------------------------------------------------------------- 
@@ -150,7 +154,7 @@ function! s:opfunc(type)
         call setpos("'<", left_save)
         call setpos("'>", right_save)
     endtry
-    " Send the text to ipython
+    " Send the text to jupyter kernel
     call jupyter#SendCode(l:cmd)
 endfunction
 "}}}
