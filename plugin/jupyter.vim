@@ -22,13 +22,12 @@ if !exists("g:jupyter_auto_connect")
     let g:jupyter_auto_connect = 1
 endif
 
-" TODO set defaults via dictionary + loop like in jedi-vim
 if !exists("g:jupyter_mapkeys")
     let g:jupyter_mapkeys = 1
 endif
 
 if !exists('g:ipy_monitor_subchannel')
-    let g:ipy_monitor_subchannel = 0
+    let g:ipy_monitor_subchannel = 1
 endif
 
 "}}}----------------------------------------------------------------------------
@@ -44,3 +43,5 @@ if g:jupyter_auto_connect
         " file and close the connection
     augroup END
 endif
+"=============================================================================
+"=============================================================================

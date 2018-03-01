@@ -20,46 +20,17 @@ import sys
 import textwrap
 from queue import Empty
 
+import vim
+
 is_py3 = sys.version_info[0] >= 3
 if is_py3:
     unicode = str
 
-# 'vim' can only be imported when running on the vim interpreter. Create NoOp
-# class to allow testing of functions outside of vim (sortof... a lot break)
-not_in_vim = False
-try:
-    import vim
-except ImportError:
-    class NoOp(object):
-        """Don't do anything."""
-        def __getattribute__(self, key):
-            return lambda *args: '0'
-    vim = NoOp()
-    not_in_vim = True
-    print("Uh oh! Not running inside vim! Loading anyway...")
-
-#------------------------------------------------------------------------------
-#        Define wrapper for encoding
-#------------------------------------------------------------------------------
-# get around unicode problems when interfacing with vim
-vim_encoding = vim.eval('&encoding') or 'utf-8'
-
-def vim2pystr(var):
-    # Convert to proper encoding
-    if is_py3 and isinstance(var, bytes):
-        var = str(var, vim_encoding)
-    elif not is_py3 and isinstance(var, str):
-        var = unicode(var, vim_encoding)
-    return var
-
 #------------------------------------------------------------------------------
 #        Read global configuration variables
 #------------------------------------------------------------------------------
-monitor_subchannel = bool(int(vim.vars.get("g:ipy_monitor_subchannel", '0')))
-current_stdin_prompt = {}
-
-prompt_in = 'In [%(line)]: '
-prompt_out = 'Out[%(line)]: '
+prompt_in  = 'In [{line:d}]: '
+prompt_out = 'Out[{line:d}]: '
 
 _install_instructions = """You *must* install IPython into the Python that
 your vim is linked against. If you are seeing this message, this usually means
@@ -72,21 +43,32 @@ same version of Python.
 """
 
 #------------------------------------------------------------------------------
+#        Define wrapper for encoding
+#------------------------------------------------------------------------------
+# get around unicode problems when interfacing with vim
+vim_encoding = vim.eval('&encoding') or 'utf-8'
+
+def vim2py_str(var):
+    # Convert to proper encoding
+    if is_py3 and isinstance(var, bytes):
+        var = str(var, vim_encoding)
+    elif not is_py3 and isinstance(var, str):
+        var = unicode(var, vim_encoding)
+    return var
+
+#------------------------------------------------------------------------------
 #        Check Connection:
 #------------------------------------------------------------------------------
 def check_connection():
     """Check that we have a client connected to the kernel."""
-    kc.hb_channel.unpause()
-    return kc.hb_channel.is_beating()
-
-def disconnect():
-    """Disconnect kernel client."""
-    kc.stop_channels()
+    return kc.hb_channel.is_beating() if kc else False
 
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
 if all([x in locals() and x in globals() for x in ['km', 'kc', 'pid']]):
-    check_connection()
+    if not check_connection():
+        vim_echom(Py2vim_str('WARNING: Not connected to IPython!' + \
+                ' Run :JupyterConnect to find the kernel'), 'WarningMsg')
 else:
     km = None
     kc = None
@@ -97,7 +79,7 @@ else:
 #        Function Definitions:
 #------------------------------------------------------------------------------
 def connect_to_kernel():
-    """ Create kernel manager from existing connection file """
+    """Create kernel manager from existing connection file."""
     try:
         import IPython
     except ImportError:
@@ -118,7 +100,7 @@ def connect_to_kernel():
             cfile = find_connection_file()
         except IOError:
             vim_echom("kernel connection attempt #{:d} failed - no kernel file"\
-                    .format(attempt), "Error")
+                    .format(attempt), style="Error")
             continue
 
         # Create the kernel manager and connect a client
@@ -146,12 +128,17 @@ def connect_to_kernel():
             # send('"_vim_client"', store_history=False)
             pid = set_pid() # Ask kernel for its PID
             vim.command('redraw')
-            vim_echom("kernel connection successful! pid = {}".format(pid),
-                      style="Operator")
+            vim_echom("kernel connection successful! pid = {}".format(pid))
         finally:
             if not connected:
                 kc.stop_channels()
                 vim_echom("kernel connection attempt timed out", "Error")
+
+def disconnect():
+    """Disconnect kernel client."""
+    kc.stop_channels()
+    vim_echom(Py2vim_str("Client disconnected from kernel with pid = {}"\
+                         .format(pid)))
 
 def vim_echom(arg, style="Question"):
     """ Report arg using vim's echomessage command.
@@ -191,23 +178,22 @@ def update_subchannel_msgs(force=False):
         return False
 
     #--------------------------------------------------------------------------
-    #        Message handler
+    #        Message Handler:
     #--------------------------------------------------------------------------
-    global current_stdin_prompt
+    update_occured = False
+    current_stdin_prompt = {}
     msgs = kc.iopub_channel.get_msgs()
     msgs += kc.stdin_channel.get_msgs() # get prompts from kernel
     b = vim.current.buffer
-    update_occured = False
-    for m in msgs:
+    for msg in msgs:
         # if we received a message it means the kernel is not waiting for input
-        # vim.command('autocmd! InsertEnter <buffer>')
         current_stdin_prompt.clear()
         s = ''
 
-        if 'msg_type' not in m['header']:
+        if 'msg_type' not in msg['header']:
             continue
 
-        msg_type = m['header']['msg_type']
+        msg_type = msg['header']['msg_type']
 
         if msg_type == 'status':
             continue
@@ -215,35 +201,34 @@ def update_subchannel_msgs(force=False):
             # TODO: alllow for distinguishing between stdout and stderr (using
             # custom syntax markers in the vim-ipython buffer perhaps), or by
             # also echoing the message to the status bar
-            s = strip_color_escapes(m['content']['text'])
+            s = strip_color_escapes(msg['content']['text'])
         elif msg_type == 'pyout' or msg_type == 'execute_result':
-            s = prompt_out % {'line': m['content']['execution_count']}
-            s += m['content']['data']['text/plain']
+            s = prompt_out.format(line=msg['content']['execution_count'])
+            s += msg['content']['data']['text/plain']
         elif msg_type == 'display_data':
             # TODO: handle other display data types (HMTL? images?)
-            s += m['content']['data']['text/plain']
+            s += msg['content']['data']['text/plain']
         elif msg_type == 'pyin' or msg_type == 'execute_input':
             # TODO: the next line allows us to resend a line to ipython if
             # %doctest_mode is on. In the future, IPython will send the
             # execution_count on subchannel, so this will need to be updated
             # once that happens
-            line_number = m['content'].get('execution_count', 0)
-            prompt = prompt_in % {'line': line_number}
+            line_number = msg['content'].get('execution_count', 0)
+            prompt = prompt_in.format(line=line_number)
             s = prompt
             # add a continuation line (with trailing spaces if the prompt has them)
-            dots = '.' * len(prompt.rstrip())
-            dots += prompt[len(prompt.rstrip()):]
-            s += m['content']['code'].rstrip().replace('\n', '\n' + dots)
+            dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
+            # dots += prompt[len(prompt.rstrip()):]
+            s += msg['content']['code'].rstrip().replace('\n', '\n' + dots)
         elif msg_type == 'pyerr' or msg_type == 'error':
-            c = m['content']
-            s = "\n".join(map(strip_color_escapes, c['traceback']))
+            s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
         elif msg_type == 'input_request':
             vim_echom('python input not supported in vim.', 'Error')
             return False
-            # current_stdin_prompt['prompt'] = m['content']['prompt']
-            # current_stdin_prompt['is_password'] = m['content']['password']
-            # current_stdin_prompt['parent_msg_id'] = m['parent_header']['msg_id']
-            # s += m['content']['prompt']
+            # current_stdin_prompt['prompt'] = msg['content']['prompt']
+            # current_stdin_prompt['is_password'] = msg['content']['password']
+            # current_stdin_prompt['parent_msg_id'] = msg['parent_header']['msg_id']
+            # s += msg['content']['prompt']
             # vim_echom('Awaiting input. call :IPythonInput to reply')
 
         if s.find('\n') == -1:
@@ -259,10 +244,8 @@ def update_subchannel_msgs(force=False):
                 b.append([l.encode(vim_encoding) for l in s.splitlines()])
         update_occured = True
 
-    if update_occured or force:
-        vim.command('normal! G') # go to the end of the file
-        if current_stdin_prompt:
-            vim.command('normal! $') # also go to the end of the line
+    if update_occured:
+        vim.command('normal! G$')
 
     # Move cursor back to original window
     vim.command(':call win_gotoid({})'.format(cur_win))
@@ -294,19 +277,23 @@ def print_prompt(prompt, msg_id=None):
     else:
         vim_echom("In[]: %s" % prompt)
 
-def with_subchannel(f, *args, **kwargs):
-    """Conditionally monitor subchannel."""
-    def f_with_update(*args, **kwargs):
+def with_subchannel(f):
+    """Decorator for sending messages to the kernel. Conditionally monitor
+    the kernel replies, as well as messages from other clients.
+    """
+    def wrapper(*args, **kwargs):
         if not check_connection():
             vim_echom('WARNING: Not connected to IPython!', 'WarningMsg')
             return
+
+        monitor_subchannel = bool(int(vim.vars.get('ipy_monitor_subchannel', 0)))
         try:
             f(*args, **kwargs)
             if monitor_subchannel:
                 update_subchannel_msgs(force=True)
         except AttributeError: #if kc is None
             vim_echom("not connected to IPython", 'Error')
-    return f_with_update
+    return wrapper
 
 @with_subchannel
 def run_file(flags='', filename=''):
@@ -315,11 +302,11 @@ def run_file(flags='', filename=''):
     if ext in ('pxd', 'pxi', 'pyx', 'pyxbld'):
         cmd = ' '.join(filter(None, (
             '%run_cython',
-            vim2pystr(vim.vars.get('cython_run_flags', '')),
+            vim2py_str(vim.vars.get('cython_run_flags', '')),
             repr(filename))))
     else:
         b = vim.current.buffer
-        cmd = '%run {} {}'.format((flags or vim2pystr(b.vars['ipython_run_flags'])),
+        cmd = '%run {} {}'.format((flags or vim2py_str(b.vars['ipython_run_flags'])),
                                   repr(filename))
     msg_id = send(cmd)
     # print_prompt(cmd, msg_id)
@@ -470,9 +457,6 @@ def run_this_cell():
 #    send(' __IP.InteractiveTB.pdb.run(\'execfile("%s")\')' % (vim.current.buffer.name,))
 #    #send('run -d %s' % (vim.current.buffer.name,))
 #    echo("In[]: run -d %s (using pdb)" % vim.current.buffer.name)
-
-if not_in_vim:
-    print('done.')
 
 #==============================================================================
 #==============================================================================

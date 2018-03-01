@@ -90,6 +90,12 @@ function! jupyter#SendCount(count) abort "{{{
     endtry
     call jupyter#SendCode(l:cmd)
 endfunction
+"}}}
+function! jupyter#UpdateShell() abort
+    pythonx if jupyter_vim.update_subchannel_msgs(force=True):
+              \ jupyter_vim.vim_echom("vim-ipython shell updated",'Operator')
+endfunction
+"}}}
 "}}}-------------------------------------------------------------------------- 
 "        Operator Function: {{{
 "-----------------------------------------------------------------------------
@@ -146,27 +152,39 @@ function! jupyter#OpenJupyterTerm() abort "{{{
     " Set up console display window
     " If we're in the console display already, just go to the bottom.
     " Otherwise, create a new buffer in a split (or jump to it if open)
-    if @% ==# '__jupyter_term__'
+    let term_buf = '__jupyter_term__'
+    if @% ==# term_buf
         normal! G
     else
         try
-            silent sbuffer __jupyter_term__
-            setlocal bufhidden=hide buftype=nofile
-            setlocal nobuflisted nonumber noswapfile
-            setlocal syntax=python
+            let save_swbuf=&switchbuf
+            set switchbuf=useopen
+            let l:cmd = bufnr(term_buf) > 0 ? 'sbuffer' : 'new'
+            execute l:cmd . ' ' . term_buf
+            let &switchbuf=save_swbuf
         catch
             return 0
         endtry
     endif
 
+    " Make sure buffer is a scratch buffer before we write to it
+    setlocal bufhidden=hide buftype=nofile
+    setlocal nobuflisted nonumber noswapfile
+    setlocal syntax=python
+
+    " Clear out any autocmds that trigger on Insert for the console buffer
+    autocmd! InsertEnter,InsertLeave <buffer>
+
     " Syntax highlighting for prompt
-    syn match JupyterPromptIn /^In \[[ 0-9]*\]: /
-    syn match JupyterPromptOut /^Out\[[ 0-9]*\]: /
-    syn match JupyterPromptOut2 /^\\.\\.\\.* /
+    syn match JupyterPromptIn /^\(In \[[ 0-9]*\]:\)\|\(\s*\.\{3}:\)/
+    syn match JupyterPromptOut /^Out\[[ 0-9]*\]:/
+    syn match JupyterPromptOut2 /^\.\.\.* /
+    syn match JupyterMagic /^\]: \zs%\w\+/
 
     hi JupyterPromptIn   ctermfg=Blue
     hi JupyterPromptOut  ctermfg=Red
     hi JupyterPromptOut2 ctermfg=Grey
+    hi JupyterMagic      ctermfg=Magenta
 
     return 1
 endfunction

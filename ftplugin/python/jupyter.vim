@@ -31,6 +31,7 @@ command! -buffer -nargs=0    JupyterConnect         call jupyter#Connect()
 command! -buffer -nargs=1    JupyterSendCode        call jupyter#SendCode(<args>)
 command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<count>)
 command! -buffer -range -bar JupyterSendRange       <line1>,<line2>call jupyter#SendRange()
+command! -buffer -nargs=0    JupyterUpdateShell     call jupyter#UpdateShell()
 
 command! -buffer -nargs=* -complete=file JupyterRunFile
             \ update | call jupyter#RunFile(<f-args>)
@@ -44,26 +45,26 @@ command! -buffer -nargs=0 -complete=file JupyterImportThisFile
 "        Key Mappings: {{{
 "-----------------------------------------------------------------------------
 " Setup plugin mappings for the most common ways to interact with ipython.
-" noremap  <Plug>Jupyter-ImportFile         :update<CR>:pythonx jupyter_vim.run_this_file('-n')<CR>
 noremap  <Plug>Jupyter-RunCell            :pythonx jupyter_vim.run_this_cell()<CR>
-noremap  <Plug>Jupyter-UpdateShell        :pythonx if jupyter_vim.update_subchannel_msgs(force=True): jupyter_vim.vim_echo("vim-ipython shell updated",'Operator')<CR>
 "noremap  <Plug>Jupyter-StartDebugging     :pythonx send('%pdb')<CR>
 "noremap  <Plug>Jupyter-BreakpointSet      :pythonx set_breakpoint()<CR>
 "noremap  <Plug>Jupyter-BreakpointClear    :pythonx clear_breakpoint()<CR>
 "noremap  <Plug>Jupyter-DebugThisFile      :pythonx run_this_file_pdb()<CR>
 "noremap  <Plug>Jupyter-BreakpointClearAll :pythonx clear_all_breaks()<CR>
 
-noremap  <Plug>Jupyter-PlotClearCurrent   :pythonx jupyter_vim.run_command("plt.clf()")<CR>
-noremap  <Plug>Jupyter-PlotCloseAll       :pythonx jupyter_vim.run_command("plt.close('all')")<CR>
+" noremap  <Plug>Jupyter-PlotClearCurrent   :pythonx jupyter_vim.run_command("plt.clf()")<CR>
+" noremap  <Plug>Jupyter-PlotCloseAll       :pythonx jupyter_vim.run_command("plt.close('all')")<CR>
 
 if g:jupyter_mapkeys
     nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
     nnoremap <buffer> <silent> <localleader>I       :JupyterImportThisFile<CR>
 
     " Send just the current line
-    nmap <buffer> <silent> <localleader>E            :JupyterSendRange<CR>
-    nmap <buffer> <silent> <localleader>e            <Plug>JupyterRunTextObj
-    vmap <buffer> <silent> <localleader>e            <Plug>JupyterRunVisual
+    nmap <buffer> <silent> <localleader>E           :JupyterSendRange<CR>
+    nmap <buffer> <silent> <localleader>e           <Plug>JupyterRunTextObj
+    vmap <buffer> <silent> <localleader>e           <Plug>JupyterRunVisual
+
+    nmap <buffer> <silent> <localleader>U           :JupyterUpdateShell<CR>
 
     " Debugging maps (not yet implemented)
     "map  <buffer> <silent> <C-F6>         <Plug>Jupyter-StartDebugging
