@@ -91,9 +91,17 @@ function! jupyter#SendCount(count) abort "{{{
     call jupyter#SendCode(l:cmd)
 endfunction
 "}}}
-function! jupyter#UpdateShell() abort
-    pythonx if jupyter_vim.update_subchannel_msgs(force=True):
-              \ jupyter_vim.vim_echom("vim-ipython shell updated",'Operator')
+function! jupyter#UpdateShell() abort "{{{
+    pythonx jupyter_vim.update_subchannel_msgs(force=True)
+endfunction
+"}}}
+function! jupyter#TerminateKernel() abort "{{{
+    " TODO take argument to send other signals
+    pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.SIGTERM)
+endfunction
+"}}}
+function! jupyter#KillKernel() abort "{{{
+    pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.SIGKILL)
 endfunction
 "}}}
 "}}}-------------------------------------------------------------------------- 

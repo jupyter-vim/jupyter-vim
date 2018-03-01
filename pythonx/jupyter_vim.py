@@ -42,19 +42,20 @@ instance with which you communicate via vim-ipython needs to be running the
 same version of Python.
 """
 
-#------------------------------------------------------------------------------
-#        Define wrapper for encoding
-#------------------------------------------------------------------------------
-# get around unicode problems when interfacing with vim
-vim_encoding = vim.eval('&encoding') or 'utf-8'
+# General message command
+def vim_echom(arg, style="None"):
+    """
+    Report arg using vim's echomessage command.
 
-def vim2py_str(var):
-    # Convert to proper encoding
-    if is_py3 and isinstance(var, bytes):
-        var = str(var, vim_encoding)
-    elif not is_py3 and isinstance(var, str):
-        var = unicode(var, vim_encoding)
-    return var
+    Keyword args:
+    style -- the vim highlighting style to use
+    """
+    try:
+        vim.command("echohl {}".format(style))
+        vim.command("echom \"{}\"".format(arg.replace('\"', '\\\"')))
+        vim.command("echohl None")
+    except vim.error:
+        print("-- {}".format(arg))
 
 #------------------------------------------------------------------------------
 #        Check Connection:
@@ -67,8 +68,8 @@ def check_connection():
 # kernel pid. Otherwise, just check that we're connected to a kernel.
 if all([x in locals() and x in globals() for x in ['km', 'kc', 'pid']]):
     if not check_connection():
-        vim_echom(Py2vim_str('WARNING: Not connected to IPython!' + \
-                ' Run :JupyterConnect to find the kernel'), 'WarningMsg')
+        vim_echom('WARNING: Not connected to IPython!' + \
+                  ' Run :JupyterConnect to find the kernel', style='WarningMsg')
 else:
     km = None
     kc = None
@@ -76,7 +77,58 @@ else:
     send = None
 
 #------------------------------------------------------------------------------
-#        Function Definitions:
+#        Utilities
+#------------------------------------------------------------------------------
+# Define wrapper for encoding
+# get around unicode problems when interfacing with vim
+vim_encoding = vim.eval('&encoding') or 'utf-8'
+
+def vim2py_str(var):
+    """Convert to proper encoding."""
+    if is_py3 and isinstance(var, bytes):
+        var = str(var, vim_encoding)
+    elif not is_py3 and isinstance(var, str):
+        var = unicode(var, vim_encoding)
+    return var
+
+def set_pid():
+    """Explicitly ask the ipython kernel for its pid."""
+    the_pid = -1
+    code = 'import os; _pid = os.getpid()'
+    msg_id = send(code, silent=True, user_expressions={'_pid':'_pid'})
+
+    # wait to get message back from kernel
+    try:
+        reply = get_reply_msg(msg_id)
+    except Empty:
+        vim_echom("no reply from IPython kernel", "WarningMsg")
+        return -1
+
+    try:
+        the_pid = int(reply['content']['user_expressions']\
+                        ['_pid']['data']['text/plain'])
+    except KeyError:
+        vim_echom("Could not get PID information, kernel not running Python?")
+
+    return the_pid
+
+def is_cell_separator(line):
+    """Determines whether a given line is a cell separator"""
+    cell_sep = ['##', '#%%%%', '# <codecell>']
+    for sep in cell_sep:
+        if line.strip().startswith(sep):
+            return True
+    return False
+
+# from <http://serverfault.com/questions/71285/\
+# in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file>
+strip = re.compile(r'\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mK]')
+def strip_color_escapes(s):
+    """Remove ANSI color escape sequences from a string."""
+    return strip.sub('', s)
+
+#------------------------------------------------------------------------------
+#        Major Function Definitions:
 #------------------------------------------------------------------------------
 def connect_to_kernel():
     """Create kernel manager from existing connection file."""
@@ -128,37 +180,17 @@ def connect_to_kernel():
             # send('"_vim_client"', store_history=False)
             pid = set_pid() # Ask kernel for its PID
             vim.command('redraw')
-            vim_echom("kernel connection successful! pid = {}".format(pid))
+            vim_echom('kernel connection successful! pid = {}'.format(pid),
+                      style='Question')
         finally:
             if not connected:
                 kc.stop_channels()
-                vim_echom("kernel connection attempt timed out", "Error")
+                vim_echom('kernel connection attempt timed out', style='Error')
 
-def disconnect():
+def disconnect_from_kernel():
     """Disconnect kernel client."""
     kc.stop_channels()
-    vim_echom(Py2vim_str("Client disconnected from kernel with pid = {}"\
-                         .format(pid)))
-
-def vim_echom(arg, style="Question"):
-    """ Report arg using vim's echomessage command.
-
-    Keyword args:
-    style -- the vim highlighting style to use
-    """
-    try:
-        vim.command("echohl %s" % style)
-        vim.command("echom \"%s\"" % arg.replace('\"', '\\\"'))
-        vim.command("echohl None")
-    except vim.error:
-        print("-- %s" % arg)
-
-# from <http://serverfault.com/questions/71285/\
-# in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file>
-strip = re.compile(r'\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mK]')
-def strip_color_escapes(s):
-    """Remove ANSI color escape sequences from a string."""
-    return strip.sub('', s)
+    vim_echom("Client disconnected from kernel with pid = {}".format(pid))
 
 def update_subchannel_msgs(force=False):
     """Grab any pending messages and place them inside the vim-ipython shell.
@@ -252,6 +284,9 @@ def update_subchannel_msgs(force=False):
 
     return update_occured
 
+#------------------------------------------------------------------------------
+#        Communicate with Kernel
+#------------------------------------------------------------------------------
 def get_reply_msg(msg_id):
     """Get kernel reply from sent client message with msg_id."""
     while True:
@@ -269,14 +304,16 @@ def print_prompt(prompt, msg_id=None):
         try:
             reply = get_reply_msg(msg_id)
             count = reply['content']['execution_count']
-            vim_echom("In[%d]: %s" % (count, prompt))
+            vim_echom("In[{:d}]: {:s}".format(count, prompt))
         except Empty:
             # if the kernel is waiting for input it's normal to get no reply
             if not kc.stdin_channel.msg_ready():
-                vim_echom("In[]: %s (no reply from IPython kernel)" % prompt)
+                vim_echom("In[]: {} (no reply from IPython kernel)"\
+                          .format(prompt))
     else:
-        vim_echom("In[]: %s" % prompt)
+        vim_echom("In[]: {}".format(prompt))
 
+# Decorator for all sending commands
 def with_subchannel(f):
     """Decorator for sending messages to the kernel. Conditionally monitor
     the kernel replies, as well as messages from other clients.
@@ -296,6 +333,12 @@ def with_subchannel(f):
     return wrapper
 
 @with_subchannel
+def run_command(cmd):
+    """Send a single command to the kernel."""
+    msg_id = send(cmd)
+    # print_prompt(cmd, msg_id)
+
+@with_subchannel
 def run_file(flags='', filename=''):
     """Run a given python file using ipython's %run magic."""
     ext = os.path.splitext(filename)[-1][1:]
@@ -312,12 +355,6 @@ def run_file(flags='', filename=''):
     # print_prompt(cmd, msg_id)
 
 @with_subchannel
-def run_command(cmd):
-    """Send a single command to the kernel."""
-    msg_id = send(cmd)
-    # print_prompt(cmd, msg_id)
-
-@with_subchannel
 def send_range():
     """Send a range of lines from the current vim buffer to the kernel."""
     r = vim.current.range
@@ -326,59 +363,6 @@ def send_range():
     msg_id = send(lines)
     # prompt = "lines %d-%d "% (r.start+1,r.end+1)
     # print_prompt(prompt,msg_id)
-
-def set_pid():
-    """Explicitly ask the ipython kernel for its pid."""
-    the_pid = -1
-    code = 'import os; _pid = os.getpid()'
-    msg_id = send(code, silent=True, user_expressions={'_pid':'_pid'})
-
-    # wait to get message back from kernel
-    try:
-        reply = get_reply_msg(msg_id)
-    except Empty:
-        vim_echom("no reply from IPython kernel", "WarningMsg")
-        return -1
-
-    try:
-        the_pid = int(reply['content']['user_expressions']\
-                        ['_pid']['data']['text/plain'])
-    except KeyError:
-        vim_echom("Could not get PID information, kernel not running Python?")
-
-    return the_pid
-
-def terminate_kernel_hack():
-    """Send SIGTERM to the IPython kernel."""
-    interrupt_kernel_hack(signal.SIGTERM)
-
-def interrupt_kernel_hack(signal_to_send=None):
-    """
-    Sends the interrupt signal to the remote kernel. This side steps the
-    (non-functional) ipython interrupt mechanisms.
-    Only works on posix.
-    """
-    if pid is None:
-        vim_echom("cannot get kernel PID, Ctrl-C will not be supported")
-        return
-
-    if signal_to_send is None:
-        signal_to_send = signal.SIGINT
-
-    try:
-        os.kill(pid, int(signal_to_send))
-        vim_echom("KeyboardInterrupt (sent to ipython: pid " +
-                  "%i with signal %s)" % (pid, signal_to_send), "WarningMsg")
-    except OSError:
-        vim_echom("unable to kill pid %d" % pid)
-
-def is_cell_separator(line):
-    """Determines whether a given line is a cell separator"""
-    cell_sep = ['##', '#%%%%', '# <codecell>']
-    for sep in cell_sep:
-        if line.strip().startswith(sep):
-            return True
-    return False
 
 @with_subchannel
 def run_this_cell():
@@ -415,7 +399,7 @@ def run_this_cell():
 
     # Calculate minimum indentation level of entire cell
     shiftwidth = vim.eval('&shiftwidth')
-    count = lambda x: int(vim.eval('indent(%d)/%s' % (x, shiftwidth)))
+    count = lambda x: int(vim.eval('indent({:d})/{:s}'.format(x, shiftwidth)))
 
     min_indent = count(upper_bound+1)
     for i in range(upper_bound+1, lower_bound):
@@ -425,7 +409,7 @@ def run_this_cell():
 
     # Perform dedent
     if min_indent > 0:
-        vim.command('%d,%d%s' % (upper_bound+1, lower_bound+1, '<'*min_indent))
+        vim.command('{:d},{:d}{:s}'.format(upper_bound+1, lower_bound+1, '<'*min_indent))
 
     # Execute cell
     lines = "\n".join(cur_buf[upper_bound:lower_bound+1])
@@ -436,6 +420,25 @@ def run_this_cell():
     # Re-indent
     if min_indent > 0:
         vim.command("silent undo")
+
+def signal_kernel(sig=signal.SIGTERM):
+    """
+    Use kill command to send a signal to the remote kernel. This side steps the
+    (non-functional) ipython interrupt mechanisms.
+    Only works on posix.
+    """
+    if pid is None:
+        vim_echom("cannot get kernel PID, kill not supported")
+        return
+
+    try:
+        os.kill(pid, int(sig))
+        vim_echom("KeyboardInterrupt (pid {p:d} with signal #{v:d}, {n:s})"\
+                  .format(p=pid, v=sig.value, n=sig.name), "WarningMsg")
+    except OSError as e:
+        vim_echom("signal #{v:d}, {n:s} failed to kill pid {p:d}"\
+                .format(v=sig.value, n=sig.name, p=pid))
+        raise(e)
 
 #def set_breakpoint():
 #    send("__IP.InteractiveTB.pdb.set_break('%s',%d)" % (vim.current.buffer.name,
@@ -457,6 +460,7 @@ def run_this_cell():
 #    send(' __IP.InteractiveTB.pdb.run(\'execfile("%s")\')' % (vim.current.buffer.name,))
 #    #send('run -d %s' % (vim.current.buffer.name,))
 #    echo("In[]: run -d %s (using pdb)" % vim.current.buffer.name)
+
 
 #==============================================================================
 #==============================================================================
