@@ -58,6 +58,12 @@ function! jupyter#Connect() abort "{{{
     pythonx jupyter_vim.connect_to_kernel()
 endfunction
 "}}}
+function! jupyter#JupyterCd(...) abort "{{{
+    " Behaves just like typical `cd`
+    let l:dirname = a:0 ? a:1 : ''
+    JupyterSendCode '%cd '.l:dirname
+endfunction
+"}}}
 function! jupyter#RunFile(...) abort "{{{
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
@@ -91,8 +97,8 @@ function! jupyter#SendCount(count) abort "{{{
     call jupyter#SendCode(l:cmd)
 endfunction
 "}}}
-function! jupyter#UpdateShell() abort "{{{
-    pythonx jupyter_vim.update_subchannel_msgs(force=True)
+function! jupyter#KillKernel() abort "{{{
+    pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.SIGKILL)
 endfunction
 "}}}
 function! jupyter#TerminateKernel() abort "{{{
@@ -100,8 +106,8 @@ function! jupyter#TerminateKernel() abort "{{{
     pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.SIGTERM)
 endfunction
 "}}}
-function! jupyter#KillKernel() abort "{{{
-    pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.SIGKILL)
+function! jupyter#UpdateShell() abort "{{{
+    pythonx jupyter_vim.update_subchannel_msgs(force=True)
 endfunction
 "}}}
 "}}}-------------------------------------------------------------------------- 

@@ -36,6 +36,7 @@ command! -buffer -nargs=0    JupyterUpdateShell     call jupyter#UpdateShell()
 command! -buffer -nargs=0    JupyterKillKernel      call jupyter#KillKernel()
 command! -buffer -nargs=0    JupyterTerminateKernel call jupyter#TerminateKernel()
 
+command! -buffer -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
 command! -buffer -nargs=* -complete=file JupyterRunFile
             \ update | call jupyter#RunFile(<f-args>)
 command! -buffer -nargs=0 -complete=file JupyterImportThisFile
@@ -60,13 +61,16 @@ if g:jupyter_mapkeys
     nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
     nnoremap <buffer> <silent> <localleader>I       :JupyterImportThisFile<CR>
 
-    " Send just the current line
-    nnoremap <buffer> <silent> <localleader>E           :JupyterSendRange<CR>
-    nmap     <buffer> <silent> <localleader>e           <Plug>JupyterRunTextObj
-    vmap     <buffer> <silent> <localleader>e           <Plug>JupyterRunVisual
+    " Change to directory of current file
+    nnoremap <buffer> <silent> <localleader>d       :JupyterCd %:p:h<CR>
 
-    nnoremap <buffer> <silent> <localleader>U           :JupyterUpdateShell<CR>
-    " nnoremap <buffer> <silent> <localleader><C-c>       :JupyterTerminateKernel<CR>
+    " Send just the current line
+    nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
+    nmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunTextObj
+    vmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunVisual
+
+    nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
+    " nnoremap <buffer> <silent> <localleader><C-c> :JupyterTerminateKernel<CR>
 
     " Debugging maps (not yet implemented)
     "map  <buffer> <silent> <C-F6>         <Plug>Jupyter-StartDebugging
