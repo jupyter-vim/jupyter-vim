@@ -16,7 +16,8 @@ function! s:init_python() abort "{{{
           \ 'try:',
           \ '    import jupyter_vim',
           \ 'except Exception as exc:',
-          \ '    vim.command(''let s:init_outcome = "could not import jupyter_vim: {0}: {1}"''.format(exc.__class__.__name__, exc))',
+          \ '    vim.command(''let s:init_outcome = "could not import jupyter_vim:'
+          \                    .'{0}: {1}"''.format(exc.__class__.__name__, exc))',
           \ 'else:',
           \ '    vim.command(''let s:init_outcome = 1'')']
 
@@ -111,7 +112,7 @@ function! jupyter#TerminateKernel() abort "{{{
 endfunction
 "}}}
 function! jupyter#UpdateShell() abort "{{{
-    pythonx jupyter_vim.update_console_msgs(force=True)
+    pythonx jupyter_vim.update_console_msgs()
 endfunction
 "}}}
 "}}}-------------------------------------------------------------------------- 

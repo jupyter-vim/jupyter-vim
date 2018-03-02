@@ -43,12 +43,12 @@ command! -buffer -nargs=* -complete=file JupyterRunFile
 command! -buffer -nargs=0 -complete=file JupyterImportThisFile
             \ update | call jupyter#RunFile('-n', expand("%:p"))
 
+" Debugging commands
+command! -buffer -nargs=0   PythonSetBreak  call jupyter#PythonDbstop()
+
 "}}}--------------------------------------------------------------------------
 "        Key Mappings: {{{
 "-----------------------------------------------------------------------------
-" Setup plugin mappings for the most common ways to interact with ipython.
-noremap  <Plug>Jupyter-RunCell            :pythonx jupyter_vim.run_this_cell()<CR>
-
 "noremap  <Plug>Jupyter-StartDebugging     :pythonx send('%pdb')<CR>
 "noremap  <Plug>Jupyter-BreakpointSet      :pythonx set_breakpoint()<CR>
 "noremap  <Plug>Jupyter-BreakpointClear    :pythonx clear_breakpoint()<CR>
@@ -71,9 +71,9 @@ if g:jupyter_mapkeys
     nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
     " nnoremap <buffer> <silent> <localleader><C-c> :JupyterTerminateKernel<CR>
 
-    " Debugging maps (not yet implemented)
+    " Debugging maps
+    nnoremap <buffer> <silent> <localleader>b       :PythonSetBreak<CR>
     "map  <buffer> <silent> <C-F6>         <Plug>Jupyter-StartDebugging
-    "map  <buffer> <silent> <F6>           <Plug>Jupyter-BreakpointSet
     "map  <buffer> <silent> <S-F6>         <Plug>Jupyter-BreakpointClear
     "map  <buffer> <silent> <F7>           <Plug>Jupyter-DebugThisFile
     "map  <buffer> <silent> <S-F7>         <Plug>Jupyter-BreakpointClearAll

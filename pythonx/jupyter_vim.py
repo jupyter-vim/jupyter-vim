@@ -20,18 +20,6 @@ import sys
 import textwrap
 from queue import Empty
 
-import vim
-
-is_py3 = sys.version_info[0] >= 3
-if is_py3:
-    unicode = str
-
-#------------------------------------------------------------------------------
-#        Read global configuration variables
-#------------------------------------------------------------------------------
-prompt_in  = 'In [{line:d}]: '
-prompt_out = 'Out[{line:d}]: '
-
 _install_instructions = """You *must* install IPython into the Python that
 your vim is linked against. If you are seeing this message, this usually means
 either (1) installing IPython using the system Python that vim is using, or
@@ -41,6 +29,26 @@ instance using IPython's own machinery. It does *not* mean that the IPython
 instance with which you communicate via vim-ipython needs to be running the
 same version of Python.
 """
+
+try:
+    import IPython
+except ImportError:
+    raise ImportError("Could not find kernel. " + _install_instructions)
+
+try:
+    import vim
+except ImportError:
+    raise ImportError('vim module only available within vim!')
+
+#------------------------------------------------------------------------------
+#        Read global configuration variables
+#------------------------------------------------------------------------------
+is_py3 = sys.version_info[0] >= 3
+if is_py3:
+    unicode = str
+
+prompt_in  = 'In [{line:d}]: '
+prompt_out = 'Out[{line:d}]: '
 
 # General message command
 def vim_echom(arg, style="None"):
@@ -66,12 +74,11 @@ def check_connection():
 
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
-if all([x in locals() and x in globals() for x in ['km', 'kc', 'pid']]):
+if all([x in globals() for x in ('kc', 'pid', 'send')]):
     if not check_connection():
         vim_echom('WARNING: Not connected to IPython!' + \
                   ' Run :JupyterConnect to find the kernel', style='WarningMsg')
 else:
-    km = None
     kc = None
     pid = None
     send = None
@@ -90,6 +97,30 @@ def vim2py_str(var):
     elif not is_py3 and isinstance(var, str):
         var = unicode(var, vim_encoding)
     return var
+
+# Taken from jedi-vim/pythonx/jedi_vim.py <url_here>
+class PythonToVimStr(unicode):
+    """ Vim has a different string implementation of single quotes """
+    __slots__ = []
+
+    def __new__(cls, obj, encoding='UTF-8'):
+        if not (is_py3 or isinstance(obj, unicode)):
+            obj = unicode.__new__(cls, obj, encoding)
+
+        # Vim cannot deal with zero bytes:
+        obj = obj.replace('\0', '\\0')
+        return unicode.__new__(cls, obj)
+
+    def __repr__(self):
+        # this is totally stupid and makes no sense but vim/python unicode
+        # support is pretty bad. don't ask how I came up with this... It just
+        # works...
+        # It seems to be related to that bug: http://bugs.python.org/issue5876
+        if unicode is str:
+            s = self
+        else:
+            s = self.encode('UTF-8')
+        return '"%s"' % s.replace('\\', '\\\\').replace('"', r'\"')
 
 def set_pid():
     """Explicitly ask the ipython kernel for its pid."""
@@ -130,30 +161,25 @@ def strip_color_escapes(s):
 #------------------------------------------------------------------------------
 def connect_to_kernel():
     """Create kernel manager from existing connection file."""
-    try:
-        import IPython
-    except ImportError:
-        raise ImportError("Could not find kernel. " + _install_instructions)
-
     from jupyter_client import KernelManager, find_connection_file
 
-    global kc, km, pid, send
+    global kc, pid, send
 
     # Test if connection is alive
-    connected = False
+    connected = check_connection()
     attempt = 0
     max_attempts = 5
     while not connected and attempt < max_attempts:
         attempt += 1
         try:
-            # Default: filename='kernel-*.json'
-            cfile = find_connection_file()
+            cfile = find_connection_file()  # default filename='kernel-*.json'
         except IOError:
-            vim_echom("kernel connection attempt #{:d} failed - no kernel file"\
-                    .format(attempt), style="Error")
+            vim_echom("kernel connection attempt {:d} failed - no kernel file"\
+                      .format(attempt), style="Error")
             continue
 
         # Create the kernel manager and connect a client
+        # See: <http://jupyter-client.readthedocs.io/en/stable/api/client.html>
         km = KernelManager(connection_file=cfile)
         km.load_connection_file()
         kc = km.client()
@@ -167,37 +193,31 @@ def connect_to_kernel():
         send = _send
 
         # Ping the kernel
-        send('', silent=True)
+        kc.kernel_info()
         try:
             reply = kc.get_shell_msg(timeout=1)
         except Empty:
             continue
         else:
             connected = True
-            # Send command so that monitor knows vim is commected
-            # send('"_vim_client"', store_history=False)
-            pid = set_pid() # Ask kernel for its PID
-            vim.command('redraw')
-            vim_echom('kernel connection successful! pid = {}'.format(pid),
-                      style='Question')
-        finally:
-            if not connected:
-                kc.stop_channels()
-                vim_echom('kernel connection attempt timed out', style='Error')
+
+    if connected:
+        # Send command so that monitor knows vim is commected
+        # send('"_vim_client"', store_history=False)
+        pid = set_pid() # Ask kernel for its PID
+        vim_echom('kernel connection successful! pid = {}'.format(pid),
+                  style='Question')
+    else:
+        kc.stop_channels()
+        vim_echom('kernel connection attempt timed out', style='Error')
 
 def disconnect_from_kernel():
     """Disconnect kernel client."""
     kc.stop_channels()
     vim_echom("Client disconnected from kernel with pid = {}".format(pid))
 
-def update_console_msgs(force=False):
-    """Grab any pending messages and place them inside the vim-ipython shell.
-    This function will do nothing if the vim-ipython shell is not visible,
-    unless force=True argument is passed.
-    """
-    if not force:
-        return False
-
+def update_console_msgs():
+    """Grab pending messages and place them inside the vim console monitor."""
     # Save which window we're in
     cur_win = vim.eval('win_getid()')
 
@@ -205,26 +225,34 @@ def update_console_msgs(force=False):
     is_console_open = vim.eval('jupyter#OpenJupyterTerm()')
     if not is_console_open:
         vim_echom('__jupyter_term__ failed to open!', 'Error')
-        return False
+        return
 
-    #--------------------------------------------------------------------------
-    #        Message Handler:
-    #--------------------------------------------------------------------------
-    update_occured = False
-    current_stdin_prompt = {}
-    msgs = kc.iopub_channel.get_msgs()
-    msgs += kc.stdin_channel.get_msgs() # get prompts from kernel
+    # Append the I/O to the console buffer
+    io_pub = handle_messages()
     b = vim.current.buffer
-    for msg in msgs:
-        # if we received a message it means the kernel is not waiting for input
-        current_stdin_prompt.clear()
-        s = ''
+    for msg in io_pub:
+        b.append([PythonToVimStr(l) for l in msg.splitlines()])
+    vim.command('normal! G')
 
+    # Move cursor back to original window
+    vim.command(':call win_gotoid({})'.format(cur_win))
+
+def handle_messages():
+    """
+    Message handler for Jupyter protocol.
+
+    Takes all messages on the I/O Public channel, including stdout, stderr,
+    etc. and returns a list of the formatted strings of their content.
+
+    See also: <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
+    """
+    io_pub = []
+    msgs = kc.iopub_channel.get_msgs()
+    for msg in msgs:
+        s = ''
         if 'msg_type' not in msg['header']:
             continue
-
         msg_type = msg['header']['msg_type']
-
         if msg_type == 'status':
             continue
         elif msg_type == 'stream':
@@ -246,41 +274,22 @@ def update_console_msgs(force=False):
             line_number = msg['content'].get('execution_count', 0)
             prompt = prompt_in.format(line=line_number)
             s = prompt
-            # add a continuation line (with trailing spaces if the prompt has them)
+            # add a continuation line
             dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
-            # dots += prompt[len(prompt.rstrip()):]
             s += msg['content']['code'].rstrip().replace('\n', '\n' + dots)
         elif msg_type == 'pyerr' or msg_type == 'error':
             s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
         elif msg_type == 'input_request':
             vim_echom('python input not supported in vim.', 'Error')
-            return False
-            # current_stdin_prompt['prompt'] = msg['content']['prompt']
-            # current_stdin_prompt['is_password'] = msg['content']['password']
-            # current_stdin_prompt['parent_msg_id'] = msg['parent_header']['msg_id']
-            # s += msg['content']['prompt']
-            # vim_echom('Awaiting input. call :IPythonInput to reply')
-
-        if s.find('\n') == -1:
-            # somewhat ugly unicode workaround from
-            # http://vim.1045645.n5.nabble.com/Limitations-of-vim-python-interface-with-respect-to-character-encodings-td1223881.html
-            if isinstance(s, unicode):
-                s = s.encode(vim_encoding)
-            b.append(s)
+            continue # unsure what to do here... maybe just return False?
         else:
-            try:
-                b.append(s.splitlines())
-            except:
-                b.append([l.encode(vim_encoding) for l in s.splitlines()])
-        update_occured = True
+            vim_echom("Message type {} unrecognized!".format(msg_type))
+            continue
 
-    if update_occured:
-        vim.command('normal! G$')
+        # List all messages
+        io_pub.append(s)
 
-    # Move cursor back to original window
-    vim.command(':call win_gotoid({})'.format(cur_win))
-
-    return update_occured
+    return io_pub
 
 #------------------------------------------------------------------------------
 #        Communicate with Kernel
@@ -325,7 +334,7 @@ def with_console(f):
         monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
         f(*args, **kwargs)
         if monitor_console:
-            update_console_msgs(force=True)
+            update_console_msgs()
     return wrapper
 
 # Include verbose output to vim command line
@@ -370,10 +379,9 @@ def run_file(flags='', filename=''):
 def send_range():
     """Send a range of lines from the current vim buffer to the kernel."""
     r = vim.current.range
-    print("range = {},{}".format(r.start, r.end))
     lines = "\n".join(vim.current.buffer[r.start:r.end+1])
     msg_id = send(lines)
-    prompt = "execute lines %d-%d "% (r.start+1,r.end+1)
+    prompt = "range %d-%d "% (r.start+1, r.end+1)
     return (prompt, msg_id)
 
 @with_console
@@ -438,7 +446,7 @@ def signal_kernel(sig=signal.SIGTERM):
     except OSError as e:
         vim_echom("signal #{v:d}, {n:s} failed to kill pid {p:d}"\
                 .format(v=sig.value, n=sig.name, p=pid), style='Error')
-        raise(e)
+        raise e
 
 #def set_breakpoint():
 #    send("__IP.InteractiveTB.pdb.set_break('%s',%d)" % (vim.current.buffer.name,

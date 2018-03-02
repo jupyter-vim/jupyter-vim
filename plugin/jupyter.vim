@@ -20,15 +20,16 @@ endif
 "-----------------------------------------------------------------------------
 " TODO rewrite as dictionary w/ loop so it's easy to add more
 if !exists("g:jupyter_auto_connect")
-    let g:jupyter_auto_connect = 1
+    let g:jupyter_auto_connect = 0
 endif
 
 if !exists("g:jupyter_mapkeys")
     let g:jupyter_mapkeys = 1
 endif
 
+" Debugging flags:
 if !exists('g:jupyter_monitor_console')
-    let g:jupyter_monitor_console = 1
+    let g:jupyter_monitor_console = 0
 endif
 
 if !exists('g:jupyter_verbose')
@@ -38,14 +39,14 @@ endif
 "}}}----------------------------------------------------------------------------
 "       Connect to Jupyter Kernel  {{{
 "-------------------------------------------------------------------------------
+" XXX SLOW AS $@#!... need to figure out how to fork the connection process so
+" vim still fires up quickly even if we forget to have a kernel running, or it
+" can't connect for some reason.
 if g:jupyter_auto_connect
     " Add other filetypes here for other kernels!!
     augroup JConnect
         autocmd!
         autocmd FileType python JupyterConnect
-
-        " TODO create a BufClose command to check if we're the last python
-        " file and close the connection
     augroup END
 endif
 "=============================================================================
