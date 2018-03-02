@@ -7,12 +7,14 @@
 #  Description: Monitor for Jupyter console commands run in vim.
 #
 #=============================================================================
+# TODO implement: if __name__ == "__main__" to run while loop. Move loop and
+# tty-setting code to functions that are called as main
 
 """
 Monitor for Jupyter console commands run from Vim.
 
 Usage:
-    $ jupyter kernel
+    $ jupyter kernel # or `jupyter console`
     $ python monitor.py
     $ vim my_script.py
     :Jupyter
@@ -23,6 +25,7 @@ import os
 import re
 import sys
 import six
+import traceback
 
 from jupyter_client import KernelManager, find_connection_file
 from queue import Empty
@@ -65,13 +68,14 @@ class IPythonMonitor(object):
         self.last_msg_type = None  # Only set when text written to stdout
         self.last_execution_count = 0
 
-    def listen(self):
+    def listen(self, socket):
         """ Listen for mesages on the kernel socket once connected. """
         while socket.recv():
             for msg in kc.iopub_channel.get_msgs():
                 # See this URL for descriptions of all message types:
                 # <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
                 msg_type = msg['msg_type']
+                print(msg_type)
 
                 if msg_type == 'shutdown_reply':
                     print("Shutting down monitor")
@@ -91,6 +95,10 @@ class IPythonMonitor(object):
                 # If vim has sent the message to the kernel,
                 # Handle the message with an IPythonMonitor function
                 # if client in self.clients:
+                #     getattr(self, msg_type, self.other)(msg)
+                #     sys.stdout.flush()
+
+                # Handle all messages from all clients
                 getattr(self, msg_type, self.other)(msg)
                 sys.stdout.flush()
 
@@ -168,11 +176,14 @@ class IPythonMonitor(object):
 #------------------------------------------------------------------------------
 #       Connect to the kernel
 #------------------------------------------------------------------------------
+# TODO move this loop to __init__ of IPythonMonitor??
 connected = False
 while not connected:
-    # No need for old paths() function... find_connection_file guaranteed to
-    # return a single filename with absolute path
-    filename = find_connection_file('kernel*.json')
+    try:
+        # Default: filename='kernel-*.json'
+        filename = find_connection_file()
+    except IOError:
+        continue
 
     # Create the kernel manager and connect a client
     km = KernelManager(connection_file=filename)
@@ -181,14 +192,12 @@ while not connected:
     kc.start_channels()
 
     # Ping the kernel
-    kc.execute('', silent=True)
+    msg_id = kc.kernel_info()
     try:
-        # msg = kc.shell_channel.get_msg(timeout=1)
-        msg = kc.get_shell_msg(timeout=1)
-    except Empty:               # if msg is empty, just try again
+        reply = kc.get_shell_msg(timeout=1)
+    except Empty:
         continue
     except Exception:
-        import traceback
         traceback.print_exc()
     except KeyboardInterrupt:   # <C-c> or kill -SIGINT?
         sys.exit(0)
@@ -227,11 +236,15 @@ else:
     #     except Empty:
     #         continue
 
+# def print_msg_type(msg):
+#     msg_type = msg['header']['msg_type']
+#     print('[iopub]: msg_type = {}'.format(msg_type))
+
 #------------------------------------------------------------------------------
 #        Create and run the monitor
 #------------------------------------------------------------------------------
 monitor = IPythonMonitor()
-monitor.listen()
+monitor.listen(socket)
 
 #==============================================================================
 #==============================================================================
