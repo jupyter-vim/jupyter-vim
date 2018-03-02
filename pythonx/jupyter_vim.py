@@ -53,7 +53,7 @@ prompt_out = 'Out[{line:d}]: '
 # General message command
 def vim_echom(arg, style="None"):
     """
-    Report arg using vim's echomessage command.
+    Report string `arg` using vim's echomessage command.
 
     Keyword args:
     style -- the vim highlighting style to use
@@ -98,7 +98,8 @@ def vim2py_str(var):
         var = unicode(var, vim_encoding)
     return var
 
-# Taken from jedi-vim/pythonx/jedi_vim.py <url_here>
+# Taken from jedi-vim/pythonx/jedi_vim.py
+# <https://github.com/davidhalter/jedi-vim>
 class PythonToVimStr(unicode):
     """ Vim has a different string implementation of single quotes """
     __slots__ = []
@@ -440,12 +441,12 @@ def signal_kernel(sig=signal.SIGTERM):
         vim_echom("kill pid {p:d} with signal #{v:d}, {n:s}"\
                   .format(p=pid, v=sig.value, n=sig.name), style='WarningMsg')
     except ProcessLookupError:
-        vim_echom("pid {p:d} does not exist! " +\
-                  "Kernel may have been terminated by outside process"\
+        vim_echom(("pid {p:d} does not exist! " +
+                   "Kernel may have been terminated by outside process")\
                   .format(p=pid), style='Error')
     except OSError as e:
         vim_echom("signal #{v:d}, {n:s} failed to kill pid {p:d}"\
-                .format(v=sig.value, n=sig.name, p=pid), style='Error')
+                  .format(v=sig.value, n=sig.name, p=pid), style='Error')
         raise e
 
 #def set_breakpoint():

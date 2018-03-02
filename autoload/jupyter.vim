@@ -102,13 +102,13 @@ function! jupyter#SendCount(count) abort "{{{
     call jupyter#SendCode(l:cmd)
 endfunction
 "}}}
-function! jupyter#KillKernel() abort "{{{
-    pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.SIGKILL)
-endfunction
-"}}}
-function! jupyter#TerminateKernel() abort "{{{
+function! jupyter#TerminateKernel(kill) abort "{{{
     " TODO take argument to send other signals
-    pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.SIGTERM)
+    if a:kill
+        pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.SIGKILL)
+    else
+        pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.SIGTERM)
+    endif
 endfunction
 "}}}
 function! jupyter#UpdateShell() abort "{{{
