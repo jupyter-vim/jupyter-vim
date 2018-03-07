@@ -248,7 +248,7 @@ def handle_messages():
     See also: <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
     """
     io_pub = []
-    msgs = kc.iopub_channel.get_msgs()
+    msgs = kc.iopub_channel.get_msgs(block=False)
     for msg in msgs:
         s = ''
         if 'msg_type' not in msg['header']:
@@ -261,23 +261,18 @@ def handle_messages():
             # custom syntax markers in the vim-ipython buffer perhaps), or by
             # also echoing the message to the status bar
             s = strip_color_escapes(msg['content']['text'])
-        elif msg_type == 'pyout' or msg_type == 'execute_result':
-            s = prompt_out.format(line=msg['content']['execution_count'])
-            s += msg['content']['data']['text/plain']
         elif msg_type == 'display_data':
-            # TODO: handle other display data types (HMTL? images?)
             s += msg['content']['data']['text/plain']
         elif msg_type == 'pyin' or msg_type == 'execute_input':
-            # TODO: the next line allows us to resend a line to ipython if
-            # %doctest_mode is on. In the future, IPython will send the
-            # execution_count on console, so this will need to be updated
-            # once that happens
             line_number = msg['content'].get('execution_count', 0)
             prompt = prompt_in.format(line=line_number)
             s = prompt
-            # add a continuation line
+            # add continuation line, if necessary
             dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
             s += msg['content']['code'].rstrip().replace('\n', '\n' + dots)
+        elif msg_type == 'pyout' or msg_type == 'execute_result':
+            s = prompt_out.format(line=msg['content']['execution_count'])
+            s += msg['content']['data']['text/plain']
         elif msg_type == 'pyerr' or msg_type == 'error':
             s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
         elif msg_type == 'input_request':
@@ -297,10 +292,12 @@ def handle_messages():
 #------------------------------------------------------------------------------
 def get_reply_msg(msg_id):
     """Get kernel reply from sent client message with msg_id."""
+    # TODO handle 'is_complete' requests?
+    # <http://jupyter-client.readthedocs.io/en/stable/messaging.html#code-completeness>
     while True:
         try:
-            #block=False?
-            m = kc.get_shell_msg(timeout=1)
+            # TODO try block=False
+            m = kc.get_shell_msg(block=False, timeout=1)
         except Empty:
             continue
         if m['parent_header']['msg_id'] == msg_id:

@@ -78,7 +78,8 @@ function! jupyter#SendCell() abort "{{{
 endfunction
 "}}}
 function! jupyter#SendCode(code) abort "{{{
-    pythonx jupyter_vim.send(vim.eval('a:code'))
+    " NOTE: 'run_command' gives more checks than just raw 'send'
+    pythonx jupyter_vim.run_command(vim.eval('a:code'))
 endfunction
 "}}}
 function! jupyter#SendRange() range abort "{{{
@@ -105,10 +106,11 @@ endfunction
 function! jupyter#TerminateKernel(kill) abort "{{{
     " TODO take argument to send other signals
     if a:kill
-        pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.SIGKILL)
+        let l:sig='SIGKILL'
     else
-        pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.SIGTERM)
+        let l:sig='SIGTERM'
     endif
+    execute 'pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.'.l:sig.')'
 endfunction
 "}}}
 function! jupyter#UpdateShell() abort "{{{
