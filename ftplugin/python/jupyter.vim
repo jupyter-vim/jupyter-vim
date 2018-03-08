@@ -7,9 +7,9 @@
 " Description: Vim integration with Jupyter [Qt]Console running ipython
 "=============================================================================
 
-if exists("b:loaded_jupyter")
-    finish
-endif
+" if exists("b:loaded_jupyter")
+"     finish
+" endif
 
 "-----------------------------------------------------------------------------
 "        Configuration: {{{
@@ -29,7 +29,7 @@ command! -buffer -range -bar JupyterSendRange       <line1>,<line2>call jupyter#
 command! -buffer -nargs=0    JupyterSendCell        call jupyter#SendCell()
 command! -buffer -nargs=0    JupyterUpdateShell     call jupyter#UpdateShell()
 command! -buffer -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
-command! -buffer -nargs=0 -bang  JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0)
+command! -buffer -nargs=? -bang  JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
 
 command! -buffer -nargs=* -complete=file  
             \ JupyterRunFile update | call jupyter#RunFile(<f-args>)

@@ -429,10 +429,6 @@ def signal_kernel(sig=signal.SIGTERM):
     (non-functional) ipython interrupt mechanisms.
     Only works on posix.
     """
-    if pid is None:
-        vim_echom("cannot get kernel PID, kill not supported")
-        return
-
     try:
         os.kill(pid, int(sig))
         vim_echom("kill pid {p:d} with signal #{v:d}, {n:s}"\

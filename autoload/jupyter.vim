@@ -103,13 +103,16 @@ function! jupyter#SendCount(count) abort "{{{
     call jupyter#SendCode(l:cmd)
 endfunction
 "}}}
-function! jupyter#TerminateKernel(kill) abort "{{{
-    " TODO take argument to send other signals
+function! jupyter#TerminateKernel(kill, ...) abort "{{{
     if a:kill
         let l:sig='SIGKILL'
+    elseif a:0 > 0
+        let l:sig=a:1
+        echom 'Sending signal: '.l:sig
     else
         let l:sig='SIGTERM'
     endif
+    " Check signal here?
     execute 'pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.'.l:sig.')'
 endfunction
 "}}}
