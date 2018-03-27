@@ -169,7 +169,7 @@ def connect_to_kernel():
     # Test if connection is alive
     connected = check_connection()
     attempt = 0
-    max_attempts = 5
+    max_attempts = 3
     while not connected and attempt < max_attempts:
         attempt += 1
         try:
