@@ -7,9 +7,13 @@
 " Description: Vim integration with Jupyter [Qt]Console running ipython
 "=============================================================================
 
-" if exists("b:loaded_jupyter")
-"     finish
-" endif
+if exists("b:loaded_jupyter")
+    finish
+endif
+
+if !jupyter#init_python()
+    finish
+endif
 
 "-----------------------------------------------------------------------------
 "        Configuration: {{{
