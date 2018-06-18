@@ -700,8 +700,8 @@ def run_this_file(flags=''):
             vim_vars.get('cython_run_flags', ''),
             repr(vim.current.buffer.name))))
     else:
-        cmd = '%%run %s %s' % (flags or vim_vars['ipython_run_flags'],
-                               repr(vim.current.buffer.name))
+        cmd = '%%run %s "%s"' % (flags or vim_vars['ipython_run_flags'],
+                               vim.current.buffer.name)
     msg_id = send(cmd)
     print_prompt(cmd, msg_id)
 
