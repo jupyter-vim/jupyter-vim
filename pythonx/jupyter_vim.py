@@ -2,7 +2,7 @@
 #    File: pythonx/jupyter_vim.py
 # Created: 07/28/11 22:14:58
 #  Author: Paul Ivanov (http://pirsquared.org)
-#  Updated: [11/13/2017] William Van Vliet
+#  Updated: [11/13/2017] Marijn van Vliet
 #  Updated: [02/14/2018, 12:31] Bernie Roesler
 #
 # Description:
