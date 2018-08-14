@@ -1,0 +1,306 @@
+*jupyter-vim* Integrate your jupyter console process with vim!
+
+A two-way integration between Vim and Jupyter [Qt]Console.
+
+Using this plugin, send lines or files for the IPython kernel to execute.
+Receive tracebacks for debugging.
+
+Author:  Bernie Roesler <https://github.com/broesler/vim-ipython>
+Forked from: vim-ipython <https://github.com/wmvanvliet/vim-ipython>
+License: Distributed under the MIT license (see |jupyter-vim-license|)
+
+This plugin is only available if 'compatible' is not set.
+
+CONTENTS 					*jupyter-vim-contents*
+
+	1. Introduction ......... |jupyter-vim-introduction|
+	2. Usage ................ |jupyter-vim-usage|
+	3. Mappings ............. |jupyter-vim-mappings|
+	4. Configuration ........ |jupyter-vim-configuration|
+	5. License .............. |jupyter-vim-license|
+	6. Bugs ................. |jupyter-vim-bugs|
+	7. Changelog ............ |jupyter-vim-changelog|
+	8. Contributing ......... |jupyter-vim-contributing|
+	9. Credits .............. |jupyter-vim-credits|
+
+================================================================================
+INTRODUCTION 					*jupyter-vim*
+
+Whenever you edit a python file, a set of commands is defined that serve as
+a gateway to the IPython kernel. If you do not have a kernel running, the plugin
+will silently fail and the functionality will not be available. This feature
+prevents "error vomit" at startup on systems where it is not compatible. If you
+manually run the configure command, you will indeed get the appropriate errors
+to assist in debugging.
+
+This plugin was originally forked from
+[vim-ipython](<https://github.com/wmvanvliet/vim-ipython>), but has been
+updated substantially to stay up-to-date with the most recent versions of the
+jupyter console. For a more complete list of changes, see
+|jupyter-vim-vs-vim-ipython|.
+
+--------------------------------------------------------------------------------
+USAGE 						*jupyter-vim-usage*
+
+This plugin is intended to be used with side-by-side terminals, or with
+a multiplexer such as `tmux`. The idea is to edit your python script in vim,
+and be able to send commands to IPython, which is running in the other
+terminal. No more copy/alt-tab/paste! 
+
+To begin:
+	$ jupyter qtconsole &  # open a jupyter console window
+	$ vim <your_script>.py
+	:JupyterConnect
+
+Running the command |:JupyterConnect| while in a *.py buffer will attempt
+a connection to the jupyter kernel. The option |g:jupyter_auto_connect| defaults
+to 0, because the connection process will hang for ~5 seconds if you open a *.py
+file without a kernel already running! An asynchronous connection process is
+a work in progress.
+
+--------------------------------------------------------------------------------
+COMMANDS 					*jupyter-vim-commands*
+
+:JupyterConnect 			    *jupyter-connect* *:JupyterConnect*
+			Connect to an existing `jupyter kernel`. Kernel may be
+			any type (not just IPython). Connection attempt will
+			timeout after five seconds, and give a warning. Other
+			functionality of the plugin will not be available unless
+			connected to a kernel.
+
+			Note that a `jupyter console` need not be running to
+			connect to a `jupyter kernel`, but the console is
+			necessary to display any output from your python code!
+
+:JupyterCd [dir] 				*jupyter-cd* *:JupyterCd*
+			Change the working directory of the kernel to [dir]
+			using the IPython magic '%cd'. Functions just like the
+			typical shell command. If no directory is given, [dir]
+			is the "$HOME" directory. If [dir] is "-", :JupyterCd
+			changes back to the previous working directory.
+
+:JupyterRunFile [flags] [filename] 	    *jupyter-runfile* *:JupyterRunFile*
+			Run an entire python script using the IPython "%run"
+			magic (with __name__ == "__main__"). If [flags] and
+			[filename] are empty, the filename of the current buffer
+			is used. The [filename] is taken as the last argument to
+			the command. Execute "%run?" in an IPython console to
+			read the documentation about the "%run" magic.
+
+			Global flags may also be set via |g:ipython_run_flags|.
+			These flags will be applied to any call without flags:
+				:JupyterRunFile my_script.py
+			Inclusion of [flags] will override the global flags.
+			For example, to run the current buffer in the
+			interactive IPython environment:
+				:JupyterRunFile -i %:p
+
+:JupyterImportThisFile 	      *jupyter-importthisfile* *:JupyterImportThisFile*
+			Import the current buffer as a python module.
+			Essentially, this command runs
+				:JupyterRunFile -n %:p
+			The IPython "%run" magic handles stripping the
+			extension and running the `import` command.
+
+:JupyterSendCode {code}			*jupyter-sendcode* *:JupyterSendCode*
+			Send a raw line of python code to the jupyter kernel.
+
+:[count]JupyterSendCount               	*jupyter-sendcount* *:JupyterSendCount*
+			Send [count] lines to the kernel. If [count] is not
+			given, the current line is sent.
+			
+:[range]JupyterSendRange               	*jupyter-sendrange* *:JupyterSendRange*
+			Send the [range] of lines to the kernel. If [range] is
+			not given, the current line is sent.
+
+:JupyterSendCell                	*jupyter-sendcell* *:JupyterSendCell*
+			Send the current code cell, as delineated by the strings
+			"##", "#%%", "# %%", or "# <codecell>" (in a python
+			file). Future updates include user-defined code cell
+			delimiters.
+
+:JupyterSetBreak 			*jupyter-setbreak* *:JupyterSetBreak*
+			Sets a debugging stop at the current line. Currently,
+			this command is a rudimentary hack that just inserts:
+				import pdb; pdb.set_trace()
+			into the python file. You will need to hop over to the
+			`jupyter [qt]console` to operate pdb. Future features
+			include more robust debugging commands, and integration
+			of IPython tracebacks into the quickfix menu, so you
+			don't have to squint at the screen to see where your
+			error occurred.
+
+:JupyterUpdateShell 		*jupyter-updateshell* *:JupyterUpdateShell*
+			Get any pending I/O messages from the kernel, and
+			print them in the `__jupyter_console__` buffer. If
+			|g:jupyter_monitor_console| == 1, this update will
+			happen automatically when any :JupyterSend* command is
+			executed. The pseudo console will open in a split. 
+
+			Note: This function is a relic from the original
+			vim-ipython. The `jupyter qtconsole` already displays
+			all sent code and corresponding output, records history,
+			etc. It is far easier to alt-tab into jupyter for
+			interactive use than to try to replicate that
+			functionality within vim; however, I have left the
+			pseudo console in as a useful debugging tool for the
+			message handler, because we can easily print additional
+			output from the client/kernel messaging protocol.
+
+--------------------------------------------------------------------------------
+MAPPINGS					*jupyter-vim-mappings*
+
+<LocalLeader>R 		Run the current file (see |:JupyterRunFile|).
+<LocalLeader>I 		Import the current file (see |:JupyterImportThisFile|).
+<localleader>d 		Change to the directory of the current file (see |:JupyterCd|).
+<localleader>X 		Execute the current cell (see |:JupyterSendCell|).
+<localleader>E 		Execute the current line (see |:JupyterSendRange|).
+
+<localleader>e 		Execute vim text |objects|
+{Visual}<localleader>e  Execute the |visual| selection
+
+<localleader>U          Update the kernel I/O messages in the pseudo console.
+			Open up a split for display if it is not already open 
+			(see |:JupyterUpdateShell|).
+
+<localleader>b 		Insert a breakpoint at the current line.
+
+--------------------------------------------------------------------------------
+CONFIGURATION					*jupyter-vim-configuration*
+
+`b:jupyter_runflags`   					*b:jupyter_runflags*  
+Default: '' 					Flags for "%run" magic
+
+Buffer-local variable to append [flags] to the |:JupyterRunFile| command for
+that buffer. Typical flags include "-i" to run the file in the current IPython
+kernel namespace, or "-d" to start the `pdb` debugger at the first line of the
+file. 
+
+See:
+<http://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-run>
+or type "%run?" in the `jupyter [qt]console` for more information.
+
+`g:jupyter_auto_connect`   			*g:jupyter_auto_connect*  
+Default: 0 				Automatically connect to kernel
+
+This setting determines if vim will automatically run |:JupyterConnect| for any
+python file. Due to the nature of the connection process, vim will be slow to
+start up if this option is set to 1. An asynchronous connection process is
+a work in progress.
+
+`g:jupyter_mapkeys`   					*g:jupyter_mapkeys*  
+Default: 1 					Map keys for python files
+
+By default, jupyter-vim will map the keys, as described in
+|jupyter-vim-mappings|. Set to 0 to create your own mappings in your vimrc.
+
+`g:jupyter_monitor_console`   			*g:jupyter_monitor_console*  
+Default: 0 				Automatically update pseudo console
+
+Setting this option to 1 will cause jupyter-vim to create a pseudo console
+buffer named `__jupyter_console__` to display I/O messages from the running
+`jupyter kernel`. Messages will be updated any time a :JupyterSend* or
+:JupyterRunFile command is sent. The |:JupyterUpdateShell| command forces an
+update, regardless of whether the |g:jupyter_monitor_console| option is set.
+
+`g:jupyter_verbose`   					*g:jupyter_verbose*  
+Default: 0 					Echo sent messages to vim
+
+If set to 1, this option will echo any message sent to the kernel on the vim
+command line (see |echomessage|). The `jupyter qtconsole` displays messages
+instantaneously, so echoing them in vim as well is redundant. It can be useful,
+however, for debugging kernel messaging issues, or if you just like visual
+confirmation in multiple places that your message has been sent. 
+
+Note that the `jupyter console` (not `qt`), does `not` echo messages from other
+clients until <Enter> is pressed. I am working on a non-blocking or threaded
+channel version of this client to eliminate this issue. Until then, stick with
+`jupyter qtconsole`!
+
+
+--------------------------------------------------------------------------------
+JUPYTER-VIM VS. VIM-IPYTHON 			*jupyter-vim-vs-vim-ipython*
+
+Major changes include:
+	- The pseudo-terminal vim pane functionality has been rewritten with
+	  a vimscript function, and a cleaned up python function. The
+	  `jupyter qtconsole` allows the configuration option:
+		c.ConsoleWidget.include_other_output = True
+	  and `jupyter console` allows:
+		c.ZMQTerminalInteractiveShell.include_other_output = True
+	  which allow the console to echo the commands sent by vim (or any
+	  other client), as well as the output of the commands. There is no
+	  need to replicate this functionality within vim, though I have left
+	  the option at present for debugging the jupyter-vim message handler
+	  while I develop the python debugging tools.
+	  (NOTE: at present, the `jupyter console` will only refresh on
+	  <Enter>, so it does not quite do what we're hoping for regarding vim
+	  interaction. I am working on a patch to the jupyter terminal-based
+	  console to fix this issue.)
+	- The original python documentation look-up and completion code has
+	  been removed. Instead, use [jedi-vim](<link_here>).
+	- Many of the original <Plug> mappings have been replaced with vim
+	  commands, so they may be used without a user mapping.
+	- Default keymaps now use <localleader>.
+	- A general `plugin` was created (in addition to the `ftplugin`), so
+	  that jupyter-vim could be expanded to work with any filetype for which
+	  a `jupyter kernel` exists.
+
+================================================================================
+LICENSE 					*jupyter-vim-license*
+
+MIT License
+
+Copyright (c) 2018-present Bernard Roesler
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+BUGS 						*jupyter-vim-bugs*
+
+Known issues will be reported here.
+
+This version of jupyter-vim has been tested on the following:
+$ ipython --version           # 6.1.0
+$ jupyter --version           # 4.3.0
+$ jupyter console --version   # 5.2.0
+$ jupyter qtconsole --version # 4.3.1
+
+--------------------------------------------------------------------------------
+CHANGELOG					*jupyter-vim-changelog*
+
+[v0.0]
+
+--------------------------------------------------------------------------------
+CONTRIBUTING					*jupyter-vim-contributing*
+
+Please feel free to contact me at: 
+	bernard.roesler@gmail.com 
+with the subject line 
+	"[jupyter-vim]: Contributing".
+
+--------------------------------------------------------------------------------
+CREDITS 					*jupyter-vim-credits*
+I owe significant thanks to the original developer of this plugin: Paul Ivanov
+<https://github.com/ivanov>, as well as Marijn van Vlient
+<https://github.com/wmvanvliet>. It is far easier to update something that
+already works well than to forge a new path from scratch.
+
+vim:tw=78:ts=8:noet:ft=text:norl:
+
