@@ -34,7 +34,7 @@ Once I fell in love with Vim, I couldn't bear having to jump back and forth
 between the ipython/jupyter console and editor anymore. I modeled this simple
 interface off of the ideas in
 [vim-ipython](https://github.com/ivanov/vim-ipython), but have pared down many
-of the features, like the replicatiion of the Jupyter console in a vim buffer,
+of the features, like the replication of the Jupyter console in a vim buffer,
 to make the plugin much more 'lightweight'.
 
 Still a work in progress!
@@ -46,7 +46,7 @@ Please feel free to contact me at [bernard.roesler@gmail.com](mailto:bernard.roe
 ### CREDITS
 I owe significant thanks to the original developer of this plugin: 
 [Paul Ivanov](https://github.com/ivanov), as well as 
-[Marijn van Vlient](https://github.com/wmvanvliet). 
+[Marijn van Vliet](https://github.com/wmvanvliet).
 It is far easier to update something that already works well than to forge
 a new path from scratch.
 
