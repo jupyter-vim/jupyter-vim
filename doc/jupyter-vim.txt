@@ -24,7 +24,7 @@ CONTENTS 					*jupyter-vim-contents*
 	9. Credits .............. |jupyter-vim-credits|
 
 ================================================================================
-INTRODUCTION 					*jupyter-vim*
+INTRODUCTION 					*jupyter-vim-introduction*
 
 Whenever you edit a python file, a set of commands is defined that serve as
 a gateway to the IPython kernel. If you do not have a kernel running, the plugin
