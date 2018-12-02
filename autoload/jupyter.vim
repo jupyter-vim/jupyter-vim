@@ -8,6 +8,18 @@
 "=============================================================================
 "        Python Initialization: 
 "-----------------------------------------------------------------------------
+" Neovim doesn't have the pythonx command, so we define a new command Pythonx
+" that works for both vim and neovim.
+if has('nvim')
+    if has('python3')
+        command! -nargs=+ Pythonx python3 <args>
+    elseif has('python')
+        command! -nargs=+ Pythonx python <args>
+    endif
+else
+    command! -nargs=+ Pythonx pythonx <args>
+endif
+
 " See ~/.vim/bundle/jedi-vim/autoload/jedi.vim for initialization routine
 function! s:init_python() abort 
     let s:init_outcome = 0
@@ -23,7 +35,7 @@ function! s:init_python() abort
 
     " Try running lines via python, which will set script variable
     try
-        execute 'pythonx exec('''.escape(join(init_lines, '\n'), "'").''')'
+        execute 'Pythonx exec('''.escape(join(init_lines, '\n'), "'").''')'
     catch
         throw printf('[jupyter-vim] s:init_python: failed to run Python for initialization: %s.', v:exception)
     endtry
@@ -56,7 +68,7 @@ endfunction
 "        Vim -> Python Public Functions: 
 "-----------------------------------------------------------------------------
 function! jupyter#Connect() abort 
-    pythonx jupyter_vim.connect_to_kernel()
+    Pythonx jupyter_vim.connect_to_kernel()
 endfunction
 
 function! jupyter#JupyterCd(...) abort 
@@ -69,21 +81,21 @@ function! jupyter#RunFile(...) abort
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
     let l:filename = a:0 ? a:000[-1] : expand("%:p")
-    pythonx jupyter_vim.run_file(flags=vim.eval('l:flags'),
+    Pythonx jupyter_vim.run_file(flags=vim.eval('l:flags'),
                                \ filename=vim.eval('l:filename'))
 endfunction
 
 function! jupyter#SendCell() abort 
-    pythonx jupyter_vim.run_cell()
+    Pythonx jupyter_vim.run_cell()
 endfunction
 
 function! jupyter#SendCode(code) abort 
     " NOTE: 'run_command' gives more checks than just raw 'send'
-    pythonx jupyter_vim.run_command(vim.eval('a:code'))
+    Pythonx jupyter_vim.run_command(vim.eval('a:code'))
 endfunction
 
 function! jupyter#SendRange() range abort 
-    execute a:firstline . ',' . a:lastline . 'pythonx jupyter_vim.send_range()'
+    execute a:firstline . ',' . a:lastline . 'Pythonx jupyter_vim.send_range()'
 endfunction
 
 function! jupyter#SendCount(count) abort 
@@ -113,11 +125,11 @@ function! jupyter#TerminateKernel(kill, ...) abort
         let l:sig='SIGTERM'
     endif
     " Check signal here?
-    execute 'pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.'.l:sig.')'
+    execute 'Pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.'.l:sig.')'
 endfunction
 
 function! jupyter#UpdateShell() abort 
-    pythonx jupyter_vim.update_console_msgs()
+    Pythonx jupyter_vim.update_console_msgs()
 endfunction
 
 "----------------------------------------------------------------------------- 
