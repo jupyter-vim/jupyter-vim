@@ -10,14 +10,12 @@
 "-----------------------------------------------------------------------------
 " Neovim doesn't have the pythonx command, so we define a new command Pythonx
 " that works for both vim and neovim.
-if has('nvim')
-    if has('python3')
-        command! -nargs=+ Pythonx python3 <args>
-    elseif has('python')
-        command! -nargs=+ Pythonx python <args>
-    endif
-else
+if has('pythonx')
     command! -nargs=+ Pythonx pythonx <args>
+elseif has('python3')
+    command! -nargs=+ Pythonx python3 <args>
+elseif has('python')
+    command! -nargs=+ Pythonx python <args>
 endif
 
 " See ~/.vim/bundle/jedi-vim/autoload/jedi.vim for initialization routine
