@@ -7,7 +7,7 @@
 "
 "=============================================================================
 
-if !has('pythonx') || &cp
+if !(has('pythonx') || has('python') || has('python3')) || &cp
     finish
 endif
 
