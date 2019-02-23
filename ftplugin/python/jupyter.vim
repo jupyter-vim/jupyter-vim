@@ -4,7 +4,7 @@
 "  Author: Paul Ivanov (http://pirsquared.org)
 "  Updated: [02/14/2018, 12:31] Bernie Roesler
 "
-" Description: Vim integration with Jupyter [Qt]Console running ipython
+" Description: Vim integration with Jupyter [Qt]Console running jupyter
 "=============================================================================
 
 if exists("b:loaded_jupyter")

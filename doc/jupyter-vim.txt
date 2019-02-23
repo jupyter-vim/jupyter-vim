@@ -2,10 +2,10 @@
 
 A two-way integration between Vim and Jupyter [Qt]Console.
 
-Using this plugin, send lines or files for the IPython kernel to execute.
+Using this plugin, send lines or files for the Jupyter kernel to execute.
 Receive tracebacks for debugging.
 
-Author:  Bernie Roesler <https://github.com/broesler/vim-ipython>
+Author:  Bernie Roesler <https://github.com/broesler/jupyter-vim>
 Forked from: vim-ipython <https://github.com/wmvanvliet/vim-ipython>
 License: Distributed under the MIT license (see |jupyter-vim-license|)
 
@@ -27,7 +27,7 @@ CONTENTS 					*jupyter-vim-contents*
 INTRODUCTION 					*jupyter-vim*
 
 Whenever you edit a python file, a set of commands is defined that serve as
-a gateway to the IPython kernel. If you do not have a kernel running, the plugin
+a gateway to the Jupyter kernel. If you do not have a kernel running, the plugin
 will silently fail and the functionality will not be available. This feature
 prevents "error vomit" at startup on systems where it is not compatible. If you
 manually run the configure command, you will indeed get the appropriate errors
@@ -44,8 +44,11 @@ USAGE 						*jupyter-vim-usage*
 
 This plugin is intended to be used with side-by-side terminals, or with
 a multiplexer such as `tmux`. The idea is to edit your python script in vim,
-and be able to send commands to IPython, which is running in the other
+and be able to send commands to Jupyter, which is running in the other
 terminal. No more copy/alt-tab/paste! 
+
+TODO(bzinberg): Before merging this PR, update the below to refer to Jupyter
+and not-necessarily-Python kernels, insofar as that is supported.
 
 To begin:
 	$ jupyter qtconsole &  # open a jupyter console window
@@ -74,7 +77,7 @@ COMMANDS 					*jupyter-vim-commands*
 
 :JupyterCd [dir] 				*jupyter-cd* *:JupyterCd*
 			Change the working directory of the kernel to [dir]
-			using the IPython magic '%cd'. Functions just like the
+			using the Jupyter magic '%cd'. Functions just like the
 			typical shell command. If no directory is given, [dir]
 			is the "$HOME" directory. If [dir] is "-", :JupyterCd
 			changes back to the previous working directory.

@@ -43,6 +43,7 @@ if g:jupyter_auto_connect
     augroup JConnect
         autocmd!
         autocmd FileType python JupyterConnect
+        autocmd FileType julia JupyterConnect
     augroup END
 endif
 "=============================================================================

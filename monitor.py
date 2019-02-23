@@ -1,6 +1,6 @@
 #!~/anaconda3/bin/python3
 #=============================================================================
-#     File: ~/.vim/bundle/vim-ipython/monitor.py
+#     File: ~/.vim/bundle/jupyter-vim/monitor.py
 #  Updated: 02/20/2018, 15:48
 #   Author: Bernie Roesler
 #
@@ -56,9 +56,9 @@ def colorize(string, color, bold=False, bright=False):
 #------------------------------------------------------------------------------
 #        Class definition
 #------------------------------------------------------------------------------
-class IPythonMonitor(object):
+class JupyterMonitor(object):
     """
-    Class to keep track of the ipython kernel.
+    Class to keep track of the jupyter kernel.
     Track clients, and messages published on iopub_channel
     """
 
@@ -84,7 +84,7 @@ class IPythonMonitor(object):
                 # UUID of the client sending the message
                 client = msg['parent_header'].get('session', '')
 
-                # Check for the message from vim :IPython command to add vim as
+                # Check for the message from vim <TODO(bzinberg): What is the jupyter-vim equivalent of :IPython?> command to add vim as
                 # an acceptable client
                 if (client and msg_type in ('execute_input', 'pyin') and
                         msg['content']['code'].strip("\n") == '"_vim_client"'):
@@ -93,7 +93,7 @@ class IPythonMonitor(object):
                     continue
 
                 # If vim has sent the message to the kernel,
-                # Handle the message with an IPythonMonitor function
+                # Handle the message with a JupyterMonitor function
                 # if client in self.clients:
                 #     getattr(self, msg_type, self.other)(msg)
                 #     sys.stdout.flush()
@@ -176,7 +176,7 @@ class IPythonMonitor(object):
 #------------------------------------------------------------------------------
 #       Connect to the kernel
 #------------------------------------------------------------------------------
-# TODO move this loop to __init__ of IPythonMonitor??
+# TODO move this loop to __init__ of JupyterMonitor??
 connected = False
 while not connected:
     try:
@@ -205,7 +205,7 @@ while not connected:
         connected = True
         # Set the socket on which to listen for messages
         socket = km.connect_iopub()
-        print('IPython monitor connected successfully!')
+        print('Jupyter monitor connected successfully!')
     finally:
         if not connected:
             kc.stop_channels()
@@ -243,7 +243,7 @@ else:
 #------------------------------------------------------------------------------
 #        Create and run the monitor
 #------------------------------------------------------------------------------
-monitor = IPythonMonitor()
+monitor = JupyterMonitor()
 monitor.listen(socket)
 
 #==============================================================================
