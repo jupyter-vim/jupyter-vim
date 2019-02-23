@@ -20,18 +20,18 @@ import sys
 import textwrap
 from queue import Empty
 
-_install_instructions = """You *must* install IPython into the Python that
-your vim is linked against. If you are seeing this message, this usually means
-either (1) installing IPython using the system Python that vim is using, or
-(2) recompiling Vim against the Python where you already have IPython
-installed. This is only a requirement to allow Vim to speak with an IPython
-instance using IPython's own machinery. It does *not* mean that the IPython
-instance with which you communicate via vim-ipython needs to be running the
+_install_instructions = """You *must* install the jupyter package into the
+Python that your vim is linked against. If you are seeing this message, this
+usually means either (1) installing Jupyter using the system Python that vim is
+using, or (2) recompiling Vim against the Python where you already have Jupyter
+installed. This is only a requirement to allow Vim to speak with a Jupyter
+kernel using Jupyter's own machinery. It does *not* mean that the Jupyter
+instance with which you communicate via jupyter-vim needs to be running the
 same version of Python.
 """
 
 try:
-    import IPython
+    import jupyter
 except ImportError:
     raise ImportError("Could not find kernel. " + _install_instructions)
 
@@ -76,7 +76,7 @@ def check_connection():
 # kernel pid. Otherwise, just check that we're connected to a kernel.
 if all([x in globals() for x in ('kc', 'pid', 'send')]):
     if not check_connection():
-        vim_echom('WARNING: Not connected to IPython!' + \
+        vim_echom('WARNING: Not connected to Jupyter!' + \
                   ' Run :JupyterConnect to find the kernel', style='WarningMsg')
 else:
     kc = None
@@ -124,7 +124,7 @@ class PythonToVimStr(unicode):
         return '"%s"' % s.replace('\\', '\\\\').replace('"', r'\"')
 
 def set_pid():
-    """Explicitly ask the ipython kernel for its pid."""
+    """Explicitly ask the jupyter kernel for its pid."""
     the_pid = -1
     code = 'import os; _pid = os.getpid()'
     msg_id = send(code, silent=True, user_expressions={'_pid':'_pid'})
@@ -133,14 +133,14 @@ def set_pid():
     try:
         reply = get_reply_msg(msg_id)
     except Empty:
-        vim_echom("no reply from IPython kernel", "WarningMsg")
+        vim_echom("no reply from jupyter kernel", "WarningMsg")
         return -1
 
     try:
         the_pid = int(reply['content']['user_expressions']\
                         ['_pid']['data']['text/plain'])
     except KeyError:
-        vim_echom("Could not get PID information, kernel not running Python?")
+        vim_echom("Could not get PID information, kernel not ready?")
 
     return the_pid
 
@@ -222,7 +222,7 @@ def update_console_msgs():
     # Save which window we're in
     cur_win = vim.eval('win_getid()')
 
-    # Open the ipython terminal in vim, and move cursor to it
+    # Open the Jupyter terminal in vim, and move cursor to it
     is_console_open = vim.eval('jupyter#OpenJupyterTerm()')
     if not is_console_open:
         vim_echom('__jupyter_term__ failed to open!', 'Error')
@@ -258,7 +258,7 @@ def handle_messages():
             continue
         elif msg_type == 'stream':
             # TODO: alllow for distinguishing between stdout and stderr (using
-            # custom syntax markers in the vim-ipython buffer perhaps), or by
+            # custom syntax markers in the vim-jupyter buffer perhaps), or by
             # also echoing the message to the status bar
             s = strip_color_escapes(msg['content']['text'])
         elif msg_type == 'display_data':
@@ -314,7 +314,7 @@ def print_prompt(prompt, msg_id=None):
         except Empty:
             # if the kernel is waiting for input it's normal to get no reply
             if not kc.stdin_channel.msg_ready():
-                vim_echom("In[]: {} (no reply from IPython kernel)"\
+                vim_echom("In[]: {} (no reply from Jupyter kernel)"\
                           .format(prompt))
     else:
         vim_echom("In[]: {}".format(prompt))
@@ -327,7 +327,7 @@ def with_console(f):
     """
     def wrapper(*args, **kwargs):
         if not check_connection():
-            vim_echom('WARNING: Not connected to IPython!', 'WarningMsg')
+            vim_echom('WARNING: Not connected to Jupyter!', 'WarningMsg')
             return
         monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
         f(*args, **kwargs)
@@ -355,6 +355,9 @@ def run_command(cmd):
     msg_id = send(cmd)
     return (cmd, msg_id)
 
+# TODO(bzinberg): Make this function work with non-Python kernels by either not
+# using these magics, finding their equivalent in other filetypes, and/or doing
+# filetype-specific logic here that has a reasonable default.
 @with_console
 @with_verbose
 def run_file(flags='', filename=''):
@@ -426,7 +429,7 @@ def run_cell():
 def signal_kernel(sig=signal.SIGTERM):
     """
     Use kill command to send a signal to the remote kernel. This side steps the
-    (non-functional) ipython interrupt mechanisms.
+    (non-functional) jupyter interrupt mechanisms.
     Only works on posix.
     """
     try:
