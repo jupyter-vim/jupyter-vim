@@ -11,11 +11,11 @@
 " Neovim doesn't have the pythonx command, so we define a new command Pythonx
 " that works for both vim and neovim.
 if has('pythonx')
-    command! -nargs=+ Pythonx pythonx <args>
+    command! -range -nargs=+ Pythonx <line1>,<line2>pythonx <args>
 elseif has('python3')
-    command! -nargs=+ Pythonx python3 <args>
+    command! -range -nargs=+ Pythonx <line1>,<line2>python3 <args>
 elseif has('python')
-    command! -nargs=+ Pythonx python <args>
+    command! -range -nargs=+ Pythonx <line1>,<line2>python <args>
 endif
 
 " See ~/.vim/bundle/jedi-vim/autoload/jedi.vim for initialization routine
