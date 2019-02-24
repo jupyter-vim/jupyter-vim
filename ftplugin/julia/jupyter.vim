@@ -22,10 +22,18 @@ command! -buffer -nargs=0    JupyterUpdateShell     call jupyter#UpdateShell()
 command! -buffer -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
 command! -buffer -nargs=? -bang  JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
 
+command! -buffer -nargs=* -complete=file  
+            \ JupyterRunFile update | call jupyter#RunFile(<f-args>)
+command! -buffer -nargs=0 -complete=file  
+            \ JupyterImportThisFile update | call jupyter#RunFile('-n', expand("%:p"))
+
 "}}}--------------------------------------------------------------------------
 "        Key Mappings: {{{
 "-----------------------------------------------------------------------------
 if g:jupyter_mapkeys
+    nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
+    nnoremap <buffer> <silent> <localleader>I       :JupyterImportThisFile<CR>
+
     " Change to directory of current file
     nnoremap <buffer> <silent> <localleader>d       :JupyterCd %:p:h<CR>
 

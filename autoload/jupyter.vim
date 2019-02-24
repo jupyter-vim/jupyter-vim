@@ -88,11 +88,21 @@ function! jupyter#JupyterCd(...) abort
 endfunction
 
 function! jupyter#RunFile(...) abort 
-    " filename is the last argument on the command line
-    let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
-    let l:filename = a:0 ? a:000[-1] : expand("%:p")
-    pythonx jupyter_vim.run_file(flags=vim.eval('l:flags'),
-                               \ filename=vim.eval('l:filename'))
+    if jupyter#GetKernelType() == 'python'
+        " filename is the last argument on the command line
+        let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
+        let l:filename = a:0 ? a:000[-1] : expand("%:p")
+        pythonx jupyter_vim.run_file(flags=vim.eval('l:flags'),
+                                   \ filename=vim.eval('l:filename'))
+    elseif jupyter#GetKernelType() == 'julia'
+        if a:0 > 1
+            echoerr 'RunFile in kernel type "julia" doesn''t support flags.'
+                \ . ' All arguments except the last (file location) will be'
+                \ . ' ignored.'
+        endif
+        let l:filename = a:0 ? a:000[-1] : expand("%:p")
+        pythonx jupyter_vim.run_file(filename=vim.eval('l:filename'))
+    endif
 endfunction
 
 function! jupyter#SendCell() abort 
