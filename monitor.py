@@ -59,9 +59,9 @@ def colorize(string, color, bold=False, bright=False):
 #------------------------------------------------------------------------------
 #        Class definition
 #------------------------------------------------------------------------------
-class JupyterMonitor(object):
+class IPythonMonitor(object):
     """
-    Class to keep track of the jupyter kernel.
+    Class to keep track of the ipython kernel.
     Track clients, and messages published on iopub_channel
     """
 
@@ -96,7 +96,7 @@ class JupyterMonitor(object):
                     continue
 
                 # If vim has sent the message to the kernel,
-                # Handle the message with a JupyterMonitor function
+                # Handle the message with an IPythonMonitor function
                 # if client in self.clients:
                 #     getattr(self, msg_type, self.other)(msg)
                 #     sys.stdout.flush()
@@ -179,7 +179,7 @@ class JupyterMonitor(object):
 #------------------------------------------------------------------------------
 #       Connect to the kernel
 #------------------------------------------------------------------------------
-# TODO move this loop to __init__ of JupyterMonitor??
+# TODO move this loop to __init__ of IPythonMonitor??
 connected = False
 while not connected:
     try:
@@ -208,7 +208,7 @@ while not connected:
         connected = True
         # Set the socket on which to listen for messages
         socket = km.connect_iopub()
-        print('Jupyter monitor connected successfully!')
+        print('IPython monitor connected successfully!')
     finally:
         if not connected:
             kc.stop_channels()
@@ -246,7 +246,7 @@ else:
 #------------------------------------------------------------------------------
 #        Create and run the monitor
 #------------------------------------------------------------------------------
-monitor = JupyterMonitor()
+monitor = IPythonMonitor()
 monitor.listen(socket)
 
 #==============================================================================
