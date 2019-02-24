@@ -113,6 +113,14 @@ function! jupyter#RunFile(...) abort
     endif
 endfunction
 
+function! jupyter#PythonImportThisFile() abort
+    if b:jupyter_kernel_type != 'python'
+        echoerr 'PythonImportThisFile is only supported for Python files'
+        return
+    endif
+    call jupyter#RunFile('-n', expand("%:p"))
+endfunction
+
 function! jupyter#SendCell() abort 
     call s:init_python_once()
     pythonx jupyter_vim.run_cell()

@@ -74,7 +74,7 @@ command! -buffer -nargs=? -bang  JupyterTerminateKernel  call jupyter#TerminateK
 command! -buffer -nargs=* -complete=file
             \ JupyterRunFile update | call jupyter#RunFile(<f-args>)
 command! -buffer -nargs=0 -complete=file
-            \ JupyterImportThisFile update | call jupyter#RunFile('-n', expand("%:p"))
+            \ PythonImportThisFile update | call jupyter#PythonImportThisFile()
 
 " Debugging commands
 command! -buffer -nargs=0   PythonSetBreak  call jupyter#PythonDbstop()
@@ -84,7 +84,7 @@ command! -buffer -nargs=0   PythonSetBreak  call jupyter#PythonDbstop()
 "-----------------------------------------------------------------------------
 if g:jupyter_mapkeys
     nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
-    nnoremap <buffer> <silent> <localleader>I       :JupyterImportThisFile<CR>
+    nnoremap <buffer> <silent> <localleader>I       :PythonImportThisFile<CR>
 
     " Change to directory of current file
     nnoremap <buffer> <silent> <localleader>d       :JupyterCd %:p:h<CR>
