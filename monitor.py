@@ -6,6 +6,9 @@
 #
 #  Description: Monitor for Jupyter console commands run in vim.
 #
+#  This code is no longer part of the user-facing functionality of jupyter-vim,
+#  so will not be maintained.
+#
 #=============================================================================
 # TODO implement: if __name__ == "__main__" to run while loop. Move loop and
 # tty-setting code to functions that are called as main
@@ -84,7 +87,7 @@ class JupyterMonitor(object):
                 # UUID of the client sending the message
                 client = msg['parent_header'].get('session', '')
 
-                # Check for the message from vim <TODO(bzinberg): What is the jupyter-vim equivalent of :IPython?> command to add vim as
+                # Check for the message from vim :IPython command to add vim as
                 # an acceptable client
                 if (client and msg_type in ('execute_input', 'pyin') and
                         msg['content']['code'].strip("\n") == '"_vim_client"'):
