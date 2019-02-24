@@ -55,14 +55,36 @@ endfunction
 "----------------------------------------------------------------------------- 
 "        Vim -> Python Public Functions: 
 "-----------------------------------------------------------------------------
+function! jupyter#GetKernelType()
+    if !exists('b:jupyter_kernel_type')
+        " If kernel type is not explicitly set, use this mapping from filetype
+        " (in vim) to associated kernel type (in Jupyter), or 'none' if this
+        " filetype does not have an associated kernel type.
+        return get({
+            \ 'python': 'python',
+            \ 'julia': 'julia',
+            \ }, &filetype, 'none')
+    else
+        return b:jupyter_kernel_type
+    endif
+endfunction
+
 function! jupyter#Connect() abort 
     pythonx jupyter_vim.connect_to_kernel()
 endfunction
 
 function! jupyter#JupyterCd(...) abort 
-    " Behaves just like typical `cd`
+    " Behaves just like typical `cd`.  Different kernel types have different
+    " syntaxes for this command.
     let l:dirname = a:0 ? a:1 : ''
-    JupyterSendCode '%cd '.l:dirname
+    if jupyter#GetKernelType() == 'python'
+        JupyterSendCode '%cd '.l:dirname
+    elseif jupyter#GetKernelType() == 'julia'
+        JupyterSendCode 'cd("'.l:dirname.'")'
+    else
+        echoerr 'I don''t know how to do the `cd` command in Jupyter kernel'
+                    \ . ' type "' . jupyter#GetKernelType() . '"'
+    endif
 endfunction
 
 function! jupyter#RunFile(...) abort 
@@ -168,6 +190,10 @@ endfunction
 "        Auxiliary Functions: 
 "-----------------------------------------------------------------------------
 function! jupyter#PythonDbstop() 
+    if jupyter#GetKernelType() != 'python'
+        echoerr 'Jupyter kernel is not in Python, are you sure you want to'
+                \ . 'insert a Python breakpoint?'
+    endif
     " Set a debugging breakpoint for use with pdb
     normal! Oimport pdb; pdb.set_trace()j
 endfunction

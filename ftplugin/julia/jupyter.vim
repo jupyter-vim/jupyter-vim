@@ -19,12 +19,16 @@ command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<coun
 command! -buffer -range -bar JupyterSendRange       <line1>,<line2>call jupyter#SendRange()
 command! -buffer -nargs=0    JupyterSendCell        call jupyter#SendCell()
 command! -buffer -nargs=0    JupyterUpdateShell     call jupyter#UpdateShell()
+command! -buffer -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
 command! -buffer -nargs=? -bang  JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
 
 "}}}--------------------------------------------------------------------------
 "        Key Mappings: {{{
 "-----------------------------------------------------------------------------
 if g:jupyter_mapkeys
+    " Change to directory of current file
+    nnoremap <buffer> <silent> <localleader>d       :JupyterCd %:p:h<CR>
+
     " Send just the current line
     nnoremap <buffer> <silent> <localleader>X       :JupyterSendCell<CR>
     nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
