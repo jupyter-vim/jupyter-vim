@@ -123,10 +123,18 @@ class PythonToVimStr(unicode):
             s = self.encode('UTF-8')
         return '"%s"' % s.replace('\\', '\\\\').replace('"', r'\"')
 
-def set_pid():
+def get_pid(kernel_type):
     """Explicitly ask the jupyter kernel for its pid."""
+    vim_echom("kernel_type = {}".format(kernel_type))
     the_pid = -1
-    code = 'import os; _pid = os.getpid()'
+    if kernel_type == 'python':
+        code = 'import os; _pid = os.getpid()'
+    elif kernel_type == 'julia':
+        code = '_pid = getpid()'
+    else:
+        code = '_pid = -1'
+        vim_echom("I don't know how to get the pid for a Jupyter kernel of"
+                  " type \"{}\"".format(kernel_type))
     msg_id = send(code, silent=True, user_expressions={'_pid':'_pid'})
 
     # wait to get message back from kernel
@@ -137,6 +145,7 @@ def set_pid():
         return -1
 
     try:
+        # Requires the fix for https://github.com/JuliaLang/IJulia.jl/issues/815
         the_pid = int(reply['content']['user_expressions']\
                         ['_pid']['data']['text/plain'])
     except KeyError:
@@ -160,7 +169,7 @@ def strip_color_escapes(s):
 #------------------------------------------------------------------------------
 #        Major Function Definitions:
 #------------------------------------------------------------------------------
-def connect_to_kernel():
+def connect_to_kernel(kernel_type):
     """Create kernel manager from existing connection file."""
     from jupyter_client import KernelManager, find_connection_file
 
@@ -205,7 +214,7 @@ def connect_to_kernel():
     if connected:
         # Send command so that monitor knows vim is commected
         # send('"_vim_client"', store_history=False)
-        pid = set_pid() # Ask kernel for its PID
+        pid = get_pid(kernel_type)  # Ask kernel for its PID
         vim_echom('kernel connection successful! pid = {}'.format(pid),
                   style='Question')
     else:
