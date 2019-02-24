@@ -26,12 +26,10 @@ CONTENTS 					*jupyter-vim-contents*
 ================================================================================
 INTRODUCTION 					*jupyter-vim*
 
-Whenever you edit a python file, a set of commands is defined that serve as
-a gateway to the Jupyter kernel. If you do not have a kernel running, the plugin
-will silently fail and the functionality will not be available. This feature
-prevents "error vomit" at startup on systems where it is not compatible. If you
-manually run the configure command, you will indeed get the appropriate errors
-to assist in debugging.
+This plugin allows vim to interact directly with a Jupyter kernel. It provides
+commands to connect to the kernel (or this can be done automatically whenever
+you open a code file), and to send code directly from your buffer to the
+kernel.
 
 This plugin was originally forked from
 [vim-ipython](<https://github.com/wmvanvliet/vim-ipython>), but has been
@@ -47,19 +45,22 @@ a multiplexer such as `tmux`. The idea is to edit your python script in vim,
 and be able to send commands to Jupyter, which is running in the other
 terminal. No more copy/alt-tab/paste! 
 
-TODO(bzinberg): Before merging this PR, update the below to refer to Jupyter
-and not-necessarily-Python kernels, insofar as that is supported.
-
 To begin:
 	$ jupyter qtconsole &  # open a jupyter console window
 	$ vim <your_script>.py
 	:JupyterConnect
 
-Running the command |:JupyterConnect| while in a *.py buffer will attempt
-a connection to the jupyter kernel. The option |g:jupyter_auto_connect| defaults
-to 0, because the connection process will hang for ~5 seconds if you open a *.py
-file without a kernel already running! An asynchronous connection process is
-a work in progress.
+The |:JupyterConnect| command attempts to connect to the Jupyter kernel; by
+default it guesses the language of the kernel based on the filetype (see
+|b:jupyter_kernel_type|).  For example, running the command |:JupyterConnect|
+while in a *.py buffer will attempt a connection to a Python Jupyter kernel,
+whereas in a *.jl buffer it will attempt to connect to a Julia Jupyter kernel.
+
+Note that the connection process will hang for ~5 seconds if no kernel is
+available. This is why the option |g:jupyter_auto_connect| defaults to 0 (off)
+-- otherwise opening *.py files would be very slow whenever a kernel is not
+running. This issue would be mitigated by an asynchronous connection process (a
+work in progress).
 
 --------------------------------------------------------------------------------
 COMMANDS 					*jupyter-vim-commands*
@@ -71,27 +72,36 @@ COMMANDS 					*jupyter-vim-commands*
 			functionality of the plugin will not be available unless
 			connected to a kernel.
 
+                        This command assumes the language of the Jupyter kernel
+                        is |b:jupyter_kernel_type|; errors may occur if the
+                        kernel type is incorrect.
+
 			Note that a `jupyter console` need not be running to
 			connect to a `jupyter kernel`, but the console is
 			necessary to display any output from your python code!
 
 :JupyterCd [dir] 				*jupyter-cd* *:JupyterCd*
-			Change the working directory of the kernel to [dir]
-			using the Jupyter magic '%cd'. Functions just like the
-			typical shell command. If no directory is given, [dir]
-			is the "$HOME" directory. If [dir] is "-", :JupyterCd
-			changes back to the previous working directory.
+			Change the working directory of the kernel to [dir].
+                        Functions just like the typical shell command. If no
+                        directory is given, [dir] is the "$HOME" directory. If
+                        [dir] is "-", :JupyterCd changes back to the previous
+                        working directory.
 
 :JupyterRunFile [flags] [filename] 	    *jupyter-runfile* *:JupyterRunFile*
-			Run an entire python script using the IPython "%run"
-			magic (with __name__ == "__main__"). If [flags] and
-			[filename] are empty, the filename of the current buffer
-			is used. The [filename] is taken as the last argument to
-			the command. Execute "%run?" in an IPython console to
-			read the documentation about the "%run" magic.
+                        Run an entire file. The [flags] argument only affects
+                        Python kernels. If [flags] and [filename] are empty,
+                        the filename of the current buffer is used. The
+                        [filename] is taken as the last argument to the
+                        command.
 
-			Global flags may also be set via |g:ipython_run_flags|.
-			These flags will be applied to any call without flags:
+                        For Python kernels, this command uses the IPython
+                        "%run" magic (with __name__ == "__main__").  Execute
+                        "%run?" in an IPython console to read the documentation
+                        about the "%run" magic.
+
+                        Global IPython flags may also be set via
+                        |g:ipython_run_flags|.  These flags will be applied to
+                        any call without flags:
 				:JupyterRunFile my_script.py
 			Inclusion of [flags] will override the global flags.
 			For example, to run the current buffer in the
@@ -99,6 +109,7 @@ COMMANDS 					*jupyter-vim-commands*
 				:JupyterRunFile -i %:p
 
 :JupyterImportThisFile 	      *jupyter-importthisfile* *:JupyterImportThisFile*
+                        TODO(bzinberg): Implement something like this for Julia.
 			Import the current buffer as a python module.
 			Essentially, this command runs
 				:JupyterRunFile -n %:p
@@ -106,7 +117,7 @@ COMMANDS 					*jupyter-vim-commands*
 			extension and running the `import` command.
 
 :JupyterSendCode {code}			*jupyter-sendcode* *:JupyterSendCode*
-			Send a raw line of python code to the jupyter kernel.
+			Send a raw line of code to the jupyter kernel.
 
 :[count]JupyterSendCount               	*jupyter-sendcount* *:JupyterSendCount*
 			Send [count] lines to the kernel. If [count] is not
@@ -118,13 +129,14 @@ COMMANDS 					*jupyter-vim-commands*
 
 :JupyterSendCell                	*jupyter-sendcell* *:JupyterSendCell*
 			Send the current code cell, as delineated by the strings
-			"##", "#%%", "# %%", or "# <codecell>" (in a python
-			file). Future updates include user-defined code cell
-			delimiters.
+                        "##", "#%%", "# %%", or "# <codecell>". Future updates
+                        include user-defined code cell delimiters.
 
-:JupyterSetBreak 			*jupyter-setbreak* *:JupyterSetBreak*
-			Sets a debugging stop at the current line. Currently,
-			this command is a rudimentary hack that just inserts:
+:PythonSetBreak 			*python-setbreak* *:PythonSetBreak*
+                        Only makes sense to run when |b:jupyter_kernel_type| is
+                        'python'. Sets a pdb debugging stop at the current
+                        line. Currently, this command is a rudimentary hack
+                        that just inserts:
 				import pdb; pdb.set_trace()
 			into the python file. You will need to hop over to the
 			`jupyter [qt]console` to operate pdb. Future features
@@ -171,8 +183,22 @@ MAPPINGS					*jupyter-vim-mappings*
 --------------------------------------------------------------------------------
 CONFIGURATION					*jupyter-vim-configuration*
 
-`b:jupyter_runflags`   					*b:jupyter_runflags*  
-Default: '' 					Flags for "%run" magic
+`b:jupyter_kernel_type`                             *b:jupyter_kernel_type*
+Default: inferred from filetype                     Language of the kernel
+
+Buffer-local variable that indicates what language vim will assume the Jupyter
+kernel accepts. By default, this value is inferred from the filetype of the
+buffer, according to the mapping:
++--------------------+-----------------+
+| Filetype           | Kernel language |
++--------------------+-----------------+
+| python             | 'python'        |
+| julia              | 'julia'         |
+| <everything else>  | 'none'          |
++--------------------+-----------------+
+
+`b:ipython_run_flags` 			            *b:ipython_run_flags*
+Default: '' 				Flags for "%run" IPython magic
 
 Buffer-local variable to append [flags] to the |:JupyterRunFile| command for
 that buffer. Typical flags include "-i" to run the file in the current IPython
@@ -187,9 +213,10 @@ or type "%run?" in the `jupyter [qt]console` for more information.
 Default: 0 				Automatically connect to kernel
 
 This setting determines if vim will automatically run |:JupyterConnect| for any
-python file. Due to the nature of the connection process, vim will be slow to
-start up if this option is set to 1. An asynchronous connection process is
-a work in progress.
+code file whose filetype is associated with a kernel language (other than
+'none') as described in |b:jupyter_kernel_type|. Due to the nature of the
+connection process, vim will be slow to start up if this option is set to 1. An
+asynchronous connection process is a work in progress.
 
 `g:jupyter_mapkeys`   					*g:jupyter_mapkeys*  
 Default: 1 					Map keys for python files
@@ -225,6 +252,9 @@ channel version of this client to eliminate this issue. Until then, stick with
 JUPYTER-VIM VS. VIM-IPYTHON 			*jupyter-vim-vs-vim-ipython*
 
 Major changes include:
+        - jupyter-vim works with both Python and Julia kernels, and is
+          restructured so that more languages can be added in the future (no
+          Python-specific stuff baked in).
 	- The pseudo-terminal vim pane functionality has been rewritten with
 	  a vimscript function, and a cleaned up python function. The
 	  `jupyter qtconsole` allows the configuration option:
