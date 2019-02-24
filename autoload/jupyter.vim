@@ -70,23 +70,10 @@ endfunction
 "----------------------------------------------------------------------------- 
 "        Vim -> Python Public Functions: 
 "-----------------------------------------------------------------------------
-function! jupyter#GetKernelType()
-    if !exists('b:jupyter_kernel_type')
-        " If kernel type is not explicitly set, use this mapping from filetype
-        " (in vim) to associated kernel type (in Jupyter), or 'none' if this
-        " filetype does not have an associated kernel type.
-        return get({
-            \ 'python': 'python',
-            \ 'julia': 'julia',
-            \ }, &filetype, 'none')
-    else
-        return b:jupyter_kernel_type
-    endif
-endfunction
-
 function! jupyter#Connect() abort 
     call s:init_python_once()
-    pythonx jupyter_vim.connect_to_kernel(vim.eval('jupyter#GetKernelType()'))
+    pythonx jupyter_vim.connect_to_kernel(
+                \ vim.current.buffer.vars['jupyter_kernel_type'])
 endfunction
 
 function! jupyter#JupyterCd(...) abort 
@@ -94,14 +81,13 @@ function! jupyter#JupyterCd(...) abort
     " Behaves just like typical `cd`.  Different kernel types have different
     " syntaxes for this command.
     let l:dirname = a:0 ? a:1 : ''
-    let l:kernel_type = jupyter#GetKernelType()
-    if l:kernel_type == 'python'
+    if b:jupyter_kernel_type == 'python'
         JupyterSendCode '%cd """'.escape(l:dirname, '"').'"""'
-    elseif l:kernel_type == 'julia'
+    elseif b:jupyter_kernel_type == 'julia'
         JupyterSendCode 'cd("""'.escape(l:dirname, '"').'""")'
     else
         echoerr 'I don''t know how to do the `cd` command in Jupyter kernel'
-                    \ . ' type "' . l:kernel_type . '"'
+                    \ . ' type "' . b:jupyter_kernel_type . '"'
     endif
 endfunction
 
@@ -110,12 +96,11 @@ function! jupyter#RunFile(...) abort
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
     let l:filename = a:0 ? a:000[-1] : expand("%:p")
-    let l:kernel_type = jupyter#GetKernelType()
-    if l:kernel_type == 'python'
+    if b:jupyter_kernel_type == 'python'
         pythonx jupyter_vim.run_file_in_ipython(
                     \ flags=vim.eval('l:flags'),
                     \ filename=vim.eval('l:filename'))
-    elseif l:kernel_type == 'julia'
+    elseif b:jupyter_kernel_type == 'julia'
         if l:flags != ''
             echoerr 'RunFile in kernel type "julia" doesn''t support flags.'
                 \ . ' All arguments except the last (file location) will be'
@@ -124,7 +109,7 @@ function! jupyter#RunFile(...) abort
         JupyterSendCode 'include("""'.escape(l:filename, '"').'"""")'
     else
         echoerr 'I don''t know how to do the `RunFile` command in Jupyter'
-            \ . ' kernel type "' . l:kernel_type . '"'
+            \ . ' kernel type "' . b:jupyter_kernel_type . '"'
     endif
 endfunction
 
@@ -229,7 +214,7 @@ endfunction
 "        Auxiliary Functions: 
 "-----------------------------------------------------------------------------
 function! jupyter#PythonDbstop() 
-    if jupyter#GetKernelType() != 'python'
+    if b:jupyter_kernel_type != 'python'
         echoerr 'Jupyter kernel is not in Python, are you sure you want to'
                 \ . 'insert a Python breakpoint?'
     endif

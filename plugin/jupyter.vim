@@ -34,7 +34,16 @@ endif
 
 " User-specified flags for Jupyter's run file magic can be set per-buffer
 " (affects Python kernels only)
-autocmd BufEnter * let b:ipython_run_flags = ''
+augroup JupyterVimInit
+    autocmd BufEnter * let b:ipython_run_flags = ''
+    " By default, guess the kernel language based on the filetype, according
+    " to the mapping below.  The user can override this guess on a per-buffer
+    " basis.
+    autocmd BufEnter * let b:julia_kernel_type = get({
+        \ 'python': 'python',
+        \ 'julia': 'julia',
+        \ }, &filetype, 'none')
+augroup END
 
 "}}}----------------------------------------------------------------------------
 "       Connect to Jupyter Kernel  {{{
