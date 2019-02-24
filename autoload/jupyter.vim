@@ -96,10 +96,9 @@ function! jupyter#JupyterCd(...) abort
     let l:dirname = a:0 ? a:1 : ''
     let l:kernel_type = jupyter#GetKernelType()
     if l:kernel_type == 'python'
-        JupyterSendCode '%cd '.l:dirname
+        JupyterSendCode '%cd """'.escape(l:dirname, '"').'"""'
     elseif l:kernel_type == 'julia'
-        " TODO(bzinberg): Make sure l:dirname gets Julia-escaped properly.
-        JupyterSendCode 'cd("'.l:dirname.'")'
+        JupyterSendCode 'cd("""'.escape(l:dirname, '"').'""")'
     else
         echoerr 'I don''t know how to do the `cd` command in Jupyter kernel'
                     \ . ' type "' . l:kernel_type . '"'
@@ -122,8 +121,7 @@ function! jupyter#RunFile(...) abort
                 \ . ' All arguments except the last (file location) will be'
                 \ . ' ignored.'
         endif
-        " TODO(bzinberg): Make sure l:filename gets Julia-escaped properly.
-        JupyterSendCode 'include("'.l:filename.'")'
+        JupyterSendCode 'include("""'.escape(l:filename, '"').'"""")'
     else
         echoerr 'I don''t know how to do the `RunFile` command in Jupyter'
             \ . ' kernel type "' . l:kernel_type . '"'
