@@ -39,7 +39,6 @@ endif
 " vim still fires up quickly even if we forget to have a kernel running, or it
 " can't connect for some reason.
 if g:jupyter_auto_connect
-    " Add other filetypes here for other kernels!!
     augroup JConnect
         autocmd!
         autocmd FileType python JupyterConnect
