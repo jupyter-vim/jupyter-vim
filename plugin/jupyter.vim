@@ -32,9 +32,9 @@ if !exists('g:jupyter_verbose')
     let g:jupyter_verbose = 0
 endif
 
-" User-specified flags for Jupyter's run file magic can be set per-buffer
-" (affects Python kernels only)
 augroup JupyterVimInit
+    " User-specified flags for IPython's run file magic can be set per-buffer
+    " (affects Python kernels only)
     autocmd BufEnter * let b:ipython_run_flags = ''
     " By default, guess the kernel language based on the filetype, according
     " to the mapping below.  The user can override this guess on a per-buffer
