@@ -355,12 +355,9 @@ def run_command(cmd):
     msg_id = send(cmd)
     return (cmd, msg_id)
 
-# TODO(bzinberg): Make this function work with non-Python kernels by either not
-# using these magics, finding their equivalent in other filetypes, and/or doing
-# filetype-specific logic here that has a reasonable default.
 @with_console
 @with_verbose
-def run_file(flags='', filename=''):
+def run_file_in_ipython(flags='', filename=''):
     """Run a given python file using ipython's %run magic."""
     ext = os.path.splitext(filename)[-1][1:]
     if ext in ('pxd', 'pxi', 'pyx', 'pyxbld'):

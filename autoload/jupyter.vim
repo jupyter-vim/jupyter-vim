@@ -77,31 +77,38 @@ function! jupyter#JupyterCd(...) abort
     " Behaves just like typical `cd`.  Different kernel types have different
     " syntaxes for this command.
     let l:dirname = a:0 ? a:1 : ''
-    if jupyter#GetKernelType() == 'python'
+    let l:kernel_type = jupyter#GetKernelType()
+    if l:kernel_type == 'python'
         JupyterSendCode '%cd '.l:dirname
-    elseif jupyter#GetKernelType() == 'julia'
+    elseif l:kernel_type == 'julia'
+        " TODO(bzinberg): Make sure l:dirname gets Julia-escaped properly.
         JupyterSendCode 'cd("'.l:dirname.'")'
     else
         echoerr 'I don''t know how to do the `cd` command in Jupyter kernel'
-                    \ . ' type "' . jupyter#GetKernelType() . '"'
+                    \ . ' type "' . l:kernel_type . '"'
     endif
 endfunction
 
 function! jupyter#RunFile(...) abort 
-    if jupyter#GetKernelType() == 'python'
-        " filename is the last argument on the command line
-        let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
-        let l:filename = a:0 ? a:000[-1] : expand("%:p")
-        pythonx jupyter_vim.run_file(flags=vim.eval('l:flags'),
-                                   \ filename=vim.eval('l:filename'))
-    elseif jupyter#GetKernelType() == 'julia'
-        if a:0 > 1
+    " filename is the last argument on the command line
+    let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
+    let l:filename = a:0 ? a:000[-1] : expand("%:p")
+    let l:kernel_type = jupyter#GetKernelType()
+    if l:kernel_type == 'python'
+        pythonx jupyter_vim.run_file_in_ipython(
+                    \ flags=vim.eval('l:flags'),
+                    \ filename=vim.eval('l:filename'))
+    elseif l:kernel_type == 'julia'
+        if l:flags != ''
             echoerr 'RunFile in kernel type "julia" doesn''t support flags.'
                 \ . ' All arguments except the last (file location) will be'
                 \ . ' ignored.'
         endif
-        let l:filename = a:0 ? a:000[-1] : expand("%:p")
-        pythonx jupyter_vim.run_file(filename=vim.eval('l:filename'))
+        " TODO(bzinberg): Make sure l:filename gets Julia-escaped properly.
+        JupyterSendCode 'include("'.l:filename.'")'
+    else
+        echoerr 'I don''t know how to do the `RunFile` command in Jupyter'
+            \ . ' kernel type "' . l:kernel_type . '"'
     endif
 endfunction
 
