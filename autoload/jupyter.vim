@@ -68,7 +68,7 @@ function! jupyter#init_python() abort
 endfunction
 
 "----------------------------------------------------------------------------- 
-"        Vim -> Python Public Functions: 
+"        Vim -> Jupyter Public Functions: 
 "-----------------------------------------------------------------------------
 function! jupyter#Connect() abort 
     call s:init_python_once()

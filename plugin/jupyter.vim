@@ -39,7 +39,7 @@ augroup JupyterVimInit
     " By default, guess the kernel language based on the filetype, according
     " to the mapping below.  The user can override this guess on a per-buffer
     " basis.
-    autocmd BufEnter * let b:julia_kernel_type = get({
+    autocmd BufEnter * let b:jupyter_kernel_type = get({
         \ 'python': 'python',
         \ 'julia': 'julia',
         \ }, &filetype, 'none')
