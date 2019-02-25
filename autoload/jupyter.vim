@@ -73,7 +73,8 @@ endfunction
 function! jupyter#Connect() abort 
     call s:init_python_once()
     pythonx jupyter_vim.connect_to_kernel(
-                \ vim.current.buffer.vars['jupyter_kernel_type'])
+                \ jupyter_vim.vim2py_str(
+                \     vim.current.buffer.vars['jupyter_kernel_type']))
 endfunction
 
 function! jupyter#JupyterCd(...) abort 
