@@ -107,7 +107,7 @@ function! jupyter#RunFile(...) abort
                 \ . ' All arguments except the last (file location) will be'
                 \ . ' ignored.'
         endif
-        JupyterSendCode 'include("""'.escape(l:filename, '"').'"""")'
+        JupyterSendCode 'include("""'.escape(l:filename, '"').'""")'
     else
         echoerr 'I don''t know how to do the `RunFile` command in Jupyter'
             \ . ' kernel type "' . b:jupyter_kernel_type . '"'
