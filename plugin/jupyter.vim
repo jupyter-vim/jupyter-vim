@@ -11,6 +11,10 @@ if exists("g:loaded_jupyter_vim") || !has('pythonx') || &cp
     finish
 endif
 
+if !jupyter#init_python()
+    finish
+endif
+
 "-----------------------------------------------------------------------------
 "        Configuration: {{{
 "-----------------------------------------------------------------------------
@@ -35,10 +39,16 @@ endif
 augroup JupyterVimInit
     " By default, guess the kernel language based on the filetype. The user
     " can override this guess on a per-buffer basis.
+    autocmd!
     autocmd BufEnter * let b:jupyter_kernel_type = get({
         \ 'python': 'python',
         \ 'julia': 'julia',
         \ }, &filetype, 'none')
+
+    autocmd FileType julia,python call jupyter#MakeStandardCommands()
+    autocmd FileType julia,python if g:jupyter_mapkeys |
+                \ call jupyter#MapStandardKeys() |
+                \ endif
 augroup END
 
 "}}}----------------------------------------------------------------------------
@@ -53,22 +63,6 @@ if g:jupyter_auto_connect
         autocmd FileType julia,python JupyterConnect
     augroup END
 endif
-
-"}}}--------------------------------------------------------------------------
-"        Commands: {{{
-"-----------------------------------------------------------------------------
-command! -nargs=0    JupyterConnect         call jupyter#Connect()
-command! -nargs=1    JupyterSendCode        call jupyter#SendCode(<args>)
-command! -count      JupyterSendCount       call jupyter#SendCount(<count>)
-command! -range -bar JupyterSendRange       <line1>,<line2>call jupyter#SendRange()
-command! -nargs=0    JupyterSendCell        call jupyter#SendCell()
-command! -nargs=0    JupyterUpdateShell     call jupyter#UpdateShell()
-command! -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
-command! -nargs=? -bang  JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
-
-command! -nargs=* -complete=file
-            \ JupyterRunFile update | call jupyter#RunFile(<f-args>)
-"}}}
 
 let g:loaded_jupyter_vim = 1
 "=============================================================================

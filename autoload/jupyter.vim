@@ -60,7 +60,7 @@ endfunction
 "        Vim -> Jupyter Public Functions: 
 "-----------------------------------------------------------------------------
 function! jupyter#Connect() abort 
-    call jupyter#init_python()
+    " call jupyter#init_python()
     pythonx jupyter_vim.connect_to_kernel(
                 \ jupyter_vim.vim2py_str(
                 \     vim.current.buffer.vars['jupyter_kernel_type']))
@@ -199,6 +199,39 @@ function! jupyter#PythonDbstop()
     normal! Oimport pdb; pdb.set_trace()j
 endfunction
 
+function! jupyter#MakeStandardCommands()
+    " Standard commands, called from each ftplugin so that we only map the
+    " keys buffer-local for select filetypes.
+    command! -buffer -nargs=0    JupyterConnect         call jupyter#Connect()
+    command! -buffer -nargs=1    JupyterSendCode        call jupyter#SendCode(<args>)
+    command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<count>)
+    command! -buffer -range -bar JupyterSendRange       <line1>,<line2>call jupyter#SendRange()
+    command! -buffer -nargs=0    JupyterSendCell        call jupyter#SendCell()
+    command! -buffer -nargs=0    JupyterUpdateShell     call jupyter#UpdateShell()
+    command! -buffer -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
+    command! -buffer -nargs=? -bang  JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
+    command! -buffer -nargs=* -complete=file
+                \ JupyterRunFile update | call jupyter#RunFile(<f-args>)
+endfunction
+
+function! jupyter#MapStandardKeys()
+    " Standard keymaps, called from each ftplugin so that we only map the keys
+    " buffer-local for select filetypes.
+    nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
+
+    " Change to directory of current file
+    nnoremap <buffer> <silent> <localleader>d       :JupyterCd %:p:h<CR>
+
+    " Send just the current line
+    nnoremap <buffer> <silent> <localleader>X       :JupyterSendCell<CR>
+    nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
+    nmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunTextObj
+    vmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunVisual
+
+    nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
+endfunction
+
+" NOTE: Generally unused except for communication debugging
 function! jupyter#OpenJupyterTerm() abort 
     " Set up console display window
     " If we're in the console display already, just go to the bottom.
@@ -239,24 +272,6 @@ function! jupyter#OpenJupyterTerm() abort
 
     return 1
 endfunction
-
-function! jupyter#MapStandardKeys()
-    " Standard keymaps, called from each ftplugin so that we only map the keys
-    " buffer-local for select filetypes.
-    nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
-
-    " Change to directory of current file
-    nnoremap <buffer> <silent> <localleader>d       :JupyterCd %:p:h<CR>
-
-    " Send just the current line
-    nnoremap <buffer> <silent> <localleader>X       :JupyterSendCell<CR>
-    nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
-    nmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunTextObj
-    vmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunVisual
-
-    nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
-endfunction
-
 
 "----------------------------------------------------------------------------- 
 "        Create <Plug> for user mappings 

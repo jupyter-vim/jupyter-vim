@@ -338,7 +338,8 @@ def with_console(f):
     """
     def wrapper(*args, **kwargs):
         if not check_connection():
-            vim_echom('WARNING: Not connected to Jupyter!', 'WarningMsg')
+            vim_echom('WARNING: Not connected to Jupyter!' + \
+                  ' Run :JupyterConnect to find the kernel', style='WarningMsg')
             return
         monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
         f(*args, **kwargs)
