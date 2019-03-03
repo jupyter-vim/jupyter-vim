@@ -123,7 +123,7 @@ class PythonToVimStr(unicode):
             s = self
         else:
             s = self.encode('UTF-8')
-        return '"%s"' % s.replace('\\', '\\\\').replace('"', r'\"')
+        return '"{:s}"'.format(s.replace('\\', '\\\\').replace('"', r'\"'))
 
 def get_pid(kernel_type):
     """Explicitly ask the jupyter kernel for its pid."""
@@ -390,7 +390,7 @@ def send_range():
     r = vim.current.range
     lines = "\n".join(vim.current.buffer[r.start:r.end+1])
     msg_id = send(lines)
-    prompt = "range %d-%d "% (r.start+1, r.end+1)
+    prompt = "range {:d}-{:d} ".format(r.start+1, r.end+1)
     return (prompt, msg_id)
 
 @with_console
