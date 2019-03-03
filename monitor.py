@@ -1,10 +1,13 @@
 #!~/anaconda3/bin/python3
 #=============================================================================
-#     File: ~/.vim/bundle/vim-ipython/monitor.py
+#     File: ~/.vim/bundle/jupyter-vim/monitor.py
 #  Updated: 02/20/2018, 15:48
 #   Author: Bernie Roesler
 #
 #  Description: Monitor for Jupyter console commands run in vim.
+#
+#  This code is no longer part of the user-facing functionality of jupyter-vim,
+#  so will not be maintained.
 #
 #=============================================================================
 # TODO implement: if __name__ == "__main__" to run while loop. Move loop and

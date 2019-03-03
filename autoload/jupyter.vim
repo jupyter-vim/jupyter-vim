@@ -37,56 +37,109 @@ function! s:init_python() abort
     return 1
 endfunction
 
-" Public initialization routine
-let s:_init_python = -1
-function! jupyter#init_python() abort 
-    if s:_init_python == -1
+" Runs s:init_python if it hasn't already been run.  This routine can be
+" called at the beginning of every routine that expects init_python to have
+" already been run.
+let s:_init_python_retstatus = -1
+function! s:init_python_once() abort
+    if s:_init_python_retstatus == -1
         try
-            let s:_init_python = s:init_python()
+            echo 'Initializing Jupyter client...'
+            let s:_init_python_retstatus = s:init_python()
+            echo 'Jupyter client initialized.'
         catch
-            let s:_init_python = 0
-            echoerr 'Error: jupyter-vim failed to initialize Python: '
-                        \ . v:exception . ' (in ' . v:throwpoint . ')'
+            let s:_init_python_retstatus = 0
+            throw v:exception
         endtry
     endif
-    return s:_init_python
+    return s:_init_python_retstatus
+endfunction
+
+" Public initialization routine.  Same as `s:init_python_once` but prints
+" error instead of throwing.
+function! jupyter#init_python() abort
+    try
+        call s:init_python_once()
+    catch
+        echoerr 'Error: jupyter-vim failed to initialize Python: '
+                    \ . v:exception . ' (in ' . v:throwpoint . ')'
+    endtry
+    return s:_init_python_retstatus
 endfunction
 
 "----------------------------------------------------------------------------- 
-"        Vim -> Python Public Functions: 
+"        Vim -> Jupyter Public Functions: 
 "-----------------------------------------------------------------------------
 function! jupyter#Connect() abort 
-    pythonx jupyter_vim.connect_to_kernel()
+    call s:init_python_once()
+    pythonx jupyter_vim.connect_to_kernel(
+                \ jupyter_vim.vim2py_str(
+                \     vim.current.buffer.vars['jupyter_kernel_type']))
 endfunction
 
 function! jupyter#JupyterCd(...) abort 
-    " Behaves just like typical `cd`
+    call s:init_python_once()
+    " Behaves just like typical `cd`.  Different kernel types have different
+    " syntaxes for this command.
     let l:dirname = a:0 ? a:1 : ''
-    JupyterSendCode '%cd '.l:dirname
+    if b:jupyter_kernel_type == 'python'
+        JupyterSendCode '%cd """'.escape(l:dirname, '"').'"""'
+    elseif b:jupyter_kernel_type == 'julia'
+        JupyterSendCode 'cd("""'.escape(l:dirname, '"').'""")'
+    else
+        echoerr 'I don''t know how to do the `cd` command in Jupyter kernel'
+                    \ . ' type "' . b:jupyter_kernel_type . '"'
+    endif
 endfunction
 
 function! jupyter#RunFile(...) abort 
+    call s:init_python_once()
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
     let l:filename = a:0 ? a:000[-1] : expand("%:p")
-    pythonx jupyter_vim.run_file(flags=vim.eval('l:flags'),
-                               \ filename=vim.eval('l:filename'))
+    if b:jupyter_kernel_type == 'python'
+        pythonx jupyter_vim.run_file_in_ipython(
+                    \ flags=vim.eval('l:flags'),
+                    \ filename=vim.eval('l:filename'))
+    elseif b:jupyter_kernel_type == 'julia'
+        if l:flags != ''
+            echoerr 'RunFile in kernel type "julia" doesn''t support flags.'
+                \ . ' All arguments except the last (file location) will be'
+                \ . ' ignored.'
+        endif
+        JupyterSendCode 'include("""'.escape(l:filename, '"').'""")'
+    else
+        echoerr 'I don''t know how to do the `RunFile` command in Jupyter'
+            \ . ' kernel type "' . b:jupyter_kernel_type . '"'
+    endif
+endfunction
+
+function! jupyter#PythonImportThisFile() abort
+    if b:jupyter_kernel_type != 'python'
+        echoerr 'PythonImportThisFile is only supported for Python files'
+        return
+    endif
+    call jupyter#RunFile('-n', expand("%:p"))
 endfunction
 
 function! jupyter#SendCell() abort 
+    call s:init_python_once()
     pythonx jupyter_vim.run_cell()
 endfunction
 
 function! jupyter#SendCode(code) abort 
+    call s:init_python_once()
     " NOTE: 'run_command' gives more checks than just raw 'send'
     pythonx jupyter_vim.run_command(vim.eval('a:code'))
 endfunction
 
 function! jupyter#SendRange() range abort 
+    call s:init_python_once()
     execute a:firstline . ',' . a:lastline . 'pythonx jupyter_vim.send_range()'
 endfunction
 
 function! jupyter#SendCount(count) abort 
+    call s:init_python_once()
     " TODO move this function to pure(ish) python like SendRange
     let sel_save = &selection
     let cb_save = &clipboard
@@ -104,6 +157,7 @@ function! jupyter#SendCount(count) abort
 endfunction
 
 function! jupyter#TerminateKernel(kill, ...) abort 
+    call s:init_python_once()
     if a:kill
         let l:sig='SIGKILL'
     elseif a:0 > 0
@@ -128,6 +182,7 @@ endfunction
 " function that may be used as an operatorfunction. Then we don't need to
 " rewrite this opfunc, just changing the line that handles 'l:cmd' every time.
 function! s:opfunc(type)
+    call s:init_python_once()
     " Originally from tpope/vim-scriptease
     let sel_save = &selection
     let cb_save = &clipboard
@@ -168,6 +223,10 @@ endfunction
 "        Auxiliary Functions: 
 "-----------------------------------------------------------------------------
 function! jupyter#PythonDbstop() 
+    if b:jupyter_kernel_type != 'python'
+        echoerr 'Jupyter kernel is not in Python, are you sure you want to'
+                \ . 'insert a Python breakpoint?'
+    endif
     " Set a debugging breakpoint for use with pdb
     normal! Oimport pdb; pdb.set_trace()j
 endfunction

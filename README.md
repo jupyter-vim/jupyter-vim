@@ -1,6 +1,8 @@
 # Jupyter-Vim
 
-A vim plugin for developing python code without leaving the terminal.
+A vim plugin for developing code on a Jupyter notebook without leaving the
+terminal.  Currently Python and Julia kernels are supported, and more languages
+are on the way.
 
 ## Installation
 
