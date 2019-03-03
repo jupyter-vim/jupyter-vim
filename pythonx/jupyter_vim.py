@@ -22,12 +22,14 @@ from queue import Empty
 
 _install_instructions = """You *must* install the jupyter package into the
 Python that your vim is linked against. If you are seeing this message, this
-usually means either (1) installing Jupyter using the system Python that vim is
-using, or (2) recompiling Vim against the Python where you already have Jupyter
-installed. This is only a requirement to allow Vim to speak with a Jupyter
-kernel using Jupyter's own machinery. It does *not* mean that the Jupyter
-instance with which you communicate via jupyter-vim needs to be running the
-same version of Python.
+usually means either: 
+    (1) installing Jupyter using the system Python that vim is using, or 
+    (2) recompiling Vim against the Python where you already have Jupyter
+        installed. 
+This is only a requirement to allow Vim to speak with a Jupyter kernel using
+Jupyter's own machinery. It does *not* mean that the Jupyter instance with
+which you communicate via jupyter-vim needs to be running the same version of
+Python.
 """
 
 try:

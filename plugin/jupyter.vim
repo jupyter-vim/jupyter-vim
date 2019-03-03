@@ -1,5 +1,5 @@
 "=============================================================================
-"     File: jupyter.vim
+"     File: plugin/jupyter.vim
 "  Created: 02/28/2018, 11:10
 "   Author: Bernie Roesler
 "
@@ -7,7 +7,7 @@
 "
 "=============================================================================
 
-if !has('pythonx') || &cp
+if exists("g:loaded_jupyter_vim") || !has('pythonx') || &cp
     finish
 endif
 
@@ -33,12 +33,8 @@ if !exists('g:jupyter_verbose')
 endif
 
 augroup JupyterVimInit
-    " User-specified flags for IPython's run file magic can be set per-buffer
-    " (affects Python kernels only)
-    autocmd BufEnter * let b:ipython_run_flags = ''
-    " By default, guess the kernel language based on the filetype, according
-    " to the mapping below.  The user can override this guess on a per-buffer
-    " basis.
+    " By default, guess the kernel language based on the filetype. The user
+    " can override this guess on a per-buffer basis.
     autocmd BufEnter * let b:jupyter_kernel_type = get({
         \ 'python': 'python',
         \ 'julia': 'julia',
@@ -54,8 +50,7 @@ augroup END
 if g:jupyter_auto_connect
     augroup JConnect
         autocmd!
-        autocmd FileType python JupyterConnect
-        autocmd FileType julia JupyterConnect
+        autocmd FileType julia,python JupyterConnect
     augroup END
 endif
 
@@ -73,35 +68,8 @@ command! -nargs=? -bang  JupyterTerminateKernel  call jupyter#TerminateKernel(<b
 
 command! -nargs=* -complete=file
             \ JupyterRunFile update | call jupyter#RunFile(<f-args>)
-command! -nargs=0 -complete=file
-            \ PythonImportThisFile update | call jupyter#PythonImportThisFile()
-
-" Debugging commands
-command! -nargs=0   PythonSetBreak  call jupyter#PythonDbstop()
-
-"}}}--------------------------------------------------------------------------
-"        Key Mappings: {{{
-"-----------------------------------------------------------------------------
-if g:jupyter_mapkeys
-    nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
-    nnoremap <buffer> <silent> <localleader>I       :PythonImportThisFile<CR>
-
-    " Change to directory of current file
-    nnoremap <buffer> <silent> <localleader>d       :JupyterCd %:p:h<CR>
-
-    " Send just the current line
-    nnoremap <buffer> <silent> <localleader>X       :JupyterSendCell<CR>
-    nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
-    nmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunTextObj
-    vmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunVisual
-
-    nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
-
-    " Debugging maps
-    nnoremap <buffer> <silent> <localleader>b       :PythonSetBreak<CR>
-
-endif
 "}}}
 
+let g:loaded_jupyter_vim = 1
 "=============================================================================
 "=============================================================================
