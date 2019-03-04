@@ -62,7 +62,9 @@ def vim_echom(arg, style="None"):
     """
     try:
         vim.command("echohl {}".format(style))
-        vim.command("echom \"{}\"".format(arg.replace('\"', '\\\"')))
+        messages = arg.split('\n')
+        for msg in messages:
+            vim.command("echom \"{}\"".format(msg.replace('\"', '\\\"')))
         vim.command("echohl None")
     except vim.error:
         print("-- {}".format(arg))
@@ -74,12 +76,15 @@ def check_connection():
     """Check that we have a client connected to the kernel."""
     return kc.hb_channel.is_beating() if kc else False
 
+def warn_no_connection():
+    vim_echom('WARNING: Not connected to Jupyter!' + \
+                '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
+
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
 if all([x in globals() for x in ('kc', 'pid', 'send')]):
     if not check_connection():
-        vim_echom('WARNING: Not connected to Jupyter!' + \
-                  ' Run :JupyterConnect to find the kernel', style='WarningMsg')
+        warn_no_connection()
 else:
     kc = None
     pid = None
@@ -338,8 +343,7 @@ def with_console(f):
     """
     def wrapper(*args, **kwargs):
         if not check_connection():
-            vim_echom('WARNING: Not connected to Jupyter!' + \
-                  ' Run :JupyterConnect to find the kernel', style='WarningMsg')
+            warn_no_connection()
             return
         monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
         f(*args, **kwargs)
