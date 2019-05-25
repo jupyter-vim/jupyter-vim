@@ -13,21 +13,61 @@ then run:
     $ git clone https://github.com/broesler/jupyter-vim.git
 ```
 
+Make sure that the python installation that Vim is using has jupyter installed.
+One way to do this is to 
+```vim
+   if has('nvim')
+       let g:python3_host_prog = '/path/to/python/bin/python3'
+   else
+       set pyxversion=3
+       set pythonthreedll=/Library/Frameworks/Python.framework/Versions/3.6/Python
+   endif
+```
+
 Once help tags have been generated, you can view the manual with
 `:help jupyter-vim`.
 
 ## Quickstart
-To begin:
+First, we need to configure the jupyter console and qtconsole clients to
+display output from other clients. 
+
+The config files can be found in in `~/.jupyter`, if they don't exist yet you
+can generate them with:
 
 ```bash
-	$ jupyter qtconsole &  # open a jupyter console window
-	$ vim <your_script>.py
+$ jupyter console --generate-config
+$ jupyter qtconsole --generate-config
+```
+
+Now you need to uncomment and change the following config options to `True`.
+
+For qtconsole:
+
+```python
+c.ConsoleWidget.include_other_output = True
+```
+
+For console:
+
+```python
+c.ZMQTerminalInteractiveShell.include_other_output = True
+```
+
+To begin a session:
+
+```bash
+$ jupyter qtconsole &  # open a jupyter console window
+$ vim <your_script>.py
 ```
 
 In vim: `:JupyterConnect`
 
 Then, use `:JupyterRunFile`, or `:[range]JupyterSendRange` to execute lines of
 code!
+
+Code will be sent and executed as expected in qtconsole, however the
+jupyter console will still not update but shows the result after you press
+enter.
 
 ## Info
 Once I fell in love with Vim, I couldn't bear having to jump back and forth
@@ -38,6 +78,10 @@ of the features, like the replication of the Jupyter console in a vim buffer,
 to make the plugin much more 'lightweight'.
 
 Still a work in progress!
+
+## Troubleshooting
+
+Make sure that you are running Vim 8 or higher with Python 3 support
 
 ### CONTRIBUTING
 
