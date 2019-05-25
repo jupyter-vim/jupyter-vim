@@ -18,12 +18,21 @@ then run:
 Once help tags have been generated, you can view the manual with
 `:help jupyter-vim`.
 
+Set up Jupyter config
+```bash
+    $ jupyter qtconsole --generate-config
+```
+Change this line to true in the generated config
+```python
+    c.ConsoleWidget.include_other_output = True
+```
+
 ## Quickstart
 To begin:
 
 ```bash
-	$ jupyter qtconsole &  # open a jupyter console window
-	$ vim <your_script>.py
+    $ jupyter qtconsole &  # open a jupyter console window
+    $ vim <your_script>.py
 ```
 
 In vim: `:JupyterConnect`
