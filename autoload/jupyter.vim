@@ -12,6 +12,11 @@
 function! s:init_python() abort 
     let s:init_outcome = 0
     let init_lines = [
+          \ 'import sys; import os; import vim',
+          \ 'vim_path, _ = os.path.split(vim.eval("expand(''<sfile>:p:h'')"))',
+          \ 'vim_pythonx_path = os.path.join(vim_path, "pythonx")',
+          \ 'if vim_pythonx_path not in sys.path:',
+          \ '    sys.path.append(vim_pythonx_path)',
           \ 'import vim',
           \ 'try:',
           \ '    import jupyter_vim',
