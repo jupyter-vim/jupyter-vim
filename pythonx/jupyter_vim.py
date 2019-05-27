@@ -18,7 +18,10 @@ import signal
 import sys
 
 import textwrap
-from queue import Empty
+try:
+    from queue import Empty
+except ImportError:
+    from Queue import Empty
 
 _install_instructions = """You *must* install the jupyter package into the
 Python that your vim is linked against. If you are seeing this message, this
