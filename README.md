@@ -53,7 +53,7 @@ or
 and then install Jupyter in that environment:
 
 ```bash
-    $ source /path/to/my/new/vim_virtualenv
+    $ source /path/to/my/new/vim_virtualenv/bin/activate
     $ pip install jupyter
 ```
 
