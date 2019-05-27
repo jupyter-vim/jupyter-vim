@@ -34,13 +34,13 @@ Python.
 
 try:
     import jupyter
-except ImportError:
-    raise ImportError("Could not find kernel. " + _install_instructions)
+except ImportError as e:
+    raise ImportError("Could not find kernel. " + _install_instructions, e)
 
 try:
     import vim
-except ImportError:
-    raise ImportError('vim module only available within vim!')
+except ImportError as e:
+    raise ImportError('vim module only available within vim!', e)
 
 #------------------------------------------------------------------------------
 #        Read global configuration variables
