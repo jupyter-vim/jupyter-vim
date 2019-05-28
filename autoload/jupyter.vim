@@ -17,7 +17,6 @@ function! s:init_python() abort
           \ 'vim_pythonx_path = os.path.join(vim_path, "pythonx")',
           \ 'if vim_pythonx_path not in sys.path:',
           \ '    sys.path.append(vim_pythonx_path)',
-          \ 'import vim',
           \ 'try:',
           \ '    import jupyter_vim',
           \ 'except Exception as exc:',
