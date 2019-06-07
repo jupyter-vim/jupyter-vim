@@ -18,13 +18,19 @@ import signal
 import sys
 
 import textwrap
-from queue import Empty
+try:
+    from queue import Empty
+except ImportError:
+    from Queue import Empty
 
 _install_instructions = """You *must* install the jupyter package into the
 Python that your vim is linked against. If you are seeing this message, this
 usually means either: 
-    (1) installing Jupyter using the system Python that vim is using, or 
-    (2) recompiling Vim against the Python where you already have Jupyter
+    (1) configuring vim to automatically load a virtualenv that has Jupyter
+        installed and whose Python interpreter is the same version that your
+        vim is compiled against
+    (2) installing Jupyter using the system Python that vim is using, or
+    (3) recompiling Vim against the Python where you already have Jupyter
         installed. 
 This is only a requirement to allow Vim to speak with a Jupyter kernel using
 Jupyter's own machinery. It does *not* mean that the Jupyter instance with
@@ -34,13 +40,13 @@ Python.
 
 try:
     import jupyter
-except ImportError:
-    raise ImportError("Could not find kernel. " + _install_instructions)
+except ImportError as e:
+    raise ImportError("Could not find kernel. " + _install_instructions, e)
 
 try:
     import vim
-except ImportError:
-    raise ImportError('vim module only available within vim!')
+except ImportError as e:
+    raise ImportError('vim module only available within vim!', e)
 
 #------------------------------------------------------------------------------
 #        Read global configuration variables

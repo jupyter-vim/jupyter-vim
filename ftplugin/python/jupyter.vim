@@ -22,7 +22,7 @@ command! -nargs=0   PythonSetBreak  call jupyter#PythonDbstop()
 "}}}--------------------------------------------------------------------------
 "        Key Mappings: {{{
 "-----------------------------------------------------------------------------
-if g:jupyter_mapkeys
+if exists('g:jupyter_mapkeys') && g:jupyter_mapkeys
     nnoremap <buffer> <silent> <localleader>I       :PythonImportThisFile<CR>
     nnoremap <buffer> <silent> <localleader>b       :PythonSetBreak<CR>
 endif
