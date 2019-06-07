@@ -22,7 +22,11 @@ endif
 function! s:init_python() abort 
     let s:init_outcome = 0
     let init_lines = [
-          \ 'import vim',
+          \ 'import sys; import os; import vim',
+          \ 'vim_path, _ = os.path.split(vim.eval("expand(''<sfile>:p:h'')"))',
+          \ 'vim_pythonx_path = os.path.join(vim_path, "pythonx")',
+          \ 'if vim_pythonx_path not in sys.path:',
+          \ '    sys.path.append(vim_pythonx_path)',
           \ 'try:',
           \ '    import jupyter_vim',
           \ 'except Exception as exc:',
@@ -49,38 +53,65 @@ endfunction
 
 " Public initialization routine
 let s:_init_python = -1
-function! jupyter#init_python() abort 
+function! jupyter#init_python() abort
     if s:_init_python == -1
+        let s:_init_python = 0
         try
             let s:_init_python = s:init_python()
-        catch
-            let s:_init_python = 0
+            let s:_init_python = 1
+        catch /^jupyter/
+            " Only catch errors from jupyter-vim itself here, so that for
+            " unexpected Python exceptions the traceback will be shown
             echoerr 'Error: jupyter-vim failed to initialize Python: '
                         \ . v:exception . ' (in ' . v:throwpoint . ')'
+            " throw v:exception
         endtry
     endif
     return s:_init_python
 endfunction
 
 "----------------------------------------------------------------------------- 
-"        Vim -> Python Public Functions: 
+"        Vim -> Jupyter Public Functions: 
 "-----------------------------------------------------------------------------
 function! jupyter#Connect() abort 
-    Pythonx jupyter_vim.connect_to_kernel()
+    " call jupyter#init_python()
+    Pythonx jupyter_vim.connect_to_kernel(
+                \ jupyter_vim.vim2py_str(
+                \     vim.current.buffer.vars['jupyter_kernel_type']))
 endfunction
 
 function! jupyter#JupyterCd(...) abort 
-    " Behaves just like typical `cd`
+    " Behaves just like typical `cd`.
     let l:dirname = a:0 ? a:1 : ''
-    JupyterSendCode '%cd '.l:dirname
+    if b:jupyter_kernel_type == 'python'
+        JupyterSendCode '%cd """'.escape(l:dirname, '"').'"""'
+    elseif b:jupyter_kernel_type == 'julia'
+        JupyterSendCode 'cd("""'.escape(l:dirname, '"').'""")'
+    else
+        echoerr 'I don''t know how to do the `cd` command in Jupyter kernel'
+                \ . ' type "' . b:jupyter_kernel_type . '"'
+    endif
 endfunction
 
 function! jupyter#RunFile(...) abort 
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
     let l:filename = a:0 ? a:000[-1] : expand("%:p")
-    Pythonx jupyter_vim.run_file(flags=vim.eval('l:flags'),
-                               \ filename=vim.eval('l:filename'))
+    if b:jupyter_kernel_type == 'python'
+        Pythonx jupyter_vim.run_file_in_ipython(
+                    \ flags=vim.eval('l:flags'),
+                    \ filename=vim.eval('l:filename'))
+    elseif b:jupyter_kernel_type == 'julia'
+        if l:flags != ''
+            echoerr 'RunFile in kernel type "julia" doesn''t support flags.'
+                \ . ' All arguments except the last (file location) will be'
+                \ . ' ignored.'
+        endif
+        JupyterSendCode 'include("""'.escape(l:filename, '"').'""")'
+    else
+        echoerr 'I don''t know how to do the `RunFile` command in Jupyter'
+            \ . ' kernel type "' . b:jupyter_kernel_type . '"'
+    endif
 endfunction
 
 function! jupyter#SendCell() abort 
@@ -182,6 +213,39 @@ function! jupyter#PythonDbstop()
     normal! Oimport pdb; pdb.set_trace()j
 endfunction
 
+function! jupyter#MakeStandardCommands()
+    " Standard commands, called from each ftplugin so that we only map the
+    " keys buffer-local for select filetypes.
+    command! -buffer -nargs=0    JupyterConnect         call jupyter#Connect()
+    command! -buffer -nargs=1    JupyterSendCode        call jupyter#SendCode(<args>)
+    command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<count>)
+    command! -buffer -range -bar JupyterSendRange       <line1>,<line2>call jupyter#SendRange()
+    command! -buffer -nargs=0    JupyterSendCell        call jupyter#SendCell()
+    command! -buffer -nargs=0    JupyterUpdateShell     call jupyter#UpdateShell()
+    command! -buffer -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
+    command! -buffer -nargs=? -bang  JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
+    command! -buffer -nargs=* -complete=file
+                \ JupyterRunFile update | call jupyter#RunFile(<f-args>)
+endfunction
+
+function! jupyter#MapStandardKeys()
+    " Standard keymaps, called from each ftplugin so that we only map the keys
+    " buffer-local for select filetypes.
+    nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
+
+    " Change to directory of current file
+    nnoremap <buffer> <silent> <localleader>d       :JupyterCd %:p:h<CR>
+
+    " Send just the current line
+    nnoremap <buffer> <silent> <localleader>X       :JupyterSendCell<CR>
+    nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
+    nmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunTextObj
+    vmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunVisual
+
+    nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
+endfunction
+
+" NOTE: Generally unused except for communication debugging
 function! jupyter#OpenJupyterTerm() abort 
     " Set up console display window
     " If we're in the console display already, just go to the bottom.
@@ -222,7 +286,6 @@ function! jupyter#OpenJupyterTerm() abort
 
     return 1
 endfunction
-
 
 "----------------------------------------------------------------------------- 
 "        Create <Plug> for user mappings 
