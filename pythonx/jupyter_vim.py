@@ -383,14 +383,13 @@ def run_file_in_ipython(flags='', filename=''):
     """Run a given python file using ipython's %run magic."""
     ext = os.path.splitext(filename)[-1][1:]
     if ext in ('pxd', 'pxi', 'pyx', 'pyxbld'):
-        cmd = ' '.join(filter(None, (
-            '%run_cython',
-            vim2py_str(vim.vars.get('cython_run_flags', '')),
-            repr(filename))))
+        run_cmd = '%run_cython'
+        params = vim2py_str(vim.vars.get('cython_run_flags', ''))
     else:
-        b = vim.current.buffer
-        cmd = '%run {} {}'.format((flags or vim2py_str(b.vars['ipython_run_flags'])),
-                                  repr(filename))
+        run_cmd = '%run'
+        params = flags or vim2py_str(vim.current.buffer.vars['ipython_run_flags'])
+    cmd = '{run_cmd} {params} "{filename}"'.format(
+        run_cmd=run_cmd, params=params, filename=filename)
     msg_id = send(cmd)
     return (cmd, msg_id)
 
