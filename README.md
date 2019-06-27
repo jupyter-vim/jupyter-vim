@@ -10,7 +10,7 @@ then run:
 
 ```bash
     $ cd ~/.vim/bundle
-    $ git clone https://github.com/broesler/jupyter-vim.git
+    $ git clone https://github.com/jupyter-vim/jupyter-vim.git
 ```
 
 Make sure that the python installation that Vim is using has jupyter installed.
@@ -20,7 +20,13 @@ One way to do this is to
        let g:python3_host_prog = '/path/to/python/bin/python3'
    else
        set pyxversion=3
+
+       " OSX
        set pythonthreedll=/Library/Frameworks/Python.framework/Versions/3.6/Python
+
+       " Windows
+       set pythonthreedll=python37.dll
+       set pythontheehome=C:\Python37
    endif
 ```
 
@@ -70,8 +76,8 @@ jupyter console will still not update but shows the result after you press
 enter.
 
 ## Info
-Once I fell in love with Vim, I couldn't bear having to jump back and forth
-between the ipython/jupyter console and editor anymore. I modeled this simple
+Once we fell in love with Vim, we couldn't bear having to jump back and forth
+between the ipython/jupyter console and editor anymore. We modeled this simple
 interface off of the ideas in
 [vim-ipython](https://github.com/ivanov/vim-ipython), but have pared down many
 of the features, like the replication of the Jupyter console in a vim buffer,
@@ -85,12 +91,12 @@ Make sure that you are running Vim 8 or higher with Python 3 support
 
 ### CONTRIBUTING
 
-Please feel free to contact me at [bernard.roesler@gmail.com](mailto:bernard.roesler@gmail.com), with the subject line: "[jupyter-vim]: Contributing".
+Please feel free to raise issues and pull requests on
+[the github repository](https://github.com/jupyter-vim/jupyter-vim).
 
 ### CREDITS
-I owe significant thanks to the original developer of this plugin: 
-[Paul Ivanov](https://github.com/ivanov), as well as 
-[Marijn van Vliet](https://github.com/wmvanvliet).
+We owe significant thanks to the original developer of this plugin: 
+[Paul Ivanov](https://github.com/ivanov).
 It is far easier to update something that already works well than to forge
 a new path from scratch.
 
