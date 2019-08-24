@@ -18,6 +18,8 @@ elseif has('python')
     command! -range -nargs=+ Pythonx <line1>,<line2>python <args>
 endif
 
+let g:InitiazlizedJupyterWindow = 0
+
 " See ~/.vim/bundle/jedi-vim/autoload/jedi.vim for initialization routine
 function! s:init_python() abort 
     let s:init_outcome = 0
@@ -74,7 +76,14 @@ endfunction
 "        Vim -> Jupyter Public Functions: 
 "-----------------------------------------------------------------------------
 function! jupyter#Connect() abort 
+    let l:CurrentWindow = winnr()
+    bel terminal jupyter console
+    redraw
+    let g:InitiazlizedJupyterWindow = winnr()
+    let g:InitiazlizedJupyterBuffer = bufnr("%")
+    
     " call jupyter#init_python()
+    exe l:CurrentWindow . "wincmd w"
     Pythonx jupyter_vim.connect_to_kernel(
                 \ jupyter_vim.vim2py_str(
                 \     vim.current.buffer.vars['jupyter_kernel_type']))
@@ -93,11 +102,14 @@ function! jupyter#JupyterCd(...) abort
     endif
 endfunction
 
-function! jupyter#RunFile(...) abort 
+function! jupyter#RunFile(...) abort
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
     let l:filename = a:0 ? a:000[-1] : expand("%:p")
     if b:jupyter_kernel_type == 'python'
+        if g:InitiazlizedJupyterWindow == 0
+            call jupyter#Connect()
+        endif
         Pythonx jupyter_vim.run_file_in_ipython(
                     \ flags=vim.eval('l:flags'),
                     \ filename=vim.eval('l:filename'))
@@ -112,19 +124,27 @@ function! jupyter#RunFile(...) abort
         echoerr 'I don''t know how to do the `RunFile` command in Jupyter'
             \ . ' kernel type "' . b:jupyter_kernel_type . '"'
     endif
+    sleep 1500m
+    call term_sendkeys(g:InitiazlizedJupyterBuffer,"\<enter>")
 endfunction
 
 function! jupyter#SendCell() abort 
     Pythonx jupyter_vim.run_cell()
+    sleep 1500m
+    call term_sendkeys(g:InitiazlizedJupyterBuffer,"\<enter>")
 endfunction
 
 function! jupyter#SendCode(code) abort 
     " NOTE: 'run_command' gives more checks than just raw 'send'
     Pythonx jupyter_vim.run_command(vim.eval('a:code'))
+    sleep 1500m
+    call term_sendkeys(g:InitiazlizedJupyterBuffer,"\<enter>")
 endfunction
 
 function! jupyter#SendRange() range abort 
     execute a:firstline . ',' . a:lastline . 'Pythonx jupyter_vim.send_range()'
+    sleep 1500m
+    call term_sendkeys(g:InitiazlizedJupyterBuffer,"\<enter>")
 endfunction
 
 function! jupyter#SendCount(count) abort 
@@ -142,6 +162,8 @@ function! jupyter#SendCount(count) abort
         let &clipboard = cb_save
     endtry
     call jupyter#SendCode(l:cmd)
+    sleep 1500m
+    call term_sendkeys(g:InitiazlizedJupyterBuffer,"\<enter>")
 endfunction
 
 function! jupyter#TerminateKernel(kill, ...) abort 
