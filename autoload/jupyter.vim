@@ -150,21 +150,25 @@ endfunction
 
 function! jupyter#SendCell() abort 
     Pythonx jupyter_vim.run_cell()
+    call jupyter#RefreshTerminalBuf()
     call jupyter#ExecuteTerminal()
 endfunction
 
 function! jupyter#SendCode(code) abort 
     " NOTE: 'run_command' gives more checks than just raw 'send'
+    call jupyter#RefreshTerminalBuf()
     Pythonx jupyter_vim.run_command(vim.eval('a:code'))
     call jupyter#ExecuteTerminal()
 endfunction
 
 function! jupyter#SendRange() range abort 
+    call jupyter#RefreshTerminalBuf()
     execute a:firstline . ',' . a:lastline . 'Pythonx jupyter_vim.send_range()'
     call jupyter#ExecuteTerminal()
 endfunction
 
 function! jupyter#SendCount(count) abort 
+    call jupyter#RefreshTerminalBuf()
     " TODO move this function to pure(ish) python like SendRange
     let sel_save = &selection
     let cb_save = &clipboard
