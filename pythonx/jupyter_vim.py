@@ -82,6 +82,10 @@ def check_connection():
     """Check that we have a client connected to the kernel."""
     return kc.hb_channel.is_beating() if kc else False
 
+def UpdateVimTerminalStatus():
+    if not check_connection():
+        vim.command('let s:InitiazlizedJupyterWindow = 0')
+
 def warn_no_connection():
     vim_echom('WARNING: Not connected to Jupyter!' + \
                 '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
@@ -350,7 +354,7 @@ def with_console(f):
     def wrapper(*args, **kwargs):
         if not check_connection():
             warn_no_connection()
-            return
+            return 
         monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
         f(*args, **kwargs)
         if monitor_console:
