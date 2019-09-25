@@ -70,12 +70,12 @@ if has('nvim')
 else
     set pyxversion=3
 
-" OSX
-set pythonthreedll=/Library/Frameworks/Python.framework/Versions/3.6/Python
+    " OSX
+    set pythonthreedll=/Library/Frameworks/Python.framework/Versions/3.6/Python
 
-" Windows
-set pythonthreedll=python37.dll
-set pythonthreehome=C:\Python37
+    " Windows
+    set pythonthreedll=python37.dll
+    set pythonthreehome=C:\Python37
 endif
 ```
 Make sure to point it to a Python installation that has Jupyter installed.
