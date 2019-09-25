@@ -84,9 +84,9 @@ function! jupyter#JupyterCd(...) abort
     " Behaves just like typical `cd`.
     let l:dirname = a:0 ? a:1 : ''
     if b:jupyter_kernel_type == 'python'
-        JupyterSendCode '%cd """'.escape(l:dirname, '"').'"""'
+        JupyterSendCode '%cd "'.escape(l:dirname, '"').'"'
     elseif b:jupyter_kernel_type == 'julia'
-        JupyterSendCode 'cd("""'.escape(l:dirname, '"').'""")'
+        JupyterSendCode 'cd("'.escape(l:dirname, '"').'")'
     else
         echoerr 'I don''t know how to do the `cd` command in Jupyter kernel'
                 \ . ' type "' . b:jupyter_kernel_type . '"'
