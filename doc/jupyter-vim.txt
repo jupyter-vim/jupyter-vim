@@ -108,7 +108,7 @@ COMMANDS 					*jupyter-vim-commands*
 			interactive IPython environment:
 				:JupyterRunFile -i %:p
 
-:PythonImportThisFile 	      *jupyter-importthisfile* *:JupyterImportThisFile*
+:PythonImportThisFile 	      *jupyter-importthisfile* *:PythonImportThisFile*
                         Only makes sense to run when |b:jupyter_kernel_type| is
                         'python'.  Imports the current buffer as a python
                         module.  Essentially, this command runs
@@ -166,7 +166,7 @@ COMMANDS 					*jupyter-vim-commands*
 MAPPINGS					*jupyter-vim-mappings*
 
 <LocalLeader>R 		Run the current file (see |:JupyterRunFile|).
-<LocalLeader>I 		Import the current file (see |:JupyterImportThisFile|).
+<LocalLeader>I 		Import the current file (see |:PythonImportThisFile|).
 <localleader>d 		Change to the directory of the current file (see |:JupyterCd|).
 <localleader>X 		Execute the current cell (see |:JupyterSendCell|).
 <localleader>E 		Execute the current line (see |:JupyterSendRange|).
