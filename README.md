@@ -172,7 +172,7 @@ By default, the following keybindings are defined:
 ```vim
 " Run current file
 nnoremap <buffer> <silent> <localleader>R :JupyterRunFile<CR>
-nnoremap <buffer> <silent> <localleader>I :JupyterImportThisFile<CR>
+nnoremap <buffer> <silent> <localleader>I :PythonImportThisFile<CR>
 
 " Change to directory of current file
 nnoremap <buffer> <silent> <localleader>d :JupyterCd %:p:h<CR>

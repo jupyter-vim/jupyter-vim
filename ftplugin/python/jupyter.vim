@@ -25,7 +25,7 @@ command! -nargs=0   PythonSetBreak  call jupyter#PythonDbstop()
 if exists('g:jupyter_mapkeys') && g:jupyter_mapkeys
 	" Run the current file
     nnoremap <buffer> <silent> <localleader>R :JupyterRunFile<CR>
-    nnoremap <buffer> <silent> <localleader>I :JupyterImportThisFile<CR>
+    nnoremap <buffer> <silent> <localleader>I :PythonImportThisFile<CR>
 
     " Change to directory of current file
     nnoremap <buffer> <silent> <localleader>d :JupyterCd %:p:h<CR>
