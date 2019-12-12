@@ -197,8 +197,8 @@ def connect_to_kernel(kernel_type):
         try:
             cfile = find_connection_file()  # default filename='kernel-*.json'
         except IOError:
-            vim_echom("kernel connection attempt {:d} failed - no kernel file"\
-                      .format(attempt), style="Error")
+            vim_echom("kernel connection attempt {:d}/{:d} failed - no kernel file"\
+                      .format(attempt, max_attempts), style="Error")
             continue
 
         # Create the kernel manager and connect a client
@@ -231,7 +231,7 @@ def connect_to_kernel(kernel_type):
         vim_echom('kernel connection successful! pid = {}'.format(pid),
                   style='Question')
     else:
-        kc.stop_channels()
+        if None is not kc: kc.stop_channels()
         vim_echom('kernel connection attempt timed out', style='Error')
 
 def disconnect_from_kernel():
