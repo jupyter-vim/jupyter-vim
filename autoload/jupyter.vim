@@ -80,7 +80,11 @@ function! jupyter#Connect() abort
                 \     vim.current.buffer.vars['jupyter_kernel_type']))
 endfunction
 
-function! jupyter#JupyterCd(...) abort
+function! jupyter#Disconnect(...) abort
+    Pythonx jupyter_vim.disconnect_from_kernel()
+endfunction
+
+function! jupyter#JupyterCd(...) abort 
     " Behaves just like typical `cd`.
     let l:dirname = a:0 ? a:1 : ''
     if b:jupyter_kernel_type == 'python'
@@ -217,6 +221,7 @@ function! jupyter#MakeStandardCommands()
     " Standard commands, called from each ftplugin so that we only map the
     " keys buffer-local for select filetypes.
     command! -buffer -nargs=0    JupyterConnect         call jupyter#Connect()
+    command! -buffer -nargs=0    JupyterDisconnect      call jupyter#Disconnect()
     command! -buffer -nargs=1    JupyterSendCode        call jupyter#SendCode(<args>)
     command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<count>)
     command! -buffer -range -bar JupyterSendRange       <line1>,<line2>call jupyter#SendRange()
