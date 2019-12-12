@@ -73,11 +73,24 @@ endfunction
 "-----------------------------------------------------------------------------
 "        Vim -> Jupyter Public Functions:
 "-----------------------------------------------------------------------------
-function! jupyter#Connect() abort 
+function! jupyter#Connect(...) abort
     " call jupyter#init_python()
+    let l:kernel_file = a:0 > 0 ? a:1 : 'kernel-*.json'
     Pythonx jupyter_vim.connect_to_kernel(
                 \ jupyter_vim.vim2py_str(
-                \     vim.current.buffer.vars['jupyter_kernel_type']))
+                \     vim.current.buffer.vars['jupyter_kernel_type']),
+                \ filename=vim.eval('l:kernel_file'))
+endfunction
+
+function! jupyter#CompleteConnect(ArgLead, CmdLine, CursorPos) abort
+    " Pre-Declare variable <- setted from python
+    let l:kernel_ids = []
+    " Get kernel id from python
+    Pythonx jupyter_vim.find_jupyter_kernels()
+    " Filter id matching user arg
+    call filter(l:kernel_ids, '-1 != match(v:val, a:ArgLead)')
+    " Return list
+    return l:kernel_ids
 endfunction
 
 function! jupyter#Disconnect(...) abort
@@ -220,7 +233,8 @@ endfunction
 function! jupyter#MakeStandardCommands()
     " Standard commands, called from each ftplugin so that we only map the
     " keys buffer-local for select filetypes.
-    command! -buffer -nargs=0    JupyterConnect         call jupyter#Connect()
+    command! -buffer -nargs=* -complete=customlist,jupyter#CompleteConnect
+          \ JupyterConnect call jupyter#Connect(<f-args>)
     command! -buffer -nargs=0    JupyterDisconnect      call jupyter#Disconnect()
     command! -buffer -nargs=1    JupyterSendCode        call jupyter#SendCode(<args>)
     command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<count>)

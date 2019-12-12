@@ -88,13 +88,14 @@ def warn_no_connection():
 
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
-if all([x in globals() for x in ('kc', 'pid', 'send')]):
+if all([x in globals() for x in ('kc', 'pid', 'send', 'cfile')]):
     if not check_connection():
         warn_no_connection()
 else:
     kc = None
     pid = None
     send = None
+    cfile = None
 
 #------------------------------------------------------------------------------
 #        Utilities
@@ -179,14 +180,34 @@ def strip_color_escapes(s):
     """Remove ANSI color escape sequences from a string."""
     return strip.sub('', s)
 
+def find_jupyter_kernels():
+    """Find opened kernels
+    Returns: List of string (intifiable)
+    """
+    from jupyter_core.paths import jupyter_runtime_dir
+
+    # Get all kernel json files
+    jupyter_path = jupyter_runtime_dir()
+    runtime_files = [f for f in os.listdir(jupyter_path)
+                     if os.path.isfile(os.path.join(jupyter_path, f))]
+
+    # Get all the kernel ids
+    kernel_ids = []
+    for runtime_file in runtime_files:
+        kernel_id, match_nb = re.subn(r'kernel-(\d*).json', r'\1', runtime_file)
+        kernel_ids.append(kernel_id)
+
+    # Set vim variable -> vim caller
+    vim.command('let l:kernel_ids=' + str(kernel_ids))
+
 #------------------------------------------------------------------------------
 #        Major Function Definitions:
 #------------------------------------------------------------------------------
-def connect_to_kernel(kernel_type):
+def connect_to_kernel(kernel_type, filename='kernel-*.json'):
     """Create kernel manager from existing connection file."""
     from jupyter_client import KernelManager, find_connection_file
 
-    global kc, pid, send
+    global kc, pid, send, cfile
 
     # Test if connection is alive
     connected = check_connection()
@@ -195,7 +216,7 @@ def connect_to_kernel(kernel_type):
     while not connected and attempt < max_attempts:
         attempt += 1
         try:
-            cfile = find_connection_file()  # default filename='kernel-*.json'
+            cfile = find_connection_file(filename=filename)
         except IOError:
             vim_echom("kernel connection attempt {:d}/{:d} failed - no kernel file"\
                       .format(attempt, max_attempts), style="Error")
@@ -228,8 +249,13 @@ def connect_to_kernel(kernel_type):
         # Send command so that monitor knows vim is connected
         # send('"_vim_client"', store_history=False)
         pid = get_pid(kernel_type)  # Ask kernel for its PID
-        vim_echom('kernel connection successful! pid = {}'.format(pid),
-                  style='Question')
+
+        # Get console pid (or better said first client)
+        client_pid = re.sub(r'.*kernel-(\d*).json.*', r'\1', cfile)
+
+        # Message user
+        vim_echom('kernel connection successful! (kernel) pid = {} <- {} = pid (console)'
+                  .format(pid, client_pid), style='Question')
     else:
         if None is not kc: kc.stop_channels()
         vim_echom('kernel connection attempt timed out', style='Error')
