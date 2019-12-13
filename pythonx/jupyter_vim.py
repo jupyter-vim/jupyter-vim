@@ -165,6 +165,11 @@ def unquote_string(string):
         res = res.rstrip(quote).lstrip(quote)
     return res
 
+def shorten_cfile():
+    """Get shortened cfile string"""
+    if cfile is None: return ""
+    return re.sub(r'.*kernel-(\d*).json.*', r'\1', cfile)
+
 def get_kernel_info(kernel_type):
     """Explicitly ask the jupyter kernel for its pid
     Returns: dict with 'kernel_type', 'pid', 'cwd', 'hostname'
@@ -176,6 +181,12 @@ def get_kernel_info(kernel_type):
 
     # Set kernel type
     res = {'kernel_type': kernel_type}
+
+    # Get full connection file
+    res['connection_file'] = cfile
+
+    # Get kernel id
+    res['id'] = shorten_cfile()
 
     # Get pid
     res['pid'] = -1
@@ -289,19 +300,16 @@ def connect_to_kernel(kernel_type, filename='kernel-*.json'):
             connected = True
 
     if connected:
-        # Get console pid (or better said first client)
-        cfile_short = re.sub(r'.*kernel-(\d*).json.*', r'\1', cfile)
+        # Collect kernel info
+        kernel_info = get_kernel_info(kernel_type)
+        pid = kernel_info['pid']
+
         # Send command so that user knows vim is connected
-        vim_echom('Connected: {}'.format(cfile_short), style='Question')
+        vim_echom('Connected: {}'.format(shorten_cfile()), style='Question')
 
         # More info by default
         is_short = int(vim.vars.get('jupyter_shortmess', 0))
         if not is_short:
-            # Get more info
-            kernel_info = get_kernel_info(kernel_type)
-            kernel_info['connection_file'] = cfile
-            pid = kernel_info['pid']
-
             # Prettify output: appearance rules
             from pprint import PrettyPrinter
             pp = PrettyPrinter(indent=4, width=vim.eval('&columns'))
@@ -318,7 +326,7 @@ def connect_to_kernel(kernel_type, filename='kernel-*.json'):
 def disconnect_from_kernel():
     """Disconnect kernel client."""
     if None is not kc: kc.stop_channels()
-    vim_echom("Disconnected: {}".format(cfile), style='Directory')
+    vim_echom("Disconnected: {}".format(shorten_cfile()), style='Directory')
 
 def update_console_msgs():
     """Grab pending messages and place them inside the vim console monitor."""
