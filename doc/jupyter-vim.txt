@@ -165,8 +165,8 @@ COMMANDS 					*jupyter-vim-commands*
 --------------------------------------------------------------------------------
 MAPPINGS					*jupyter-vim-mappings*
 
-<LocalLeader>R 		Run the current file (see |:JupyterRunFile|).
-<LocalLeader>I 		Import the current file (see |:PythonImportThisFile|).
+<localleader>R 		Run the current file (see |:JupyterRunFile|).
+<localleader>I 		Import the current file (see |:PythonImportThisFile|).
 <localleader>d 		Change to the directory of the current file (see |:JupyterCd|).
 <localleader>X 		Execute the current cell (see |:JupyterSendCell|).
 <localleader>E 		Execute the current line (see |:JupyterSendRange|).
@@ -237,7 +237,7 @@ update, regardless of whether the |g:jupyter_monitor_console| option is set.
 Default: 0 					Echo sent messages to vim
 
 If set to 1, this option will echo any message sent to the kernel on the vim
-command line (see |echomessage|). The `jupyter qtconsole` displays messages
+command line (see |:echomsg|). The `jupyter qtconsole` displays messages
 instantaneously, so echoing them in vim as well is redundant. It can be useful,
 however, for debugging kernel messaging issues, or if you just like visual
 confirmation in multiple places that your message has been sent.
