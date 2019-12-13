@@ -262,7 +262,7 @@ def connect_to_kernel(kernel_type, filename='kernel-*.json'):
 
 def disconnect_from_kernel():
     """Disconnect kernel client."""
-    kc.stop_channels()
+    if None is not kc: kc.stop_channels()
     vim_echom("Client disconnected from kernel with pid = {}".format(pid))
 
 def update_console_msgs():
