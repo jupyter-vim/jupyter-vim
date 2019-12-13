@@ -137,19 +137,10 @@ class PythonToVimStr(unicode):
             s = self.encode('UTF-8')
         return '"{:s}"'.format(s.replace('\\', '\\\\').replace('"', r'\"'))
 
-def get_pid(kernel_type):
-    """Explicitly ask the jupyter kernel for its pid."""
-    vim_echom("kernel_type = {}".format(kernel_type))
-    the_pid = -1
-    if kernel_type == 'python':
-        code = 'import os; _pid = os.getpid()'
-    elif kernel_type == 'julia':
-        code = '_pid = getpid()'
-    else:
-        code = '_pid = -1'
-        vim_echom("I don't know how to get the pid for a Jupyter kernel of"
-                  " type \"{}\"".format(kernel_type))
-    msg_id = send(code, silent=True, user_expressions={'_pid': '_pid'})
+def get_res_from_code_string(code):
+    """Helper: Get variable _res from code string (setting _res)"""
+
+    msg_id = send(code, silent=True, user_expressions={'_res': '_res'})
 
     # wait to get message back from kernel
     try:
@@ -160,12 +151,64 @@ def get_pid(kernel_type):
 
     try:
         # Requires the fix for https://github.com/JuliaLang/IJulia.jl/issues/815
-        the_pid = int(reply['content']['user_expressions']
-                      ['_pid']['data']['text/plain'])
+        res = reply['content']['user_expressions']['_res']['data']['text/plain']
+
     except KeyError:
         vim_echom("Could not get PID information, kernel not ready?")
 
-    return the_pid
+    return res
+
+def unquote_string(string):
+    """Unquote some text/plain response from kernel"""
+    res = str(string)
+    for quote in ("'", '"'):
+        res = res.rstrip(quote).lstrip(quote)
+    return res
+
+def get_kernel_info(kernel_type):
+    """Explicitly ask the jupyter kernel for its pid
+    Returns: dict with 'kernel_type', 'pid', 'cwd', 'hostname'
+    """
+    # Check in
+    if kernel_type not in ('julia', 'python'):
+        vim_echom("I don't know how to get the pid for a Jupyter kernel of"
+                  " type \"{}\"".format(kernel_type))
+
+    # Set kernel type
+    res = {'kernel_type': kernel_type}
+
+    # Get pid
+    res['pid'] = -1
+    try:
+        if kernel_type == 'python':
+            code = 'import os; _res = os.getpid()'
+        elif kernel_type == 'julia':
+            code = '_res = getpid()'
+        res['pid'] = int(get_res_from_code_string(code))
+    except Exception: pass
+
+    # Get cwd
+    res['cwd'] = 'unknwown'
+    try:
+        if kernel_type == 'python':
+            code = 'import os; _res = os.getcwd()'
+        elif kernel_type == 'julia':
+            code = '_res = pwd()'
+        res['cwd'] = unquote_string(get_res_from_code_string(code))
+    except Exception: pass
+
+    # Get hostname
+    res['hostname'] = 'unknwown'
+    try:
+        if kernel_type == 'python':
+            code = 'import socket; _res = socket.gethostname()'
+        elif kernel_type == 'julia':
+            code = '_res = gethostname()'
+        res['hostname'] = unquote_string(get_res_from_code_string(code))
+    except Exception: pass
+
+    # Return
+    return res
 
 def is_cell_separator(line):
     """ Determine whether a given line is a cell separator """
@@ -246,16 +289,28 @@ def connect_to_kernel(kernel_type, filename='kernel-*.json'):
             connected = True
 
     if connected:
-        # Send command so that monitor knows vim is connected
-        # send('"_vim_client"', store_history=False)
-        pid = get_pid(kernel_type)  # Ask kernel for its PID
-
         # Get console pid (or better said first client)
-        client_pid = re.sub(r'.*kernel-(\d*).json.*', r'\1', cfile)
+        cfile_short = re.sub(r'.*kernel-(\d*).json.*', r'\1', cfile)
+        # Send command so that user knows vim is connected
+        vim_echom('Connected: {}'.format(cfile_short), style='Question')
 
-        # Message user
-        vim_echom('kernel connection successful! (kernel) pid = {} <- {} = pid (console)'
-                  .format(pid, client_pid), style='Question')
+        # More info by default
+        is_short = int(vim.vars.get('jupyter_shortmess', 0))
+        if not is_short:
+            # Get more info
+            kernel_info = get_kernel_info(kernel_type)
+            kernel_info['connection_file'] = cfile
+            pid = kernel_info['pid']
+
+            # Prettify output: appearance rules
+            from pprint import PrettyPrinter
+            pp = PrettyPrinter(indent=4, width=vim.eval('&columns'))
+            kernel_string = pp.pformat(kernel_info)[4:-1]
+
+            # Echo message
+            vim_echom('To: ', style='Question')
+            vim.command("echon \"{}\"".format(kernel_string.replace('\"', '\\\"')))
+
     else:
         if None is not kc: kc.stop_channels()
         vim_echom('kernel connection attempt timed out', style='Error')

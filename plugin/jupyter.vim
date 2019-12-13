@@ -19,6 +19,7 @@ endif
 "        Configuration: {{{
 "-----------------------------------------------------------------------------
 let s:default_settings = {
+    \ 'shortmess': 0,
     \ 'auto_connect': 0,
     \ 'mapkeys': 1,
     \ 'monitor_console': 0,
