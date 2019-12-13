@@ -13,7 +13,7 @@ let b:ipython_run_flags = ''
 "}}}--------------------------------------------------------------------------
 "        Commands: {{{
 "-----------------------------------------------------------------------------
-command! -buffer -nargs=0 -complete=file  
+command! -buffer -nargs=0 -complete=file
             \ PythonImportThisFile update | call jupyter#RunFile('-n', expand("%:p"))
 
 " Debugging commands
@@ -23,7 +23,7 @@ command! -nargs=0   PythonSetBreak  call jupyter#PythonDbstop()
 "        Key Mappings: {{{
 "-----------------------------------------------------------------------------
 if exists('g:jupyter_mapkeys') && g:jupyter_mapkeys
-	" Run the current file
+    " Run the current file
     nnoremap <buffer> <silent> <localleader>I :PythonImportThisFile<CR>
 
     " Debugging maps
