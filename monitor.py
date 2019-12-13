@@ -23,9 +23,7 @@ Usage:
     :Jupyter
 """
 
-import ast
 import os
-import re
 import sys
 import six
 import traceback
@@ -176,6 +174,7 @@ class IPythonMonitor(object):
     execute_result = pyout
     error = pyerr
 
+
 #------------------------------------------------------------------------------
 #       Connect to the kernel
 #------------------------------------------------------------------------------
@@ -213,6 +212,7 @@ while not connected:
         if not connected:
             kc.stop_channels()
 
+
 #------------------------------------------------------------------------------
 #       Set stdout to desired tty
 #------------------------------------------------------------------------------
@@ -223,7 +223,7 @@ if len(sys.argv) > 1:
     term = open(sys.argv[1], 'w')
     sys.stdout = term
 else:
-    term = os.ttyname(1) # use monitor's terminal
+    term = os.ttyname(1)  # use monitor's terminal
     # # Set stdout to terminal in which kernel is running
     # msg_id = kc.execute('import os as _os; _tty = _os.ttyname(1)', silent=True,
     #         user_expressions=dict(_tty='_tty'))
