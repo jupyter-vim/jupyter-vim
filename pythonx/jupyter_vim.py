@@ -25,13 +25,13 @@ except ImportError:
 
 _install_instructions = """You *must* install the jupyter package into the
 Python that your vim is linked against. If you are seeing this message, this
-usually means either: 
+usually means either:
     (1) configuring vim to automatically load a virtualenv that has Jupyter
         installed and whose Python interpreter is the same version that your
         vim is compiled against
     (2) installing Jupyter using the system Python that vim is using, or
     (3) recompiling Vim against the Python where you already have Jupyter
-        installed. 
+        installed.
 This is only a requirement to allow Vim to speak with a Jupyter kernel using
 Jupyter's own machinery. It does *not* mean that the Jupyter instance with
 which you communicate via jupyter-vim needs to be running the same version of
@@ -83,8 +83,8 @@ def check_connection():
     return kc.hb_channel.is_beating() if kc else False
 
 def warn_no_connection():
-    vim_echom('WARNING: Not connected to Jupyter!' + \
-                '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
+    vim_echom('WARNING: Not connected to Jupyter!'
+              '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
 
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
@@ -127,7 +127,7 @@ class PythonToVimStr(unicode):
 
     def __repr__(self):
         # this is totally stupid and makes no sense but vim/python unicode
-        # support is pretty bad. don't ask how I came up with this... It just
+        # support is pretty bad. Don't ask how I came up with this... It just
         # works...
         # It seems to be related to that bug: http://bugs.python.org/issue5876
         if unicode is str:
@@ -148,7 +148,7 @@ def get_pid(kernel_type):
         code = '_pid = -1'
         vim_echom("I don't know how to get the pid for a Jupyter kernel of"
                   " type \"{}\"".format(kernel_type))
-    msg_id = send(code, silent=True, user_expressions={'_pid':'_pid'})
+    msg_id = send(code, silent=True, user_expressions={'_pid': '_pid'})
 
     # wait to get message back from kernel
     try:
@@ -159,8 +159,8 @@ def get_pid(kernel_type):
 
     try:
         # Requires the fix for https://github.com/JuliaLang/IJulia.jl/issues/815
-        the_pid = int(reply['content']['user_expressions']\
-                        ['_pid']['data']['text/plain'])
+        the_pid = int(reply['content']['user_expressions']
+                      ['_pid']['data']['text/plain'])
     except KeyError:
         vim_echom("Could not get PID information, kernel not ready?")
 
@@ -225,7 +225,7 @@ def connect_to_kernel(kernel_type):
             connected = True
 
     if connected:
-        # Send command so that monitor knows vim is commected
+        # Send command so that monitor knows vim is connected
         # send('"_vim_client"', store_history=False)
         pid = get_pid(kernel_type)  # Ask kernel for its PID
         vim_echom('kernel connection successful! pid = {}'.format(pid),
@@ -254,7 +254,7 @@ def update_console_msgs():
     io_pub = handle_messages()
     b = vim.current.buffer
     for msg in io_pub:
-        b.append([PythonToVimStr(l) for l in msg.splitlines()])
+        b.append([PythonToVimStr(line) for line in msg.splitlines()])
     vim.command('normal! G')
 
     # Move cursor back to original window
@@ -279,7 +279,7 @@ def handle_messages():
         if msg_type == 'status':
             continue
         elif msg_type == 'stream':
-            # TODO: alllow for distinguishing between stdout and stderr (using
+            # TODO: allow for distinguishing between stdout and stderr (using
             # custom syntax markers in the vim-jupyter buffer perhaps), or by
             # also echoing the message to the status bar
             s = strip_color_escapes(msg['content']['text'])
@@ -299,7 +299,7 @@ def handle_messages():
             s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
         elif msg_type == 'input_request':
             vim_echom('python input not supported in vim.', 'Error')
-            continue # unsure what to do here... maybe just return False?
+            continue  # unsure what to do here... maybe just return False?
         else:
             vim_echom("Message type {} unrecognized!".format(msg_type))
             continue
@@ -336,7 +336,7 @@ def print_prompt(prompt, msg_id=None):
         except Empty:
             # if the kernel is waiting for input it's normal to get no reply
             if not kc.stdin_channel.msg_ready():
-                vim_echom("In[]: {} (no reply from Jupyter kernel)"\
+                vim_echom("In[]: {} (no reply from Jupyter kernel)"
                           .format(prompt))
     else:
         vim_echom("In[]: {}".format(prompt))
@@ -452,14 +452,14 @@ def signal_kernel(sig=signal.SIGTERM):
     """
     try:
         os.kill(pid, int(sig))
-        vim_echom("kill pid {p:d} with signal #{v:d}, {n:s}"\
+        vim_echom("kill pid {p:d} with signal #{v:d}, {n:s}"
                   .format(p=pid, v=sig.value, n=sig.name), style='WarningMsg')
     except ProcessLookupError:
         vim_echom(("pid {p:d} does not exist! " +
-                   "Kernel may have been terminated by outside process")\
+                   "Kernel may have been terminated by outside process")
                   .format(p=pid), style='Error')
     except OSError as e:
-        vim_echom("signal #{v:d}, {n:s} failed to kill pid {p:d}"\
+        vim_echom("signal #{v:d}, {n:s} failed to kill pid {p:d}"
                   .format(v=sig.value, n=sig.name, p=pid), style='Error')
         raise e
 

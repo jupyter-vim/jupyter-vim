@@ -43,7 +43,7 @@ USAGE 						*jupyter-vim-usage*
 This plugin is intended to be used with side-by-side terminals, or with
 a multiplexer such as `tmux`. The idea is to edit your python script in vim,
 and be able to send commands to Jupyter, which is running in the other
-terminal. No more copy/alt-tab/paste! 
+terminal. No more copy/alt-tab/paste!
 
 To begin:
 	$ jupyter qtconsole &  # open a jupyter console window
@@ -150,7 +150,7 @@ COMMANDS 					*jupyter-vim-commands*
 			print them in the `__jupyter_console__` buffer. If
 			|g:jupyter_monitor_console| == 1, this update will
 			happen automatically when any :JupyterSend* command is
-			executed. The pseudo console will open in a split. 
+			executed. The pseudo console will open in a split.
 
 			Note: This function is a relic from the original
 			vim-ipython. The `jupyter qtconsole` already displays
@@ -165,8 +165,8 @@ COMMANDS 					*jupyter-vim-commands*
 --------------------------------------------------------------------------------
 MAPPINGS					*jupyter-vim-mappings*
 
-<LocalLeader>R 		Run the current file (see |:JupyterRunFile|).
-<LocalLeader>I 		Import the current file (see |:PythonImportThisFile|).
+<localleader>R 		Run the current file (see |:JupyterRunFile|).
+<localleader>I 		Import the current file (see |:PythonImportThisFile|).
 <localleader>d 		Change to the directory of the current file (see |:JupyterCd|).
 <localleader>X 		Execute the current cell (see |:JupyterSendCell|).
 <localleader>E 		Execute the current line (see |:JupyterSendRange|).
@@ -175,7 +175,7 @@ MAPPINGS					*jupyter-vim-mappings*
 {Visual}<localleader>e  Execute the |visual| selection
 
 <localleader>U          Update the kernel I/O messages in the pseudo console.
-			Open up a split for display if it is not already open 
+			Open up a split for display if it is not already open
 			(see |:JupyterUpdateShell|).
 
 <localleader>b 		Insert a breakpoint at the current line.
@@ -203,13 +203,13 @@ Default: '' 				Flags for "%run" IPython magic
 Buffer-local variable to append [flags] to the |:JupyterRunFile| command for
 that buffer. Typical flags include "-i" to run the file in the current IPython
 kernel namespace, or "-d" to start the `pdb` debugger at the first line of the
-file. 
+file.
 
 See:
 <http://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-run>
 or type "%run?" in the `jupyter [qt]console` for more information.
 
-`g:jupyter_auto_connect`   			*g:jupyter_auto_connect*  
+`g:jupyter_auto_connect`   			*g:jupyter_auto_connect*
 Default: 0 				Automatically connect to kernel
 
 This setting determines if vim will automatically run |:JupyterConnect| for any
@@ -218,13 +218,13 @@ code file whose filetype is associated with a kernel language (other than
 connection process, vim will be slow to start up if this option is set to 1. An
 asynchronous connection process is a work in progress.
 
-`g:jupyter_mapkeys`   					*g:jupyter_mapkeys*  
+`g:jupyter_mapkeys`   					*g:jupyter_mapkeys*
 Default: 1 					Map keys for python files
 
 By default, jupyter-vim will map the keys, as described in
 |jupyter-vim-mappings|. Set to 0 to create your own mappings in your vimrc.
 
-`g:jupyter_monitor_console`   			*g:jupyter_monitor_console*  
+`g:jupyter_monitor_console`   			*g:jupyter_monitor_console*
 Default: 0 				Automatically update pseudo console
 
 Setting this option to 1 will cause jupyter-vim to create a pseudo console
@@ -233,14 +233,14 @@ buffer named `__jupyter_console__` to display I/O messages from the running
 :JupyterRunFile command is sent. The |:JupyterUpdateShell| command forces an
 update, regardless of whether the |g:jupyter_monitor_console| option is set.
 
-`g:jupyter_verbose`   					*g:jupyter_verbose*  
+`g:jupyter_verbose`   					*g:jupyter_verbose*
 Default: 0 					Echo sent messages to vim
 
 If set to 1, this option will echo any message sent to the kernel on the vim
-command line (see |echomessage|). The `jupyter qtconsole` displays messages
+command line (see |:echomsg|). The `jupyter qtconsole` displays messages
 instantaneously, so echoing them in vim as well is redundant. It can be useful,
 however, for debugging kernel messaging issues, or if you just like visual
-confirmation in multiple places that your message has been sent. 
+confirmation in multiple places that your message has been sent.
 
 Note that the `jupyter console` (not `qt`), does `not` echo messages from other
 clients until <Enter> is pressed. I am working on a non-blocking or threaded
@@ -323,9 +323,9 @@ CHANGELOG					*jupyter-vim-changelog*
 --------------------------------------------------------------------------------
 CONTRIBUTING					*jupyter-vim-contributing*
 
-Please feel free to contact me at: 
-	bernard.roesler@gmail.com 
-with the subject line 
+Please feel free to contact me at:
+	bernard.roesler@gmail.com
+with the subject line
 	"[jupyter-vim]: Contributing".
 
 --------------------------------------------------------------------------------
@@ -336,4 +336,3 @@ I owe significant thanks to the original developer of this plugin: Paul Ivanov
 already works well than to forge a new path from scratch.
 
 vim:tw=78:ts=8:noet:ft=help:norl:
-

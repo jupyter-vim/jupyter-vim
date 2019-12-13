@@ -131,7 +131,7 @@ endif
 
 ## Jupyter configuration
 First, we need to configure the jupyter console and qtconsole clients to
-display output from other clients. 
+display output from other clients.
 
 The config files can be found in in `~/.jupyter`, if they don't exist yet you
 can generate them with:
@@ -214,7 +214,7 @@ Please feel free to raise issues and pull requests on
 
 ### Credits
 
-We owe significant thanks to the original developer of this plugin: 
+We owe significant thanks to the original developer of this plugin:
 [Paul Ivanov](https://github.com/ivanov).
 It is far easier to update something that already works well than to forge
 a new path from scratch.
