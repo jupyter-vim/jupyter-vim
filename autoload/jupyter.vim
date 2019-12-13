@@ -75,7 +75,7 @@ endfunction
 "-----------------------------------------------------------------------------
 function! jupyter#Connect(...) abort
     " call jupyter#init_python()
-    let l:kernel_file = a:0 > 0 ? a:1 : 'kernel-*.json'
+    let l:kernel_file = a:0 > 0 ? a:1 : '*.json'
     Pythonx jupyter_vim.connect_to_kernel(
                 \ jupyter_vim.vim2py_str(
                 \     vim.current.buffer.vars['jupyter_kernel_type']),

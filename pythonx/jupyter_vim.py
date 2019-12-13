@@ -242,8 +242,12 @@ def find_jupyter_kernels():
 
     # Get all kernel json files
     jupyter_path = jupyter_runtime_dir()
-    runtime_files = [f for f in os.listdir(jupyter_path)
-                     if os.path.isfile(os.path.join(jupyter_path, f))]
+    runtime_files = []
+    for file_path in os.listdir(jupyter_path):
+        full_path = os.path.join(jupyter_path, file_path)
+        file_ext = os.path.splitext(file_path)[1]
+        if (os.path.isfile(full_path) and '.json' == file_ext):
+            runtime_files.append(file_path)
 
     # Get all the kernel ids
     kernel_ids = []
@@ -257,7 +261,7 @@ def find_jupyter_kernels():
 #------------------------------------------------------------------------------
 #        Major Function Definitions:
 #------------------------------------------------------------------------------
-def connect_to_kernel(kernel_type, filename='kernel-*.json'):
+def connect_to_kernel(kernel_type, filename=''):
     """Create kernel manager from existing connection file."""
     from jupyter_client import KernelManager, find_connection_file
 
