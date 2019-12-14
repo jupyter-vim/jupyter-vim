@@ -7,7 +7,7 @@
 "
 "=============================================================================
 
-if exists("g:loaded_jupyter_vim") || !(has('pythonx') || has('python') || has('python3')) || &cp
+if exists('g:loaded_jupyter_vim') || !(has('pythonx') || has('python') || has('python3')) || &compatible
     finish
 endif
 

@@ -100,9 +100,9 @@ endfunction
 function! jupyter#JupyterCd(...) abort 
     " Behaves just like typical `cd`.
     let l:dirname = a:0 ? a:1 : ''
-    if b:jupyter_kernel_type == 'python'
+    if b:jupyter_kernel_type ==# 'python'
         JupyterSendCode '%cd "'.escape(l:dirname, '"').'"'
-    elseif b:jupyter_kernel_type == 'julia'
+    elseif b:jupyter_kernel_type ==# 'julia'
         JupyterSendCode 'cd("'.escape(l:dirname, '"').'")'
     else
         echoerr 'I don''t know how to do the `cd` command in Jupyter kernel'
@@ -113,13 +113,13 @@ endfunction
 function! jupyter#RunFile(...) abort
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
-    let l:filename = a:0 ? a:000[-1] : expand("%:p")
-    if b:jupyter_kernel_type == 'python'
+    let l:filename = a:0 ? a:000[-1] : expand('%:p')
+    if b:jupyter_kernel_type ==# 'python'
         Pythonx jupyter_vim.run_file_in_ipython(
                     \ flags=vim.eval('l:flags'),
                     \ filename=vim.eval('l:filename'))
-    elseif b:jupyter_kernel_type == 'julia'
-        if l:flags != ''
+    elseif b:jupyter_kernel_type ==# 'julia'
+        if l:flags !=# ''
             echoerr 'RunFile in kernel type "julia" doesn''t support flags.'
                 \ . ' All arguments except the last (file location) will be'
                 \ . ' ignored.'
@@ -185,7 +185,7 @@ endfunction
 " one argument) that will act on the text object, and returns an
 " function that may be used as an operatorfunction. Then we don't need to
 " rewrite this opfunc, just changing the line that handles 'l:cmd' every time.
-function! s:opfunc(type)
+function! s:opfunc(type) abort
     " Originally from tpope/vim-scriptease
     let sel_save = &selection
     let cb_save = &clipboard
@@ -195,18 +195,18 @@ function! s:opfunc(type)
     let vimode_save = visualmode()
     try
         set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
-        if a:type =~ '^\d\+$'
+        if a:type =~# '^\d\+$'
             silent exe 'normal! ^v'.a:type.'$hy'
         elseif a:type =~# '^.$'
-            silent exe "normal! `<" . a:type . "`>y"
+            silent exe 'normal! `<' . a:type . '`>y'
         elseif a:type ==# 'line'
             silent exe "normal! '[V']y"
         elseif a:type ==# 'block'
             silent exe "normal! `[\<C-V>`]y"
         elseif a:type ==# 'visual'
-            silent exe "normal! gvy"
+            silent exe 'normal! gvy'
         else
-            silent exe "normal! `[v`]y"
+            silent exe 'normal! `[v`]y'
         endif
         redraw
         let l:cmd = @@
@@ -214,7 +214,7 @@ function! s:opfunc(type)
         let @@ = reg_save
         let &selection = sel_save
         let &clipboard = cb_save
-        exe "normal! " . vimode_save . "\<Esc>"
+        exe 'normal! ' . vimode_save . '\<Esc>'
         call setpos("'<", left_save)
         call setpos("'>", right_save)
     endtry
@@ -225,11 +225,14 @@ endfunction
 "-----------------------------------------------------------------------------
 "        Auxiliary Functions:
 "-----------------------------------------------------------------------------
-function! jupyter#PythonDbstop()
+" vint: next-line -ProhibitNoAbortFunction
+function! jupyter#PythonDbstop() abort
     " Set a debugging breakpoint for use with pdb
-    normal! Oimport pdb; pdb.set_trace()j
+    normal! Oimport pdb; pdb.set_trace()
+    normal! j
 endfunction
 
+" vint: next-line -ProhibitNoAbortFunction
 function! jupyter#MakeStandardCommands()
     " Standard commands, called from each ftplugin so that we only map the
     " keys buffer-local for select filetypes.
@@ -247,7 +250,7 @@ function! jupyter#MakeStandardCommands()
                 \ JupyterRunFile update | call jupyter#RunFile(<f-args>)
 endfunction
 
-function! jupyter#MapStandardKeys()
+function! jupyter#MapStandardKeys() abort
     " Standard keymaps, called from each ftplugin so that we only map the keys
     " buffer-local for select filetypes.
     nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
@@ -290,6 +293,7 @@ function! jupyter#OpenJupyterTerm() abort
     setlocal syntax=python
 
     " Clear out any autocmds that trigger on Insert for the console buffer
+    " vint: next-line -ProhibitAutocmdWithNoGroup
     autocmd! InsertEnter,InsertLeave <buffer>
 
     " Syntax highlighting for prompt
