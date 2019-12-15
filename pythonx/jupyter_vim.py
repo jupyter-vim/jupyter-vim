@@ -139,22 +139,40 @@ class PythonToVimStr(unicode):
 
 def get_res_from_code_string(code):
     """Helper: Get variable _res from code string (setting _res)"""
+    res = None
 
+    # Send message
     msg_id = send(code, silent=True, user_expressions={'_res': '_res'})
 
-    # wait to get message back from kernel
+    # Wait to get message back from kernel (1 sec)
     try:
         reply = get_reply_msg(msg_id)
-    except Empty:
-        vim_echom("no reply from jupyter kernel", "WarningMsg")
-        return -1
+    except Empty: pass
 
+    # Parse response
     try:
         # Requires the fix for https://github.com/JuliaLang/IJulia.jl/issues/815
         res = reply['content']['user_expressions']['_res']['data']['text/plain']
+    except KeyError: pass
 
-    except KeyError:
-        vim_echom("Could not get PID information, kernel not ready?")
+    # If bad luck, try again, cross your finger
+    # Explain: some kernel (iperl) do not discriminate when clien ask user_expressions.
+    # But still they give a printable output
+    if None is res:
+        # Parse all execute
+        msgs = kc.iopub_channel.get_msgs()
+        for msg in msgs:
+            try:
+                # Get the result of execution
+                if 'execute_result' != msg['header']['msg_type']: continue
+                res = msg['content']['data']['text/plain']
+                break
+            except (KeyError): pass
+
+    # Game over
+    if None is res:
+        res = -1
+        vim_echom("no reply from jupyter kernel", "WarningMsg")
 
     return res
 
