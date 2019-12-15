@@ -194,8 +194,8 @@ def get_kernel_info(kernel_type):
     """
     # Check in
     if kernel_type not in ('perl', 'julia', 'python'):
-        vim_echom("I don't know how to get the pid for a Jupyter kernel of"
-                  " type \"{}\"".format(kernel_type))
+        vim_echom('I don''t know how to get infos for a Jupyter kernel of'
+                ' type "{}"'.format(kernel_type), 'WarningMsg')
 
     # Set kernel type
     res = {'kernel_type': kernel_type}
@@ -207,7 +207,7 @@ def get_kernel_info(kernel_type):
     res['id'] = shorten_cfile()
 
     # Get pid
-    res['pid'] = -1
+    res['pid'] = code = -1
     try:
         if kernel_type == 'python':
             code = 'import os; _res = os.getpid()'
@@ -219,7 +219,7 @@ def get_kernel_info(kernel_type):
     except Exception: pass
 
     # Get cwd
-    res['cwd'] = 'unknwown'
+    res['cwd'] = code = 'unknwown'
     try:
         if kernel_type == 'python':
             code = 'import os; _res = os.getcwd()'
@@ -231,7 +231,7 @@ def get_kernel_info(kernel_type):
     except Exception: pass
 
     # Get hostname
-    res['hostname'] = 'unknwown'
+    res['hostname'] = code = 'unknwown'
     try:
         if kernel_type == 'python':
             code = 'import socket; _res = socket.gethostname()'
@@ -300,7 +300,7 @@ def connect_to_kernel(kernel_type, filename=''):
         try:
             cfile = find_connection_file(filename=filename)
         except IOError:
-            vim_echom("kernel connection attempt {:d}/{:d} failed - no kernel file"\
+            vim_echom("kernel connection attempt {:d}/{:d} failed - no kernel file"
                       .format(attempt, max_attempts), style="Error")
             continue
 
