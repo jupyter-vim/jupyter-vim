@@ -5,6 +5,7 @@
 "
 "  Description: Set up autocmds and config variables for jupyter-vim plugin
 "
+"  Filetypes: python, julia
 "=============================================================================
 
 if exists('g:loaded_jupyter_vim') || !(has('pythonx') || has('python') || has('python3')) || &compatible
