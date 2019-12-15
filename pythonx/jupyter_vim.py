@@ -253,8 +253,8 @@ def strip_color_escapes(s):
 
 def shorten_filename(runtime_file):
     if runtime_file is None: return ''
-    return re.subn(
-            r'kernel-([0-9a-fA-F]*)[0-9a-fA-F\-]*.json', r'\1', runtime_file)
+    r_cfile = r'.*kernel-([0-9a-fA-F]*)[0-9a-fA-F\-]*.json'
+    return re.sub(r_cfile, r'\1', runtime_file)
 
 
 def find_jupyter_kernels():
@@ -275,7 +275,7 @@ def find_jupyter_kernels():
     # Get all the kernel ids
     kernel_ids = []
     for runtime_file in runtime_files:
-        kernel_id, match_nb = shorten_filename(runtime_file)
+        kernel_id = shorten_filename(runtime_file)
         if runtime_file.startswith('nbserver'): continue
         kernel_ids.append(kernel_id)
 
