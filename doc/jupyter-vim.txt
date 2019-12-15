@@ -5,6 +5,7 @@ A two-way integration between Vim and Jupyter [Qt]Console.
 Using this plugin, send lines or files for the Jupyter kernel to execute.
 Receive tracebacks for debugging.
 
+Page: <https://github.com/jupyter-vim/jupyter-vim>
 Author:  Bernie Roesler <https://github.com/broesler/jupyter-vim>
 Forked from: vim-ipython <https://github.com/wmvanvliet/vim-ipython>
 License: Distributed under the MIT license (see |jupyter-vim-license|)
