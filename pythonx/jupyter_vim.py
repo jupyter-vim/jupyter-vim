@@ -10,7 +10,7 @@
 # Python code for ftplugin/python/jupyter.vim.
 ##############################################################################
 
-from __future__ import print_function
+from language import list_languages, get_language
 import os
 import re
 import signal
@@ -54,9 +54,6 @@ is_py3 = sys.version_info[0] >= 3
 if is_py3:
     unicode = str
 
-prompt_in = 'In [{line:d}]: '
-prompt_out = 'Out[{line:d}]: '
-
 
 # General message command
 def vim_echom(arg, style="None"):
@@ -91,7 +88,7 @@ def warn_no_connection():
 
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
-if all([x in globals() for x in ('kc', 'pid', 'send', 'cfile')]):
+if all([x in globals() for x in ('kc', 'pid', 'send', 'cfile', 'lang')]):
     if not check_connection():
         warn_no_connection()
 else:
@@ -99,6 +96,7 @@ else:
     pid = None
     send = None
     cfile = None
+    lang = None
 
 
 # -----------------------------------------------------------------------------
@@ -184,6 +182,12 @@ def get_res_from_code_string(code):
         res = -1
         vim_echom("no reply from jupyter kernel", "WarningMsg")
 
+    # Convert
+    res = unquote_string(res)
+    if re.match(r'[-+]?\d+$', res) is not None:
+        res = int(res)
+
+    # Rest in peace
     return res
 
 
@@ -195,20 +199,19 @@ def unquote_string(string):
     return res
 
 
-def shorten_cfile():
-    """Get shortened cfile string"""
-    if cfile is None: return ""
-    return re.sub(r'.*kernel-(\d*).json.*', r'\1', cfile)
-
-
 def get_kernel_info(kernel_type):
     """Explicitly ask the jupyter kernel for its pid
     Returns: dict with 'kernel_type', 'pid', 'cwd', 'hostname'
     """
+    global pid, lang
+
     # Check in
-    if kernel_type not in ('javascript', 'perl', 'julia', 'python'):
+    if kernel_type not in list_languages():
         vim_echom('I don''t know how to get infos for a Jupyter kernel of'
                   ' type "{}"'.format(kernel_type), 'WarningMsg')
+
+    # Get language
+    lang = get_language(kernel_type)
 
     # Set kernel type
     res = {'kernel_type': kernel_type}
@@ -217,49 +220,20 @@ def get_kernel_info(kernel_type):
     res['connection_file'] = cfile
 
     # Get kernel id
-    res['id'] = shorten_cfile()
+    res['id'] = shorten_filename(cfile)
 
     # Get pid
-    res['pid'] = code = -1
-    try:
-        if kernel_type == 'python':
-            code = 'import os; _res = os.getpid()'
-        elif kernel_type == 'julia':
-            code = '_res = getpid()'
-        elif kernel_type == 'perl':
-            code = '$_res = $$'
-        elif kernel_type == 'javascript':
-            code = 'var process = require("process"); _res = process.pid;'
-        res['pid'] = int(get_res_from_code_string(code))
-    except Exception: pass
+    try: res['pid'] = get_res_from_code_string(lang.pid)
+    except Exception: res['pid'] = -1
+    pid = res['pid']
 
     # Get cwd
-    res['cwd'] = code = 'unknwown'
-    try:
-        if kernel_type == 'python':
-            code = 'import os; _res = os.getcwd()'
-        elif kernel_type == 'julia':
-            code = '_res = pwd()'
-        elif kernel_type == 'perl':
-            code = 'use Cwd; $_res = getcwd();'
-        elif kernel_type == 'javascript':
-            code = 'var process = require("process"); _res = process.cwd();'
-        res['cwd'] = unquote_string(get_res_from_code_string(code))
-    except Exception: pass
+    try: res['cwd'] = get_res_from_code_string(lang.cwd)
+    except Exception: res['cwd'] = 'unknown'
 
     # Get hostname
-    res['hostname'] = code = 'unknwown'
-    try:
-        if kernel_type == 'python':
-            code = 'import socket; _res = socket.gethostname()'
-        elif kernel_type == 'julia':
-            code = '_res = gethostname()'
-        elif kernel_type == 'perl':
-            code = 'use Sys::Hostname qw/hostname/; $_res = hostname();'
-        elif kernel_type == 'javascript':
-            code = 'var os = require("os"); _res = os.userInfo().username;'
-        res['hostname'] = unquote_string(get_res_from_code_string(code))
-    except Exception: pass
+    try: res['hostname'] = get_res_from_code_string(lang.hostname)
+    except Exception: res['hostname'] = 'unknown'
 
     # Return
     return res
@@ -275,6 +249,12 @@ def is_cell_separator(line):
 def strip_color_escapes(s):
     """Remove ANSI color escape sequences from a string."""
     return strip.sub('', s)
+
+
+def shorten_filename(runtime_file):
+    if runtime_file is None: return ''
+    return re.subn(
+            r'kernel-([0-9a-fA-F]*)[0-9a-fA-F\-]*.json', r'\1', runtime_file)
 
 
 def find_jupyter_kernels():
@@ -295,8 +275,7 @@ def find_jupyter_kernels():
     # Get all the kernel ids
     kernel_ids = []
     for runtime_file in runtime_files:
-        kernel_id, match_nb = re.subn(
-            r'kernel-([0-9a-fA-F]*)[0-9a-fA-F\-]*.json', r'\1', runtime_file)
+        kernel_id, match_nb = shorten_filename(runtime_file)
         if runtime_file.startswith('nbserver'): continue
         kernel_ids.append(kernel_id)
 
@@ -311,7 +290,7 @@ def connect_to_kernel(kernel_type, filename=''):
     """Create kernel manager from existing connection file."""
     from jupyter_client import KernelManager, find_connection_file
 
-    global kc, pid, send, cfile
+    global kc, send, cfile
 
     # Test if connection is alive
     connected = check_connection()
@@ -352,10 +331,9 @@ def connect_to_kernel(kernel_type, filename=''):
     if connected:
         # Collect kernel info
         kernel_info = get_kernel_info(kernel_type)
-        pid = kernel_info['pid']
 
         # Send command so that user knows vim is connected
-        vim_echom('Connected: {}'.format(shorten_cfile()), style='Question')
+        vim_echom('Connected: {}'.format(shorten_filename(cfile)), style='Question')
 
         # More info by default
         is_short = int(vim.vars.get('jupyter_shortmess', 0))
@@ -377,7 +355,7 @@ def connect_to_kernel(kernel_type, filename=''):
 def disconnect_from_kernel():
     """Disconnect kernel client."""
     if None is not kc: kc.stop_channels()
-    vim_echom("Disconnected: {}".format(shorten_cfile()), style='Directory')
+    vim_echom("Disconnected: {}".format(shorten_filename(cfile)), style='Directory')
 
 
 def update_console_msgs():
@@ -429,13 +407,13 @@ def handle_messages():
             s += msg['content']['data']['text/plain']
         elif msg_type == 'pyin' or msg_type == 'execute_input':
             line_number = msg['content'].get('execution_count', 0)
-            prompt = prompt_in.format(line=line_number)
+            prompt = lang.prompt_in.format(line=line_number)
             s = prompt
             # add continuation line, if necessary
             dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
             s += msg['content']['code'].rstrip().replace('\n', '\n' + dots)
         elif msg_type == 'pyout' or msg_type == 'execute_result':
-            s = prompt_out.format(line=msg['content']['execution_count'])
+            s = lang.prompt_out.format(line=msg['content']['execution_count'])
             s += msg['content']['data']['text/plain']
         elif msg_type == 'pyerr' or msg_type == 'error':
             s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
