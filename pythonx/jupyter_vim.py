@@ -1,15 +1,14 @@
-#=============================================================================
+##############################################################################
 #    File: pythonx/jupyter_vim.py
 # Created: 07/28/11 22:14:58
 #  Author: Paul Ivanov (http://pirsquared.org)
 #  Updated: [11/13/2017] Marijn van Vliet
 #  Updated: [02/14/2018, 12:31] Bernie Roesler
+#  Updated: [15/12/2019] Tinmarino
 #
 # Description:
-"""
-Python code for ftplugin/python/jupyter.vim.
-"""
-#=============================================================================
+# Python code for ftplugin/python/jupyter.vim.
+##############################################################################
 
 from __future__ import print_function
 import os
@@ -39,7 +38,7 @@ Python.
 """
 
 try:
-    import jupyter
+    import jupyter   # noqa
 except ImportError as e:
     raise ImportError("Could not find kernel. " + _install_instructions, e)
 
@@ -48,15 +47,16 @@ try:
 except ImportError as e:
     raise ImportError('vim module only available within vim!', e)
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #        Read global configuration variables
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 is_py3 = sys.version_info[0] >= 3
 if is_py3:
     unicode = str
 
-prompt_in  = 'In [{line:d}]: '
+prompt_in = 'In [{line:d}]: '
 prompt_out = 'Out[{line:d}]: '
+
 
 # General message command
 def vim_echom(arg, style="None"):
@@ -75,16 +75,19 @@ def vim_echom(arg, style="None"):
     except vim.error:
         print("-- {}".format(arg))
 
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 #        Check Connection:
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def check_connection():
     """Check that we have a client connected to the kernel."""
     return kc.hb_channel.is_beating() if kc else False
 
+
 def warn_no_connection():
     vim_echom('WARNING: Not connected to Jupyter!'
               '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
+
 
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
@@ -97,12 +100,17 @@ else:
     send = None
     cfile = None
 
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 #        Utilities
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Define wrapper for encoding
 # get around unicode problems when interfacing with vim
 vim_encoding = vim.eval('&encoding') or 'utf-8'
+# from <http://serverfault.com/questions/71285/\
+# in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file>
+strip = re.compile(r'\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mK]')
+
 
 def vim2py_str(var):
     """Convert to proper encoding."""
@@ -111,6 +119,7 @@ def vim2py_str(var):
     elif not is_py3 and isinstance(var, str):
         var = unicode(var, vim_encoding)
     return var
+
 
 # Taken from jedi-vim/pythonx/jedi_vim.py
 # <https://github.com/davidhalter/jedi-vim>
@@ -136,6 +145,7 @@ class PythonToVimStr(unicode):
         else:
             s = self.encode('UTF-8')
         return '"{:s}"'.format(s.replace('\\', '\\\\').replace('"', r'\"'))
+
 
 def get_res_from_code_string(code):
     """Helper: Get variable _res from code string (setting _res)"""
@@ -176,6 +186,7 @@ def get_res_from_code_string(code):
 
     return res
 
+
 def unquote_string(string):
     """Unquote some text/plain response from kernel"""
     res = str(string)
@@ -183,10 +194,12 @@ def unquote_string(string):
         res = res.rstrip(quote).lstrip(quote)
     return res
 
+
 def shorten_cfile():
     """Get shortened cfile string"""
     if cfile is None: return ""
     return re.sub(r'.*kernel-(\d*).json.*', r'\1', cfile)
+
 
 def get_kernel_info(kernel_type):
     """Explicitly ask the jupyter kernel for its pid
@@ -195,7 +208,7 @@ def get_kernel_info(kernel_type):
     # Check in
     if kernel_type not in ('javascript', 'perl', 'julia', 'python'):
         vim_echom('I don''t know how to get infos for a Jupyter kernel of'
-                ' type "{}"'.format(kernel_type), 'WarningMsg')
+                  ' type "{}"'.format(kernel_type), 'WarningMsg')
 
     # Set kernel type
     res = {'kernel_type': kernel_type}
@@ -251,18 +264,18 @@ def get_kernel_info(kernel_type):
     # Return
     return res
 
+
 def is_cell_separator(line):
     """ Determine whether a given line is a cell separator """
     # TODO allow users to define their own cell separators
     cell_sep = ('##', '#%%', '# %%', '# <codecell>')
     return line.startswith(cell_sep)
 
-# from <http://serverfault.com/questions/71285/\
-# in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file>
-strip = re.compile(r'\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mK]')
+
 def strip_color_escapes(s):
     """Remove ANSI color escape sequences from a string."""
     return strip.sub('', s)
+
 
 def find_jupyter_kernels():
     """Find opened kernels
@@ -288,9 +301,10 @@ def find_jupyter_kernels():
     # Set vim variable -> vim caller
     vim.command('let l:kernel_ids=' + str(kernel_ids))
 
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 #        Major Function Definitions:
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def connect_to_kernel(kernel_type, filename=''):
     """Create kernel manager from existing connection file."""
     from jupyter_client import KernelManager, find_connection_file
@@ -327,7 +341,7 @@ def connect_to_kernel(kernel_type, filename=''):
         # Ping the kernel
         kc.kernel_info()
         try:
-            reply = kc.get_shell_msg(timeout=1)
+            kc.get_shell_msg(timeout=1)
         except Empty:
             continue
         else:
@@ -357,10 +371,12 @@ def connect_to_kernel(kernel_type, filename=''):
         if None is not kc: kc.stop_channels()
         vim_echom('kernel connection attempt timed out', style='Error')
 
+
 def disconnect_from_kernel():
     """Disconnect kernel client."""
     if None is not kc: kc.stop_channels()
     vim_echom("Disconnected: {}".format(shorten_cfile()), style='Directory')
+
 
 def update_console_msgs():
     """Grab pending messages and place them inside the vim console monitor."""
@@ -382,6 +398,7 @@ def update_console_msgs():
 
     # Move cursor back to original window
     vim.command(':call win_gotoid({})'.format(cur_win))
+
 
 def handle_messages():
     """
@@ -432,9 +449,10 @@ def handle_messages():
 
     return io_pub
 
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 #        Communicate with Kernel
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def get_reply_msg(msg_id):
     """Get kernel reply from sent client message with msg_id."""
     # TODO handle 'is_complete' requests?
@@ -447,6 +465,7 @@ def get_reply_msg(msg_id):
             continue
         if m['parent_header']['msg_id'] == msg_id:
             return m
+
 
 def print_prompt(prompt, msg_id=None):
     """Print In[] or In[56] style messages on Vim's display line."""
@@ -464,6 +483,7 @@ def print_prompt(prompt, msg_id=None):
     else:
         vim_echom("In[]: {}".format(prompt))
 
+
 # Decorator for all sending commands
 def with_console(f):
     """
@@ -480,6 +500,7 @@ def with_console(f):
             update_console_msgs()
     return wrapper
 
+
 # Include verbose output to vim command line
 def with_verbose(f):
     """
@@ -493,12 +514,14 @@ def with_verbose(f):
             print_prompt(prompt, msg_id=msg_id)
     return wrapper
 
+
 @with_console
 @with_verbose
 def run_command(cmd):
     """Send a single command to the kernel."""
     msg_id = send(cmd)
     return (cmd, msg_id)
+
 
 @with_console
 @with_verbose
@@ -516,6 +539,7 @@ def run_file_in_ipython(flags='', filename=''):
     msg_id = send(cmd)
     return (cmd, msg_id)
 
+
 @with_console
 @with_verbose
 def send_range():
@@ -525,6 +549,7 @@ def send_range():
     msg_id = send(lines)
     prompt = "range {:d}-{:d} ".format(r.start+1, r.end+1)
     return (prompt, msg_id)
+
 
 @with_console
 @with_verbose
@@ -567,6 +592,7 @@ def run_cell():
     prompt = "execute lines {:d}-{:d} ".format(upper_bound+1, lower_bound+1)
     return (prompt, msg_id)
 
+
 def signal_kernel(sig=signal.SIGTERM):
     """
     Use kill command to send a signal to the remote kernel. This side steps the
@@ -586,27 +612,24 @@ def signal_kernel(sig=signal.SIGTERM):
                   .format(v=sig.value, n=sig.name, p=pid), style='Error')
         raise e
 
-#def set_breakpoint():
-#    send("__IP.InteractiveTB.pdb.set_break('%s',%d)" % (vim.current.buffer.name,
-#                                                        vim.current.window.cursor[0]))
-#    print("set breakpoint in %s:%d"% (vim.current.buffer.name,
-#                                      vim.current.window.cursor[0]))
-#
-#def clear_breakpoint():
-#    send("__IP.InteractiveTB.pdb.clear_break('%s',%d)" % (vim.current.buffer.name,
-#                                                          vim.current.window.cursor[0]))
-#    print("clearing breakpoint in %s:%d" % (vim.current.buffer.name,
-#                                            vim.current.window.cursor[0]))
-#
-#def clear_all_breakpoints():
-#    send("__IP.InteractiveTB.pdb.clear_all_breaks()");
-#    print("clearing all breakpoints")
-#
-#def run_this_file_pdb():
-#    send(' __IP.InteractiveTB.pdb.run(\'execfile("%s")\')' % (vim.current.buffer.name,))
-#    #send('run -d %s' % (vim.current.buffer.name,))
-#    echo("In[]: run -d %s (using pdb)" % vim.current.buffer.name)
 
-
-#==============================================================================
-#==============================================================================
+# def set_breakpoint():
+#     send("__IP.InteractiveTB.pdb.set_break('%s',%d)" % (vim.current.buffer.name,
+#                                                         vim.current.window.cursor[0]))
+#     print("set breakpoint in %s:%d"% (vim.current.buffer.name,
+#                                       vim.current.window.cursor[0]))
+#
+# def clear_breakpoint():
+#     send("__IP.InteractiveTB.pdb.clear_break('%s',%d)" % (vim.current.buffer.name,
+#                                                           vim.current.window.cursor[0]))
+#     print("clearing breakpoint in %s:%d" % (vim.current.buffer.name,
+#                                             vim.current.window.cursor[0]))
+#
+# def clear_all_breakpoints():
+#     send("__IP.InteractiveTB.pdb.clear_all_breaks()");
+#     print("clearing all breakpoints")
+#
+# def run_this_file_pdb():
+#     send(' __IP.InteractiveTB.pdb.run(\'execfile("%s")\')' % (vim.current.buffer.name,))
+#     #send('run -d %s' % (vim.current.buffer.name,))
+#     echo("In[]: run -d %s (using pdb)" % vim.current.buffer.name)
