@@ -193,7 +193,7 @@ def get_kernel_info(kernel_type):
     Returns: dict with 'kernel_type', 'pid', 'cwd', 'hostname'
     """
     # Check in
-    if kernel_type not in ('perl', 'julia', 'python'):
+    if kernel_type not in ('javascript', 'perl', 'julia', 'python'):
         vim_echom('I don''t know how to get infos for a Jupyter kernel of'
                 ' type "{}"'.format(kernel_type), 'WarningMsg')
 
@@ -215,6 +215,8 @@ def get_kernel_info(kernel_type):
             code = '_res = getpid()'
         elif kernel_type == 'perl':
             code = '$_res = $$'
+        elif kernel_type == 'javascript':
+            code = 'var process = require("process"); _res = process.pid;'
         res['pid'] = int(get_res_from_code_string(code))
     except Exception: pass
 
@@ -227,6 +229,8 @@ def get_kernel_info(kernel_type):
             code = '_res = pwd()'
         elif kernel_type == 'perl':
             code = 'use Cwd; $_res = getcwd();'
+        elif kernel_type == 'javascript':
+            code = 'var process = require("process"); _res = process.cwd();'
         res['cwd'] = unquote_string(get_res_from_code_string(code))
     except Exception: pass
 
@@ -239,6 +243,8 @@ def get_kernel_info(kernel_type):
             code = '_res = gethostname()'
         elif kernel_type == 'perl':
             code = 'use Sys::Hostname qw/hostname/; $_res = hostname();'
+        elif kernel_type == 'javascript':
+            code = 'var os = require("os"); _res = os.userInfo().username;'
         res['hostname'] = unquote_string(get_res_from_code_string(code))
     except Exception: pass
 

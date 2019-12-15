@@ -5,7 +5,7 @@
 "
 "  Description: Set up autocmds and config variables for jupyter-vim plugin
 "
-"  Filetypes: python, julia, perl
+"  Filetypes: python, julia, perl, javascript
 "=============================================================================
 
 if exists('g:loaded_jupyter_vim') || !(has('pythonx') || has('python') || has('python3')) || &compatible
@@ -43,10 +43,11 @@ augroup JupyterVimInit
         \ 'python': 'python',
         \ 'julia': 'julia',
         \ 'perl': 'perl',
+        \ 'javascript': 'javascript',
         \ }, &filetype, 'none')
 
-    autocmd FileType perl,julia,python call jupyter#MakeStandardCommands()
-    autocmd FileType perl,julia,python if g:jupyter_mapkeys |
+    autocmd FileType javascript,perl,julia,python call jupyter#MakeStandardCommands()
+    autocmd FileType javascript,perl,julia,python if g:jupyter_mapkeys |
                 \ call jupyter#MapStandardKeys() |
                 \ endif
 augroup END
@@ -60,7 +61,7 @@ augroup END
 if g:jupyter_auto_connect
     augroup JConnect
         autocmd!
-        autocmd FileType perl,julia,python JupyterConnect
+        autocmd FileType javascript,perl,julia,python,c JupyterConnect
     augroup END
 endif
 
