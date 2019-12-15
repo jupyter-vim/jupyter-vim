@@ -197,8 +197,10 @@ buffer, according to the mapping:
 +--------------------+-----------------+
 | Filetype           | Kernel language |
 +--------------------+-----------------+
-| python             | 'python'        |
+| javascript         | 'javascript'    |
 | julia              | 'julia'         |
+| perl               | 'perl'          |
+| python             | 'python'        |
 | <everything else>  | 'none'          |
 +--------------------+-----------------+
 
@@ -246,6 +248,12 @@ command line (see |:echomsg|). The `jupyter qtconsole` displays messages
 instantaneously, so echoing them in vim as well is redundant. It can be useful,
 however, for debugging kernel messaging issues, or if you just like visual
 confirmation in multiple places that your message has been sent.
+
+`g:jupyter_shortmess`                                   *g:jupyter_shortmess*
+Default: 0                                     Reduce status message size
+
+If set to 1, reduce the status messages
+
 
 Note that the `jupyter console` (not `qt`), does `not` echo messages from other
 clients until <Enter> is pressed. I am working on a non-blocking or threaded
