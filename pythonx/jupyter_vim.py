@@ -363,7 +363,7 @@ def handle_messages():
     See also: <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
     """
     io_pub = []
-    msgs = kc.iopub_channel.get_msgs(block=False)
+    msgs = kc.iopub_channel.get_msgs()
     for msg in msgs:
         s = ''
         if 'msg_type' not in msg['header']:
