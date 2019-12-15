@@ -193,7 +193,7 @@ def get_kernel_info(kernel_type):
     Returns: dict with 'kernel_type', 'pid', 'cwd', 'hostname'
     """
     # Check in
-    if kernel_type not in ('julia', 'python'):
+    if kernel_type not in ('perl', 'julia', 'python'):
         vim_echom("I don't know how to get the pid for a Jupyter kernel of"
                   " type \"{}\"".format(kernel_type))
 
@@ -213,6 +213,8 @@ def get_kernel_info(kernel_type):
             code = 'import os; _res = os.getpid()'
         elif kernel_type == 'julia':
             code = '_res = getpid()'
+        elif kernel_type == 'perl':
+            code = '$_res = $$'
         res['pid'] = int(get_res_from_code_string(code))
     except Exception: pass
 
@@ -223,6 +225,8 @@ def get_kernel_info(kernel_type):
             code = 'import os; _res = os.getcwd()'
         elif kernel_type == 'julia':
             code = '_res = pwd()'
+        elif kernel_type == 'perl':
+            code = 'use Cwd; $_res = getcwd();'
         res['cwd'] = unquote_string(get_res_from_code_string(code))
     except Exception: pass
 
@@ -233,6 +237,8 @@ def get_kernel_info(kernel_type):
             code = 'import socket; _res = socket.gethostname()'
         elif kernel_type == 'julia':
             code = '_res = gethostname()'
+        elif kernel_type == 'perl':
+            code = 'use Sys::Hostname qw/hostname/; $_res = hostname();'
         res['hostname'] = unquote_string(get_res_from_code_string(code))
     except Exception: pass
 
