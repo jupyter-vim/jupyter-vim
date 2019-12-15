@@ -295,7 +295,9 @@ def find_jupyter_kernels():
     # Get all the kernel ids
     kernel_ids = []
     for runtime_file in runtime_files:
-        kernel_id, match_nb = re.subn(r'kernel-(\d*).json', r'\1', runtime_file)
+        kernel_id, match_nb = re.subn(
+            r'kernel-([0-9a-fA-F]*)[0-9a-fA-F\-]*.json', r'\1', runtime_file)
+        if runtime_file.startswith('nbserver'): continue
         kernel_ids.append(kernel_id)
 
     # Set vim variable -> vim caller
