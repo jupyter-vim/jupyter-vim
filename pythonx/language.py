@@ -48,12 +48,21 @@ class Python(Language):
     hostname = 'import socket; _res = socket.gethostname()'
 
 
+class Ruby(Language):
+    prompt_in = 'Rb [{line:d}]: '
+    print_string = 'print("{}")'
+    pid = '_res = Process.pid'
+    cwd = '_res = Dir.pwd'
+    hostname = '_res = Socket.gethostname'
+
+
 # Dict: kernel_type -> class
 language_dict = {
     'javascript': Javascript,
     'julia': Julia,
     'perl': Perl,
     'python': Python,
+    'ruby': Ruby,
 }
 
 

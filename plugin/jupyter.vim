@@ -5,7 +5,7 @@
 "
 "  Description: Set up autocmds and config variables for jupyter-vim plugin
 "
-"  Filetypes: python, julia, perl, javascript
+"  Filetypes: javascript, julia, perl, python, ruby
 "=============================================================================
 
 if exists('g:loaded_jupyter_vim') || !(has('pythonx') || has('python') || has('python3')) || &compatible
@@ -38,6 +38,7 @@ let s:language_dict = {
     \ 'julia': 'julia',
     \ 'perl': 'perl',
     \ 'python': 'python',
+    \ 'ruby': 'ruby',
 \ }
 
 let s:language_string = join(keys(s:language_dict), ",")
