@@ -16,6 +16,14 @@ class Language:
     hostname = '"unknown"'
 
 
+class Bash(Language):
+    prompt_in = 'Sh [{line:d}]: '
+    print_string = 'echo -e "{}"'
+    pid = '_res=$$; echo $_res;'
+    cwd = '_res=$(pwd); echo $_res;'
+    hostname = '_res=$(hostname); echo $_res;'
+
+
 class Javascript(Language):
     prompt_in = 'Js [{line:d}]: '
     print_string = 'console.log("{}")'
@@ -58,6 +66,7 @@ class Ruby(Language):
 
 # Dict: kernel_type -> class
 language_dict = {
+    'bash': Bash,
     'javascript': Javascript,
     'julia': Julia,
     'perl': Perl,
