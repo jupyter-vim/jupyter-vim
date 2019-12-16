@@ -465,7 +465,6 @@ def get_reply_msg(msg_id):
     # <http://jupyter-client.readthedocs.io/en/stable/messaging.html#code-completeness>
     while True:
         try:
-            # TODO try block=False
             m = kc.get_shell_msg(block=False, timeout=1)
         except Empty:
             continue
