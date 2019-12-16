@@ -33,6 +33,7 @@ for [s:key, s:val] in items(s:default_settings)
     endif
 endfor
 
+" Dict: &ft -> kernel_name
 let s:language_dict = {
     \ 'javascript': 'javascript',
     \ 'julia': 'julia',

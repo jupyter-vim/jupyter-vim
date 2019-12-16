@@ -172,8 +172,14 @@ def get_res_from_code_string(code):
         for msg in msgs:
             try:
                 # Get the result of execution
-                if 'execute_result' != msg['header']['msg_type']: continue
-                res = msg['content']['data']['text/plain']
+                if msg['header']['msg_type'] not in ('execute_result', 'stream'):
+                    continue
+                content = msg['content']
+                if 'data' in content:
+                    res = content['data']['text/plain']
+                else:
+                    # Jupyter bash style ...
+                    res = content['text']
                 break
             except (KeyError): pass
 
