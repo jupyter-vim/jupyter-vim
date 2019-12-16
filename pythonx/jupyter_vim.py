@@ -90,7 +90,7 @@ def warn_no_connection():
 
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
-if all([x in globals() for x in ('kc', 'pid', 'cfile', 'lang')]):
+if all([x in globals() for x in ('kc', 'pid', 'cfile', 'lang', 'cmd', 'cmd_id')]):
     if not check_connection():
         warn_no_connection()
 else:
@@ -98,6 +98,8 @@ else:
     pid = None
     cfile = None
     lang = None
+    cmd = None
+    cmd_id = None
 
 
 # -----------------------------------------------------------------------------
@@ -300,6 +302,7 @@ def find_jupyter_kernels():
 # Alias execute function
 def send(msg, **kwargs):
     """Send a message to the kernel client."""
+    global cmd, cmd_id
     if kc is None:
         vim_echom('kernel failed sending message, client not created'
                   '\ndid you run :JupyterConnect ?'
@@ -307,7 +310,10 @@ def send(msg, **kwargs):
         return -1
 
     # Include dedent of msg so we don't get odd indentation errors.
-    return kc.execute(dedent(msg), **kwargs)
+    cmd = dedent(msg)
+    cmd_id = kc.execute(cmd, **kwargs)
+
+    return cmd_id
 
 
 # -----------------------------------------------------------------------------
@@ -398,6 +404,18 @@ def update_console_msgs():
 
     # Append the I/O to the console buffer
     io_pub = handle_messages()
+
+    # Insert code line Check not already here (check with substr 'Py [')
+    if cmd is not None and not any(lang.prompt_in[:4] in msg for msg in io_pub):
+        # Get cmd number from id (TODO mutualize)
+        try:
+            reply = get_reply_msg(cmd_id)
+            cmd_nb = reply['content']['execution_count']
+        except Empty:
+            cmd_nb = -1
+        io_pub.insert(0, lang.prompt_in.format(cmd_nb) + cmd)
+
+    # Append mesage to jupyter terminal buffer
     for msg in io_pub:
         b.append([PythonToVimStr(line) for line in msg.splitlines()])
 
