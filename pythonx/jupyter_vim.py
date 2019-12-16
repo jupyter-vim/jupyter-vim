@@ -11,13 +11,14 @@
 ##############################################################################
 
 from language import list_languages, get_language
-import os
-import re
-import signal
-import sys
+from os import kill, listdir
+from os.path import join, splitext, isfile
+from signal import SIGTERM
+from sys import version_info
 from threading import Thread
+from textwrap import dedent
+import re
 
-import textwrap
 try:
     from queue import Empty
 except ImportError:
@@ -51,7 +52,7 @@ except ImportError as e:
 # -----------------------------------------------------------------------------
 #        Read global configuration variables
 # -----------------------------------------------------------------------------
-is_py3 = sys.version_info[0] >= 3
+is_py3 = version_info[0] >= 3
 if is_py3:
     unicode = str
 
@@ -279,10 +280,10 @@ def find_jupyter_kernels():
     # Get all kernel json files
     jupyter_path = jupyter_runtime_dir()
     runtime_files = []
-    for file_path in os.listdir(jupyter_path):
-        full_path = os.path.join(jupyter_path, file_path)
-        file_ext = os.path.splitext(file_path)[1]
-        if (os.path.isfile(full_path) and '.json' == file_ext):
+    for file_path in listdir(jupyter_path):
+        full_path = join(jupyter_path, file_path)
+        file_ext = splitext(file_path)[1]
+        if (isfile(full_path) and '.json' == file_ext):
             runtime_files.append(file_path)
 
     # Get all the kernel ids
@@ -306,7 +307,7 @@ def send(msg, **kwargs):
         return -1
 
     # Include dedent of msg so we don't get odd indentation errors.
-    return kc.execute(textwrap.dedent(msg), **kwargs)
+    return kc.execute(dedent(msg), **kwargs)
 
 
 # -----------------------------------------------------------------------------
@@ -548,7 +549,7 @@ def run_command(cmd):
 @with_verbose
 def run_file_in_ipython(flags='', filename=''):
     """Run a given python file using ipython's %run magic."""
-    ext = os.path.splitext(filename)[-1][1:]
+    ext = splitext(filename)[-1][1:]
     if ext in ('pxd', 'pxi', 'pyx', 'pyxbld'):
         run_cmd = '%run_cython'
         params = vim2py_str(vim.vars.get('cython_run_flags', ''))
@@ -614,14 +615,14 @@ def run_cell():
     return (prompt, msg_id)
 
 
-def signal_kernel(sig=signal.SIGTERM):
+def signal_kernel(sig=SIGTERM):
     """
     Use kill command to send a signal to the remote kernel. This side steps the
     (non-functional) jupyter interrupt mechanisms.
     Only works on posix.
     """
     try:
-        os.kill(pid, int(sig))
+        kill(pid, int(sig))
         vim_echom("kill pid {p:d} with signal #{v:d}, {n:s}"
                   .format(p=pid, v=sig.value, n=sig.name), style='WarningMsg')
     except ProcessLookupError:
