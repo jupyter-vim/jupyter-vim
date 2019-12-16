@@ -33,23 +33,27 @@ for [s:key, s:val] in items(s:default_settings)
     endif
 endfor
 
+let s:language_dict = {
+    \ 'javascript': 'javascript',
+    \ 'julia': 'julia',
+    \ 'perl': 'perl',
+    \ 'python': 'python',
+\ }
+
+let s:language_string = join(keys(s:language_dict), ",")
 
 
 augroup JupyterVimInit
     " By default, guess the kernel language based on the filetype. The user
     " can override this guess on a per-buffer basis.
     autocmd!
-    autocmd BufEnter * let b:jupyter_kernel_type = get({
-        \ 'python': 'python',
-        \ 'julia': 'julia',
-        \ 'perl': 'perl',
-        \ 'javascript': 'javascript',
-        \ }, &filetype, 'none')
+    autocmd BufEnter * let b:jupyter_kernel_type =
+          \ get(s:language_dict, &filetype, 'none')
 
-    autocmd FileType javascript,perl,julia,python call jupyter#MakeStandardCommands()
-    autocmd FileType javascript,perl,julia,python if g:jupyter_mapkeys |
-                \ call jupyter#MapStandardKeys() |
-                \ endif
+    execute 'autocmd FileType ' . s:language_string .
+          \ ' call jupyter#MakeStandardCommands()'
+    execute 'autocmd FileType ' . s:language_string .
+          \ ' if g:jupyter_mapkeys | call jupyter#MapStandardKeys() | endif'
 augroup END
 
 "}}}----------------------------------------------------------------------------
@@ -61,7 +65,7 @@ augroup END
 if g:jupyter_auto_connect
     augroup JConnect
         autocmd!
-        autocmd FileType javascript,perl,julia,python,c JupyterConnect
+        execute 'autocmd FileType ' . s:language_string . ' JupyterConnect'
     augroup END
 endif
 

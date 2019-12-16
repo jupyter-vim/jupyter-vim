@@ -10,6 +10,7 @@ class Language:
     """Language Base"""
     prompt_in = 'In [{line:d}]: '
     prompt_out = 'Out[{line:d}]: '
+    print_string = 'print("{}")'
     pid = -1
     cwd = '"unknown"'
     hostname = '"unknown"'
