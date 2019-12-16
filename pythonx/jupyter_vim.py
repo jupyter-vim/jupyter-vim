@@ -386,24 +386,20 @@ def disconnect_from_kernel():
 
 def update_console_msgs():
     """Grab pending messages and place them inside the vim console monitor."""
-    # Save which window we're in
-    cur_win = vim.eval('win_getid()')
-
     # Open the Jupyter terminal in vim, and move cursor to it
     is_console_open = vim.eval('jupyter#OpenJupyterTerm()')
     if not is_console_open:
         vim_echom('__jupyter_term__ failed to open!', 'Error')
         return
 
+    # Get buffer (same indexes as vim)
+    b_nb = int(vim.eval('bufnr("__jupyter_term__")'))
+    b = vim.buffers[b_nb]
+
     # Append the I/O to the console buffer
     io_pub = handle_messages()
-    b = vim.current.buffer
     for msg in io_pub:
         b.append([PythonToVimStr(line) for line in msg.splitlines()])
-    vim.command('normal! G')
-
-    # Move cursor back to original window
-    vim.command(':call win_gotoid({})'.format(cur_win))
 
 
 def handle_messages():

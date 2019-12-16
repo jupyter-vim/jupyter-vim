@@ -273,32 +273,41 @@ function! jupyter#OpenJupyterTerm() abort
     " Set up console display window
     " If we're in the console display already, just go to the bottom.
     " Otherwise, create a new buffer in a split (or jump to it if open)
-    let term_buf = '__jupyter_term__'
-    if @% ==# term_buf
-        normal! G
-    else
-        try
-            let save_swbuf=&switchbuf
-            set switchbuf=useopen
-            let l:cmd = bufnr(term_buf) > 0 ? 'sbuffer' : 'new'
-            execute l:cmd . ' ' . term_buf
-            let &switchbuf=save_swbuf
-        catch
-            return 0
-        endtry
+    " If exists already: leave
+    if -1 != bufnr('__jupyter_term__')
+      return 1
     endif
+
+    " Save current window
+    " TODO: Challenge: try to do all that without moving curosr
+    let win_id = win_getid()
+    let win_syntax = &syntax
+
+    " Create a buffer
+    " TODO user provided command instead of bool if not string, not console
+    let save_swbuf=&switchbuf
+    set switchbuf=useopen
+    let l:cmd = bufnr('__jupyter_term__') > 0 ? 'sbuffer' : 'new'
+    execute l:cmd . ' ' . '__jupyter_term__'
+    let &switchbuf=save_swbuf
+
+    " Make it AutoScroll
+    augroup JupyterTerm
+      autocmd!
+      autocmd TextChanged __jupyter_term__ call cursor(10000000000, 0)
+    augroup END
 
     " Make sure buffer is a scratch buffer before we write to it
     setlocal bufhidden=hide buftype=nofile
     setlocal nobuflisted nonumber noswapfile
-    setlocal syntax=python
+    execute 'setlocal syntax=' . win_syntax
 
     " Clear out any autocmds that trigger on Insert for the console buffer
     " vint: next-line -ProhibitAutocmdWithNoGroup
-    autocmd! InsertEnter,InsertLeave <buffer>
+    autocmd! InsertEnter,InsertLeave __jupyter_term__
 
     " Syntax highlighting for prompt
-    syn match JupyterPromptIn /^\(In \[[ 0-9]*\]:\)\|\(\s*\.\{3}:\)/
+    syn match JupyterPromptIn /^\(\w\w \[[ 0-9]*\]:\)\|\(\s*\.\{3}:\)/
     syn match JupyterPromptOut /^Out\[[ 0-9]*\]:/
     syn match JupyterPromptOut2 /^\.\.\.* /
     syn match JupyterMagic /^\]: \zs%\w\+/
@@ -307,6 +316,9 @@ function! jupyter#OpenJupyterTerm() abort
     hi JupyterPromptOut  ctermfg=Red
     hi JupyterPromptOut2 ctermfg=Grey
     hi JupyterMagic      ctermfg=Magenta
+
+    " Restore cursor at current window
+    call win_gotoid(win_id)
 
     return 1
 endfunction
