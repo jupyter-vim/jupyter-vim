@@ -15,6 +15,7 @@ import os
 import re
 import signal
 import sys
+from threading import Thread
 
 import textwrap
 try:
@@ -56,7 +57,7 @@ if is_py3:
 
 
 # General message command
-def vim_echom(arg, style="None"):
+def vim_echom(arg, style="None", cmd='echom'):
     """
     Report string `arg` using vim's echomessage command.
 
@@ -67,7 +68,7 @@ def vim_echom(arg, style="None"):
         vim.command("echohl {}".format(style))
         messages = arg.split('\n')
         for msg in messages:
-            vim.command("echom \"{}\"".format(msg.replace('\"', '\\\"')))
+            vim.command(cmd + " \"{}\"".format(msg.replace('\"', '\\\"')))
         vim.command("echohl None")
     except vim.error:
         print("-- {}".format(arg))
@@ -307,10 +308,18 @@ def send(msg, **kwargs):
     # Include dedent of msg so we don't get odd indentation errors.
     return kc.execute(textwrap.dedent(msg), **kwargs)
 
+
 # -----------------------------------------------------------------------------
 #        Major Function Definitions:
 # -----------------------------------------------------------------------------
 def connect_to_kernel(kernel_type, filename=''):
+    # Create thread
+    thread = Thread(target=thread_connect_to_kernel,
+                    args=(kernel_type, filename))
+    thread.start()
+
+
+def thread_connect_to_kernel(kernel_type, filename=''):
     """Create kernel manager from existing connection file."""
     from jupyter_client import KernelManager, find_connection_file
 
@@ -349,20 +358,19 @@ def connect_to_kernel(kernel_type, filename=''):
         # Collect kernel info
         kernel_info = get_kernel_info(kernel_type)
 
-        # Send command so that user knows vim is connected
+        # More info (anyway screen is redrawn)
+        #  # Prettify output: appearance rules
+        from pprint import PrettyPrinter
+        pp = PrettyPrinter(indent=4, width=vim.eval('&columns'))
+        kernel_string = pp.pformat(kernel_info)[4:-1]
+
+        # # Echo message
+        vim_echom('To: ', style='Question')
+        vim_echom(kernel_string.replace('\"', '\\\"'), cmd='echom')
+
+        # Send command so that user knows vim is connected at bottom, more
+        # readable
         vim_echom('Connected: {}'.format(shorten_filename(cfile)), style='Question')
-
-        # More info by default
-        is_short = int(vim.vars.get('jupyter_shortmess', 0))
-        if not is_short:
-            # Prettify output: appearance rules
-            from pprint import PrettyPrinter
-            pp = PrettyPrinter(indent=4, width=vim.eval('&columns'))
-            kernel_string = pp.pformat(kernel_info)[4:-1]
-
-            # Echo message
-            vim_echom('To: ', style='Question')
-            vim.command("echon \"{}\"".format(kernel_string.replace('\"', '\\\"')))
 
     else:
         if None is not kc: kc.stop_channels()

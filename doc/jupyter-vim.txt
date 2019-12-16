@@ -82,6 +82,10 @@ COMMANDS 					*jupyter-vim-commands*
 			file given by `ipython kernel -f connection_file`,
 			by default it looks like `kernel-13423.json`.
 
+			To see connection information press |g<|
+
+			Note this command is running in an other thread
+
 			Note that a `jupyter console` need not be running to
 			connect to a `jupyter kernel`, but the console is
 			necessary to display any output from your python code!
@@ -253,11 +257,6 @@ command line (see |:echomsg|). The `jupyter qtconsole` displays messages
 instantaneously, so echoing them in vim as well is redundant. It can be useful,
 however, for debugging kernel messaging issues, or if you just like visual
 confirmation in multiple places that your message has been sent.
-
-`g:jupyter_shortmess`                                   *g:jupyter_shortmess*
-Default: 0                                     Reduce status message size
-
-If set to 1, reduce the status messages
 
 
 Note that the `jupyter console` (not `qt`), does `not` echo messages from other

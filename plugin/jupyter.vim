@@ -20,7 +20,6 @@ endif
 "        Configuration: {{{
 "-----------------------------------------------------------------------------
 let s:default_settings = {
-    \ 'shortmess': 0,
     \ 'auto_connect': 0,
     \ 'mapkeys': 1,
     \ 'monitor_console': 0,
@@ -62,13 +61,11 @@ augroup END
 "}}}----------------------------------------------------------------------------
 "       Connect to Jupyter Kernel  {{{
 "-------------------------------------------------------------------------------
-" XXX SLOW AS $@#!... need to figure out how to fork the connection process so
-" vim still fires up quickly even if we forget to have a kernel running, or it
-" can't connect for some reason.
 if g:jupyter_auto_connect
     augroup JConnect
         autocmd!
-        execute 'autocmd FileType ' . s:language_string . ' JupyterConnect'
+        autocmd BufEnter * if -1 != index(keys(s:language_dict), &ft) |
+              \ JupyterConnect *.json | endif
     augroup END
 endif
 
