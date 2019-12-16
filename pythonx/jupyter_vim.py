@@ -150,7 +150,7 @@ def get_res_from_code_string(code):
     res = None
 
     # Send message
-    msg_id = send(code, silent=True, user_expressions={'_res': '_res'})
+    msg_id = send(code, silent=False, user_expressions={'_res': '_res'})
 
     # Wait to get message back from kernel (1 sec)
     try:
@@ -234,6 +234,13 @@ def get_kernel_info(kernel_type):
     # Get hostname
     try: res['hostname'] = get_res_from_code_string(lang.hostname)
     except Exception: res['hostname'] = 'unknown'
+
+    # Print vim connected
+    vim_pid = vim.eval('getpid()')
+    hi_string = '\\n\\n'
+    hi_string += 'Received connection from vim client with pid ' + vim_pid
+    hi_string += '\\n' + '-' * 60 + '\\n'
+    get_res_from_code_string(lang.print_string.format(hi_string))
 
     # Return
     return res

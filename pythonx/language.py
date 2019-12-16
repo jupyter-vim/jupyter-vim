@@ -17,6 +17,7 @@ class Language:
 
 class Javascript(Language):
     prompt_in = 'Js [{line:d}]: '
+    print_string = 'console.log("{}")'
     pid = 'var process = require("process"); _res = process.pid;'
     cwd = 'var os = require("os"); _res = os.userInfo().username;'
     hostname = 'var process = require("process"); _res = process.cwd();'
@@ -24,6 +25,7 @@ class Javascript(Language):
 
 class Julia(Language):
     prompt_in = 'Jl [{line:d}]: '
+    print_string = 'println("{}")'
     pid = '_res = getpid()'
     cwd = '_res = pwd()'
     hostname = '_res = gethostname()'
@@ -31,6 +33,7 @@ class Julia(Language):
 
 class Perl(Language):
     prompt_in = 'Pl [{line:d}]: '
+    print_string = 'print("{}")'
     pid = '$_res = $$'
     cwd = 'use Cwd; $_res = getcwd();'
     hostname = 'use Sys::Hostname qw/hostname/; $_res = hostname();'
@@ -38,6 +41,7 @@ class Perl(Language):
 
 class Python(Language):
     prompt_in = 'Py [{line:d}]: '
+    print_string = 'print("{}")'
     pid = 'import os; _res = os.getpid()'
     cwd = 'import os; _res = os.getcwd()'
     hostname = 'import socket; _res = socket.gethostname()'
@@ -48,7 +52,7 @@ language_dict = {
     'javascript': Javascript,
     'julia': Julia,
     'perl': Perl,
-    'python': Python
+    'python': Python,
 }
 
 
