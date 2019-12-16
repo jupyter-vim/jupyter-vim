@@ -312,7 +312,7 @@ function! jupyter#OpenJupyterTerm() abort
     syn match JupyterPromptOut2 /^\.\.\.* /
     syn match JupyterMagic /^\]: \zs%\w\+/
 
-    hi JupyterPromptIn   ctermfg=Blue
+    hi JupyterPromptIn   ctermfg=Green
     hi JupyterPromptOut  ctermfg=Red
     hi JupyterPromptOut2 ctermfg=Grey
     hi JupyterMagic      ctermfg=Magenta
