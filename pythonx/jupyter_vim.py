@@ -436,30 +436,42 @@ def handle_messages():
         if 'msg_type' not in msg['header']:
             continue
         msg_type = msg['header']['msg_type']
+
         if msg_type == 'status':
+            # I don't care status (idle or busy)
             continue
+
         elif msg_type == 'stream':
             # TODO: allow for distinguishing between stdout and stderr (using
             # custom syntax markers in the vim-jupyter buffer perhaps), or by
             # also echoing the message to the status bar
             s = strip_color_escapes(msg['content']['text'])
+
         elif msg_type == 'display_data':
+            # Get the stdout
             s += msg['content']['data']['text/plain']
-        elif msg_type == 'pyin' or msg_type == 'execute_input':
+
+        elif msg_type in ('execute_input', 'pyin'):
+            # Get the input code
             line_number = msg['content'].get('execution_count', 0)
             prompt = lang.prompt_in.format(line_number)
             s = prompt
             # add continuation line, if necessary
             dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
             s += msg['content']['code'].rstrip().replace('\n', '\n' + dots)
-        elif msg_type == 'pyout' or msg_type == 'execute_result':
+
+        elif msg_type in ('execute_result', 'pyout'):
+            # Get the output
             s = lang.prompt_out.format(msg['content']['execution_count'])
             s += msg['content']['data']['text/plain']
-        elif msg_type == 'pyerr' or msg_type == 'error':
+
+        elif msg_type in ('error', 'pyerr'):
             s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
+
         elif msg_type == 'input_request':
             vim_echom('python input not supported in vim.', 'Error')
             continue  # unsure what to do here... maybe just return False?
+
         else:
             vim_echom("Message type {} unrecognized!".format(msg_type))
             continue
@@ -534,20 +546,25 @@ def with_verbose(f):
     return wrapper
 
 
+@with_console
+@with_verbose
 def change_directory(directory):
     """CD: Change (current working) to directory
     Note: @with_verbose + send make perl bug. TODO restore that
     """
     # Cd
-    get_res_from_code_string(lang.cd.format(directory))
+    cmd = lang.cd.format(directory)
+    msg_id = send(cmd)
 
-    # TODO set cd to a buffer var ?
     # Print cwd
     try:
         cwd = get_res_from_code_string(lang.cwd)
         vim_echom('CWD: ', style='Question')
         vim.command("echon \"{}\"".format(cwd))
     except Exception: pass
+
+    # Return to decorators
+    return (cmd, msg_id)
 
 
 @with_console
