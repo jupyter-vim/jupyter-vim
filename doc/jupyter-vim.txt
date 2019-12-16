@@ -88,10 +88,14 @@ COMMANDS 					*jupyter-vim-commands*
 
 :JupyterCd [dir] 				*jupyter-cd* *:JupyterCd*
 			Change the working directory of the kernel to [dir].
-                        Functions just like the typical shell command. If no
-                        directory is given, [dir] is the "$HOME" directory. If
-                        [dir] is "-", :JupyterCd changes back to the previous
-                        working directory.
+                        Functions just like the typical shell command.
+			Some special path can be given:
+			  ""  -> $HOME directory.
+			  "-" -> Previous working directory (works in most
+			  shells)
+			  "%" -> Current file directory
+			After that, the path given will be expanded. See
+			|expand()|
 
 :JupyterRunFile [flags] [filename] 	    *jupyter-runfile* *:JupyterRunFile*
                         Run an entire file. The [flags] argument only affects
