@@ -8,8 +8,8 @@ __all__ = ['list_languages', 'get_language']
 
 class Language:
     """Language Base"""
-    prompt_in = 'In [{line:d}]: '
-    prompt_out = 'Out[{line:d}]: '
+    prompt_in = 'In [{:d}]: '
+    prompt_out = 'Out[{:d}]: '
     print_string = 'print("{}")'
     cd = 'cd "{}"'
     pid = -1
@@ -18,7 +18,7 @@ class Language:
 
 
 class Bash(Language):
-    prompt_in = 'Sh [{line:d}]: '
+    prompt_in = 'Sh [{:d}]: '
     print_string = 'echo -e "{}"'
     cd = 'cd "{}"'
     pid = '_res=$$; echo $_res;'
@@ -27,7 +27,7 @@ class Bash(Language):
 
 
 class Javascript(Language):
-    prompt_in = 'Js [{line:d}]: '
+    prompt_in = 'Js [{:d}]: '
     print_string = 'console.log("{}");'
     cd = 'require("process").chdir("{}");'
     pid = '_res = require("process").pid;'
@@ -36,7 +36,7 @@ class Javascript(Language):
 
 
 class Julia(Language):
-    prompt_in = 'Jl [{line:d}]: '
+    prompt_in = 'Jl [{:d}]: '
     print_string = 'println("{}")'
     cd = 'cd "{}"'
     pid = '_res = getpid()'
@@ -45,7 +45,7 @@ class Julia(Language):
 
 
 class Perl(Language):
-    prompt_in = 'Pl [{line:d}]: '
+    prompt_in = 'Pl [{:d}]: '
     print_string = 'print("{}")'
     cd = 'chdir("{}")'
     pid = '$_res = $$'
@@ -54,7 +54,7 @@ class Perl(Language):
 
 
 class Python(Language):
-    prompt_in = 'Py [{line:d}]: '
+    prompt_in = 'Py [{:d}]: '
     print_string = 'print("{}")'
     cd = '%cd "{}"'
     pid = 'import os; _res = os.getpid()'
@@ -63,7 +63,7 @@ class Python(Language):
 
 
 class Ruby(Language):
-    prompt_in = 'Rb [{line:d}]: '
+    prompt_in = 'Rb [{:d}]: '
     print_string = 'print("{}")'
     cd = '_res = Dir.chdir "{}"'
     pid = '_res = Process.pid'

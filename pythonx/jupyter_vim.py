@@ -433,13 +433,13 @@ def handle_messages():
             s += msg['content']['data']['text/plain']
         elif msg_type == 'pyin' or msg_type == 'execute_input':
             line_number = msg['content'].get('execution_count', 0)
-            prompt = lang.prompt_in.format(line=line_number)
+            prompt = lang.prompt_in.format(line_number)
             s = prompt
             # add continuation line, if necessary
             dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
             s += msg['content']['code'].rstrip().replace('\n', '\n' + dots)
         elif msg_type == 'pyout' or msg_type == 'execute_result':
-            s = lang.prompt_out.format(line=msg['content']['execution_count'])
+            s = lang.prompt_out.format(msg['content']['execution_count'])
             s += msg['content']['data']['text/plain']
         elif msg_type == 'pyerr' or msg_type == 'error':
             s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
@@ -480,12 +480,12 @@ def print_prompt(prompt, msg_id=None):
         try:
             reply = get_reply_msg(msg_id)
             count = reply['content']['execution_count']
-            vim_echom("In[{:d}]: {:s}".format(count, prompt))
+            vim_echom(lang.prompt_in.format(count) + str(prompt))
         except Empty:
             # if the kernel is waiting for input it's normal to get no reply
             if not kc.stdin_channel.msg_ready():
-                vim_echom("In[]: {} (no reply from Jupyter kernel)"
-                          .format(prompt))
+                vim_echom(lang.prompt_in.format(-1)
+                          + '{} (no reply from Jupyter kernel)'.format(prompt))
     else:
         vim_echom("In[]: {}".format(prompt))
 
