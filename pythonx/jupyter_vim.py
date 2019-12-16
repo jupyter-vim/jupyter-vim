@@ -296,6 +296,18 @@ def find_jupyter_kernels():
     vim.command('let l:kernel_ids=' + str(kernel_ids))
 
 
+# Alias execute function
+def send(msg, **kwargs):
+    """Send a message to the kernel client."""
+    if kc is None:
+        vim_echom('kernel failed sending message, client not created'
+                  '\ndid you run :JupyterConnect ?'
+                  '\n msg to be sent : {}'.format(msg), style="Error")
+        return -1
+
+    # Include dedent of msg so we don't get odd indentation errors.
+    return kc.execute(textwrap.dedent(msg), **kwargs)
+
 # -----------------------------------------------------------------------------
 #        Major Function Definitions:
 # -----------------------------------------------------------------------------
@@ -303,7 +315,7 @@ def connect_to_kernel(kernel_type, filename=''):
     """Create kernel manager from existing connection file."""
     from jupyter_client import KernelManager, find_connection_file
 
-    global kc, send, cfile
+    global kc, cfile
 
     # Test if connection is alive
     connected = check_connection()
@@ -324,13 +336,6 @@ def connect_to_kernel(kernel_type, filename=''):
         km.load_connection_file()
         kc = km.client()
         kc.start_channels()
-
-        # Alias execute function
-        def _send(msg, **kwargs):
-            """Send a message to the kernel client."""
-            # Include dedent of msg so we don't get odd indentation errors.
-            return kc.execute(textwrap.dedent(msg), **kwargs)
-        send = _send
 
         # Ping the kernel
         kc.kernel_info()
