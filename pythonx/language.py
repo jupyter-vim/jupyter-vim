@@ -26,10 +26,11 @@ class Bash(Language):
 
 class Javascript(Language):
     prompt_in = 'Js [{line:d}]: '
-    print_string = 'console.log("{}")'
+    print_string = 'console.log("{}");'
     pid = 'var process = require("process"); _res = process.pid;'
-    cwd = 'var os = require("os"); _res = os.userInfo().username;'
-    hostname = 'var process = require("process"); _res = process.cwd();'
+    pid = '_res = require("process").pid;'
+    cwd = '_res = require("process").cwd();'
+    hostname = '_res = require("os").userInfo().username;'
 
 
 class Julia(Language):
