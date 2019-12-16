@@ -88,13 +88,12 @@ def warn_no_connection():
 
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
-if all([x in globals() for x in ('kc', 'pid', 'send', 'cfile', 'lang')]):
+if all([x in globals() for x in ('kc', 'pid', 'cfile', 'lang')]):
     if not check_connection():
         warn_no_connection()
 else:
     kc = None
     pid = None
-    send = None
     cfile = None
     lang = None
 
@@ -513,22 +512,20 @@ def with_verbose(f):
     return wrapper
 
 
-@with_console
-@with_verbose
 def change_directory(directory):
-    """CD: Change (current working) to directory"""
+    """CD: Change (current working) to directory
+    Note: @with_verbose + send make perl bug. TODO restore that
+    """
     # Cd
-    cmd = lang.cd.format(directory)
-    msg_id = send(cmd)
+    get_res_from_code_string(lang.cd.format(directory))
 
+    # TODO set cd to a buffer var ?
     # Print cwd
     try:
         cwd = get_res_from_code_string(lang.cwd)
         vim_echom('CWD: ', style='Question')
         vim.command("echon \"{}\"".format(cwd))
     except Exception: pass
-
-    return (cwd, msg_id)
 
 
 @with_console
