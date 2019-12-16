@@ -99,15 +99,16 @@ endfunction
 
 function! jupyter#JupyterCd(...) abort 
     " Behaves just like typical `cd`.
-    let l:dirname = a:0 ? a:1 : ''
-    if b:jupyter_kernel_type ==# 'python'
-        JupyterSendCode '%cd "'.escape(l:dirname, '"').'"'
-    elseif b:jupyter_kernel_type ==# 'julia'
-        JupyterSendCode 'cd("'.escape(l:dirname, '"').'")'
-    else
-        echoerr 'I don''t know how to do the `cd` command in Jupyter kernel'
-                \ . ' type "' . b:jupyter_kernel_type . '"'
-    endif
+    let l:dirname = a:0 ? a:1 : "$HOME"
+    " Helpers:
+    " " . -> vim cwd
+    if l:dirname ==# '.' | let l:dirname = getcwd() | endif
+    " " % -> %:p
+    if l:dirname ==# expand('%') | let l:dirname = '%:p:h' | endif
+    " Expand (to get %)
+    let l:dirname = expand(l:dirname)
+    let l:dirname = escape(l:dirname, '"')
+    Pythonx jupyter_vim.change_directory(vim.eval('l:dirname'))
 endfunction
 
 function! jupyter#RunFile(...) abort

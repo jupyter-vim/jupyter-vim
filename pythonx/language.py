@@ -11,6 +11,7 @@ class Language:
     prompt_in = 'In [{line:d}]: '
     prompt_out = 'Out[{line:d}]: '
     print_string = 'print("{}")'
+    cd = 'cd "{}"'
     pid = -1
     cwd = '"unknown"'
     hostname = '"unknown"'
@@ -19,6 +20,7 @@ class Language:
 class Bash(Language):
     prompt_in = 'Sh [{line:d}]: '
     print_string = 'echo -e "{}"'
+    cd = 'cd "{}"'
     pid = '_res=$$; echo $_res;'
     cwd = '_res=$(pwd); echo $_res;'
     hostname = '_res=$(hostname); echo $_res;'
@@ -27,7 +29,7 @@ class Bash(Language):
 class Javascript(Language):
     prompt_in = 'Js [{line:d}]: '
     print_string = 'console.log("{}");'
-    pid = 'var process = require("process"); _res = process.pid;'
+    cd = 'require("process").chdir("{}");'
     pid = '_res = require("process").pid;'
     cwd = '_res = require("process").cwd();'
     hostname = '_res = require("os").userInfo().username;'
@@ -36,6 +38,7 @@ class Javascript(Language):
 class Julia(Language):
     prompt_in = 'Jl [{line:d}]: '
     print_string = 'println("{}")'
+    cd = 'cd "{}"'
     pid = '_res = getpid()'
     cwd = '_res = pwd()'
     hostname = '_res = gethostname()'
@@ -44,6 +47,7 @@ class Julia(Language):
 class Perl(Language):
     prompt_in = 'Pl [{line:d}]: '
     print_string = 'print("{}")'
+    cd = 'chdir("{}")'
     pid = '$_res = $$'
     cwd = 'use Cwd; $_res = getcwd();'
     hostname = 'use Sys::Hostname qw/hostname/; $_res = hostname();'
@@ -52,6 +56,7 @@ class Perl(Language):
 class Python(Language):
     prompt_in = 'Py [{line:d}]: '
     print_string = 'print("{}")'
+    cd = '%cd "{}"'
     pid = 'import os; _res = os.getpid()'
     cwd = 'import os; _res = os.getcwd()'
     hostname = 'import socket; _res = socket.gethostname()'
@@ -60,6 +65,7 @@ class Python(Language):
 class Ruby(Language):
     prompt_in = 'Rb [{line:d}]: '
     print_string = 'print("{}")'
+    cd = '_res = Dir.chdir "{}"'
     pid = '_res = Process.pid'
     cwd = '_res = Dir.pwd'
     hostname = '_res = Socket.gethostname'

@@ -510,6 +510,24 @@ def with_verbose(f):
 
 @with_console
 @with_verbose
+def change_directory(directory):
+    """CD: Change (current working) to directory"""
+    # Cd
+    cmd = lang.cd.format(directory)
+    msg_id = send(cmd)
+
+    # Print cwd
+    try:
+        cwd = get_res_from_code_string(lang.cwd)
+        vim_echom('CWD: ', style='Question')
+        vim.command("echon \"{}\"".format(cwd))
+    except Exception: pass
+
+    return (cwd, msg_id)
+
+
+@with_console
+@with_verbose
 def run_command(cmd):
     """Send a single command to the kernel."""
     msg_id = send(cmd)
