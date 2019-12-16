@@ -274,7 +274,7 @@ function! jupyter#OpenJupyterTerm() abort
     " If we're in the console display already, just go to the bottom.
     " Otherwise, create a new buffer in a split (or jump to it if open)
     " If exists already: leave
-    if -1 != bufnr('__jupyter_term__')
+    if bufexists('__jupyter_term__')
       return 1
     endif
 
@@ -294,7 +294,7 @@ function! jupyter#OpenJupyterTerm() abort
     " Make it AutoScroll
     augroup JupyterTerm
       autocmd!
-      autocmd TextChanged __jupyter_term__ call cursor(10000000000, 0)
+      autocmd TextChanged __jupyter_term__ call cursor('$', 0)
     augroup END
 
     " Make sure buffer is a scratch buffer before we write to it
