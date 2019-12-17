@@ -15,8 +15,9 @@ from os import kill, listdir
 from os.path import join, splitext, isfile
 from signal import SIGTERM
 from sys import version_info
-from threading import Thread
 from textwrap import dedent
+from threading import Thread
+from time import sleep
 import re
 
 try:
@@ -90,7 +91,8 @@ def warn_no_connection():
 
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
-if all([x in globals() for x in ('kc', 'pid', 'cfile', 'lang', 'cmd', 'cmd_id')]):
+if all([x in globals() for x in ('kc', 'pid', 'cfile', 'lang', 'cmd', 'cmd_id', 'io_pub',
+                                 'thread', 'stop')]):
     if not check_connection():
         warn_no_connection()
 else:
@@ -100,6 +102,9 @@ else:
     lang = None
     cmd = None
     cmd_id = None
+    io_pub = []
+    thread = None
+    stop = False
 
 
 # -----------------------------------------------------------------------------
@@ -316,11 +321,28 @@ def send(msg, **kwargs):
     return cmd_id
 
 
+def stop_thread():
+    global stop, thread
+    if thread is None: return
+    if not thread.isAlive(): thread = None; return
+
+    # Wait 1 sec max
+    stop = True
+    for i in range(100):
+        if not stop: False
+        sleep(0.010)
+    thread = None
+    return
+
+
 # -----------------------------------------------------------------------------
 #        Major Function Definitions:
 # -----------------------------------------------------------------------------
 def connect_to_kernel(kernel_type, filename=''):
+    global thread
+
     # Create thread
+    stop_thread()
     thread = Thread(target=thread_connect_to_kernel,
                     args=(kernel_type, filename))
     thread.start()
@@ -330,13 +352,16 @@ def thread_connect_to_kernel(kernel_type, filename=''):
     """Create kernel manager from existing connection file."""
     from jupyter_client import KernelManager, find_connection_file
 
-    global kc, cfile
+    global kc, cfile, stop
+    if stop: stop = False; return
 
     # Test if connection is alive
     connected = check_connection()
     attempt = 0
     max_attempts = 3
     while not connected and attempt < max_attempts:
+        if stop: stop = False; return
+
         attempt += 1
         try:
             cfile = find_connection_file(filename=filename)
@@ -392,32 +417,91 @@ def disconnect_from_kernel():
 
 def update_console_msgs():
     """Grab pending messages and place them inside the vim console monitor."""
+    global thread
+
     # Open the Jupyter terminal in vim, and move cursor to it
-    is_console_open = vim.eval('jupyter#OpenJupyterTerm()')
-    if not is_console_open:
+    b_nb = vim.eval('jupyter#OpenJupyterTerm()')
+    if -1 == b_nb:
         vim_echom('__jupyter_term__ failed to open!', 'Error')
         return
 
+    # Create thread
+    thread_intervals = (10, 100)
+    timer_intervals = (100, 400)
+    stop_thread()
+    thread = Thread(target=thread_update_console_msgs, args=[thread_intervals])
+    thread.start()
+
+    # Launch timers
+    for sleep_ms in timer_intervals:
+        vim_cmd = ('let timer = timer_start(' + str(sleep_ms) +
+                   ', "jupyter#UpdateConsoleBuffer")')
+        vim.command(vim_cmd)
+
+
+def thread_update_console_msgs(intervals):
+    global io_pub, thread, stop
+    io_cache = []
+    for sleep_ms in intervals:
+        if stop: stop = False; return
+        # Get messages
+        io_new = handle_messages()
+
+        # Insert code line Check not already here (check with substr 'Py [')
+        do_add_cmd = cmd is not None
+        do_add_cmd &= 0 != len(io_new)
+        do_add_cmd &= not any(lang.prompt_in[:4] in msg for msg in (io_new + io_cache))
+        if do_add_cmd:
+            # Get cmd number from id
+            try:
+                reply = get_reply_msg(cmd_id)
+                line_number = reply['content'].get('execution_count', 0)
+            except(Empty, KeyError, TypeError):
+                line_number = -1
+            s = prettify_execute_intput(line_number, cmd)
+            io_new.insert(0, s)
+
+        # Append just new
+        io_pub = [s for s in io_new if s not in io_cache]
+        # Update cache
+        io_cache = list(set().union(io_cache, io_new))
+
+        # Sleep ms
+        if stop: stop = False; return
+        sleep(sleep_ms / 1000)
+
+
+def write_console_msgs(b_nb):
+    global io_pub
+
+    # Check in
+    if len(io_pub) == 0: return
+
     # Get buffer (same indexes as vim)
-    b_nb = int(vim.eval('bufnr("__jupyter_term__")'))
     b = vim.buffers[b_nb]
-
-    # Append the I/O to the console buffer
-    io_pub = handle_messages()
-
-    # Insert code line Check not already here (check with substr 'Py [')
-    if cmd is not None and not any(lang.prompt_in[:4] in msg for msg in io_pub):
-        # Get cmd number from id (TODO mutualize)
-        try:
-            reply = get_reply_msg(cmd_id)
-            cmd_nb = reply['content']['execution_count']
-        except Empty:
-            cmd_nb = -1
-        io_pub.insert(0, lang.prompt_in.format(cmd_nb) + cmd)
 
     # Append mesage to jupyter terminal buffer
     for msg in io_pub:
         b.append([PythonToVimStr(line) for line in msg.splitlines()])
+    io_pub = []
+
+    # # Update view (moving cursor)
+    cur_win = vim.eval('win_getid()')
+    term_win = vim.eval('bufwinid({})'.format(str(b_nb)))
+    vim.command('call win_gotoid({})'.format(term_win))
+    vim.command('normal! G')
+    vim.command('call win_gotoid({})'.format(cur_win))
+
+
+
+def prettify_execute_intput(line_number, cmd):
+    """Also used with my own input (as iperl does not send it back)"""
+    prompt = lang.prompt_in.format(line_number)
+    s = prompt
+    # add continuation line, if necessary
+    dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
+    s += cmd.rstrip().replace('\n', '\n' + dots)
+    return s
 
 
 def handle_messages():
@@ -452,13 +536,9 @@ def handle_messages():
             s += msg['content']['data']['text/plain']
 
         elif msg_type in ('execute_input', 'pyin'):
-            # Get the input code
             line_number = msg['content'].get('execution_count', 0)
-            prompt = lang.prompt_in.format(line_number)
-            s = prompt
-            # add continuation line, if necessary
-            dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
-            s += msg['content']['code'].rstrip().replace('\n', '\n' + dots)
+            cmd = msg['content']['code']
+            s = prettify_execute_intput(line_number, cmd)
 
         elif msg_type in ('execute_result', 'pyout'):
             # Get the output
@@ -489,7 +569,7 @@ def get_reply_msg(msg_id):
     """Get kernel reply from sent client message with msg_id."""
     # TODO handle 'is_complete' requests?
     # <http://jupyter-client.readthedocs.io/en/stable/messaging.html#code-completeness>
-    while True:
+    for i in range(10000):
         try:
             m = kc.get_shell_msg(block=False, timeout=1)
         except Empty:

@@ -268,14 +268,19 @@ function! jupyter#MapStandardKeys() abort
     nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
 endfunction
 
+"-----------------------------------------------------------------------------
+"        Helpers
+"-----------------------------------------------------------------------------
+
 " NOTE: Generally unused except for communication debugging
 function! jupyter#OpenJupyterTerm() abort
     " Set up console display window
     " If we're in the console display already, just go to the bottom.
     " Otherwise, create a new buffer in a split (or jump to it if open)
     " If exists already: leave
-    if bufexists('__jupyter_term__')
-        return 1
+    let buf_nr = bufnr('__jupyter_term__')
+    if -1 != buf_nr
+        return buf_nr
     endif
 
     " Clear out any autocmds that trigger on Insert for the console buffer
@@ -313,7 +318,13 @@ function! jupyter#OpenJupyterTerm() abort
     " Restore cursor at current window
     call win_gotoid(win_id)
 
-    return 1
+    return bufnr('__jupyter_term__')
+endfunction
+
+" Timer callback to fill jupyter console buffer
+function! jupyter#UpdateConsoleBuffer(timer)
+    Pythonx jupyter_vim.write_console_msgs(int(
+                \ vim.eval('bufnr("__jupyter_term__")')))
 endfunction
 
 "-----------------------------------------------------------------------------
