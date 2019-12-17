@@ -49,7 +49,7 @@ augroup JupyterVimInit
     " By default, guess the kernel language based on the filetype. The user
     " can override this guess on a per-buffer basis.
     autocmd!
-    autocmd BufRead * let b:jupyter_kernel_type =
+    autocmd FileType * let b:jupyter_kernel_type =
           \ get(s:language_dict, &filetype, 'none')
 
     execute 'autocmd FileType ' . s:language_string .
