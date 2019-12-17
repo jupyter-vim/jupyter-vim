@@ -526,13 +526,21 @@ def handle_messages():
             continue
 
         elif msg_type == 'stream':
-            # TODO: allow for distinguishing between stdout and stderr (using
-            # custom syntax markers in the vim-jupyter buffer perhaps), or by
-            # also echoing the message to the status bar
-            s = strip_color_escapes(msg['content']['text'])
+            # Get data
+            text = strip_color_escapes(msg['content']['text'])
+            line_number = msg['content'].get('execution_count', 0)
+            # Set prompt
+            if 'stderr' == msg['content'].get('name', 'stdout'):
+                prompt = 'StdErr [{:d}]: '.format(line_number)
+                dots = (' ' * (len(prompt.rstrip()) - 4)) + '...x '
+            else:
+                prompt = 'StdOut [{:d}]: '.format(line_number)
+                dots = (' ' * (len(prompt.rstrip()) - 4)) + '...< '
+            s = prompt
+            # Add continuation line, if necessary
+            s += text.rstrip().replace('\n', '\n' + dots)
 
         elif msg_type == 'display_data':
-            # Get the stdout
             s += msg['content']['data']['text/plain']
 
         elif msg_type in ('execute_input', 'pyin'):

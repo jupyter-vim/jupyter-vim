@@ -308,11 +308,19 @@ function! jupyter#OpenJupyterTerm() abort
     syn match JupyterPromptIn /^\(\w\w \[[ 0-9]*\]:\)\|\(\s*\.\{3}:\)/
     syn match JupyterPromptOut /^Out\[[ 0-9]*\]:/
     syn match JupyterPromptOut2 /^\.\.\.* /
+    syn match JupyterPromptStdOut /^StdOut \[[ 0-9]*\]:/
+    syn match JupyterPromptStdOut2 /^ *\.\.\.< /
+    syn match JupyterPromptStdErr /^StdErr \[[ 0-9]*\]:/
+    syn match JupyterPromptStdErr2 /^ *\.\.\.x /
     syn match JupyterMagic /^\]: \zs%\w\+/
 
     hi JupyterPromptIn   ctermfg=Green
     hi JupyterPromptOut  ctermfg=Red
     hi JupyterPromptOut2 ctermfg=Grey
+    hi JupyterPromptStdOut  ctermfg=Blue
+    hi JupyterPromptStdOut2 ctermfg=Cyan
+    hi JupyterPromptStdErr  ctermfg=Red
+    hi JupyterPromptStdErr2 ctermfg=DarkRed
     hi JupyterMagic      ctermfg=Magenta
 
     " Restore cursor at current window
