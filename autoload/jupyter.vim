@@ -275,11 +275,14 @@ function! jupyter#OpenJupyterTerm() abort
     " Otherwise, create a new buffer in a split (or jump to it if open)
     " If exists already: leave
     if bufexists('__jupyter_term__')
-      return 1
+        return 1
     endif
 
+    " Clear out any autocmds that trigger on Insert for the console buffer
+    " vint: next-line -ProhibitAutocmdWithNoGroup
+    autocmd! InsertEnter,InsertLeave __jupyter_term__
+
     " Save current window
-    " TODO: Challenge: try to do all that without moving curosr
     let win_id = win_getid()
     let win_syntax = &syntax
 
@@ -291,20 +294,10 @@ function! jupyter#OpenJupyterTerm() abort
     execute l:cmd . ' ' . '__jupyter_term__'
     let &switchbuf=save_swbuf
 
-    " Make it AutoScroll
-    augroup JupyterTerm
-      autocmd!
-      autocmd TextChanged __jupyter_term__ call cursor('$', 0)
-    augroup END
-
     " Make sure buffer is a scratch buffer before we write to it
     setlocal bufhidden=hide buftype=nofile
     setlocal nobuflisted nonumber noswapfile
     execute 'setlocal syntax=' . win_syntax
-
-    " Clear out any autocmds that trigger on Insert for the console buffer
-    " vint: next-line -ProhibitAutocmdWithNoGroup
-    autocmd! InsertEnter,InsertLeave __jupyter_term__
 
     " Syntax highlighting for prompt
     syn match JupyterPromptIn /^\(\w\w \[[ 0-9]*\]:\)\|\(\s*\.\{3}:\)/
