@@ -182,45 +182,33 @@ endfunction
 "-----------------------------------------------------------------------------
 "        Operator Function:
 "-----------------------------------------------------------------------------
-" TODO rewrite this function as a general wrapper that accepts a function (of
-" one argument) that will act on the text object, and returns an
-" function that may be used as an operatorfunction. Then we don't need to
-" rewrite this opfunc, just changing the line that handles 'l:cmd' every time.
-function! s:opfunc(type) abort
-    " Originally from tpope/vim-scriptease
-    let sel_save = &selection
-    let cb_save = &clipboard
-    let reg_save = @@
-    let left_save = getpos("'<")
-    let right_save = getpos("'>")
-    let vimode_save = visualmode()
-    try
-        set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
-        if a:type =~# '^\d\+$'
-            silent exe 'normal! ^v'.a:type.'$hy'
-        elseif a:type =~# '^.$'
-            silent exe 'normal! `<' . a:type . '`>y'
-        elseif a:type ==# 'line'
-            silent exe "normal! '[V']y"
-        elseif a:type ==# 'block'
-            silent exe "normal! `[\<C-V>`]y"
-        elseif a:type ==# 'visual'
-            silent exe 'normal! gvy'
-        else
-            silent exe 'normal! `[v`]y'
-        endif
-        redraw
-        let l:cmd = @@
-    finally
-        let @@ = reg_save
-        let &selection = sel_save
-        let &clipboard = cb_save
-        exe 'normal! ' . vimode_save . '\<Esc>'
-        call setpos("'<", left_save)
-        call setpos("'>", right_save)
-    endtry
-    " Send the text to jupyter kernel
-    call jupyter#SendCode(l:cmd)
+
+" Factory: callback(text) -> operator_function
+function! s:get_opfunc(callback) abort
+    " Define the function
+    function! s:res_opfunc(type) abort closure
+        " From tpope/vim-scriptease
+        let saved = [&selection, &clipboard, @@]
+        try
+            set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
+            silent exe "norm! `[" . get({'l': 'V', 'b': "\<C-V>"}, a:type[0], 'v') . "`]y"
+            redraw
+            let l:text = @@
+        finally
+            let [&selection, &clipboard, @@] = saved
+        endtry
+
+        " Call callback
+        call a:callback(l:text)
+    endfunction
+
+    " Return the closure
+    return funcref('s:res_opfunc')
+endfunction
+
+" Operator function to run selected|operator text
+function! s:opfunc_run_code(type)
+    call s:get_opfunc(function('jupyter#SendCode'))(a:type)
 endfunction
 
 "-----------------------------------------------------------------------------
@@ -262,8 +250,11 @@ function! jupyter#MapStandardKeys() abort
     " Send just the current line
     nnoremap <buffer> <silent> <localleader>X       :JupyterSendCell<CR>
     nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
-    nnoremap <buffer> <silent> <localleader>e       :<C-u>set operatorfunc=<SID>opfunc<CR>g@
-    vnoremap <buffer> <silent> <localleader>e       :<C-u>call <SID>opfunc(visualmode())<CR>gv
+
+    " Send the text to jupyter kernel
+    nnoremap <buffer> <silent> <localleader>e       :<C-u>set operatorfunc=<SID>opfunc_run_code<CR>g@
+    vnoremap <buffer> <silent> <localleader>e       :<C-u>call <SID>opfunc_run_code(visualmode())<CR>gv
+
     nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
 
 endfunction
