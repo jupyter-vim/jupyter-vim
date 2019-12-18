@@ -163,6 +163,7 @@ def get_res_from_code_string(code):
     # Wait to get message back from kernel (1 sec)
     try:
         reply = get_reply_msg(msg_id)
+        line_number = reply['content'].get('execution_count', -1)
     except Empty: pass
 
     # Parse response
@@ -180,9 +181,19 @@ def get_res_from_code_string(code):
         for msg in msgs:
             try:
                 # Get the result of execution
-                if msg['header']['msg_type'] not in ('execute_result', 'stream'):
-                    continue
-                content = msg['content']
+                # 1 content
+                content = msg.get('content', False)
+                if not content: continue
+
+                # 2 execution _count
+                ec = int(content.get('execution_count', 0))
+                if not ec: continue
+                if line_number not in (-1, ec): continue
+
+                # 3 message type
+                if msg['header']['msg_type'] not in ('execute_result', 'stream'): continue
+
+                # 4 text
                 if 'data' in content:
                     res = content['data']['text/plain']
                 else:
@@ -574,12 +585,14 @@ def handle_messages():
 #        Communicate with Kernel
 # -----------------------------------------------------------------------------
 def get_reply_msg(msg_id):
-    """Get kernel reply from sent client message with msg_id."""
+    """Get kernel reply from sent client message with msg_id.
+    I can block 3 sec, so call me in a thread
+    """
     # TODO handle 'is_complete' requests?
     # <http://jupyter-client.readthedocs.io/en/stable/messaging.html#code-completeness>
-    for i in range(10000):
+    for i in range(3):
         try:
-            m = kc.get_shell_msg(block=False, timeout=1)
+            m = kc.get_shell_msg(block=True, timeout=1)
         except Empty:
             continue
         if m['parent_header']['msg_id'] == msg_id:
