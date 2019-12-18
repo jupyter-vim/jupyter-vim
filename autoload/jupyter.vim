@@ -262,10 +262,10 @@ function! jupyter#MapStandardKeys() abort
     " Send just the current line
     nnoremap <buffer> <silent> <localleader>X       :JupyterSendCell<CR>
     nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
-    nmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunTextObj
-    vmap     <buffer> <silent> <localleader>e       <Plug>JupyterRunVisual
-
+    nnoremap <buffer> <silent> <localleader>e       :<C-u>set operatorfunc=<SID>opfunc<CR>g@
+    vnoremap <buffer> <silent> <localleader>e       :<C-u>call <SID>opfunc(visualmode())<CR>
     nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
+
 endfunction
 
 "-----------------------------------------------------------------------------
@@ -334,12 +334,6 @@ function! jupyter#UpdateConsoleBuffer(timer)
     Pythonx jupyter_vim.write_console_msgs(int(
                 \ vim.eval('bufnr("__jupyter_term__")')))
 endfunction
-
-"-----------------------------------------------------------------------------
-"        Create <Plug> for user mappings
-"-----------------------------------------------------------------------------
-noremap <silent> <Plug>JupyterRunTextObj    :<C-u>set operatorfunc=<SID>opfunc<CR>g@
-noremap <silent> <Plug>JupyterRunVisual     :<C-u>call <SID>opfunc(visualmode())<CR>
 
 "=============================================================================
 "=============================================================================
