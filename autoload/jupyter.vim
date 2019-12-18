@@ -263,7 +263,7 @@ function! jupyter#MapStandardKeys() abort
     nnoremap <buffer> <silent> <localleader>X       :JupyterSendCell<CR>
     nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
     nnoremap <buffer> <silent> <localleader>e       :<C-u>set operatorfunc=<SID>opfunc<CR>g@
-    vnoremap <buffer> <silent> <localleader>e       :<C-u>call <SID>opfunc(visualmode())<CR>
+    vnoremap <buffer> <silent> <localleader>e       :<C-u>call <SID>opfunc(visualmode())<CR>gv
     nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
 
 endfunction
