@@ -26,6 +26,16 @@ class Bash(Language):
     hostname = '_res=$(hostname); echo $_res;'
 
 
+class Java(Language):
+    prompt_in = 'Ja [{:d}]: '
+    print_string = 'System.out.println("{}");'
+    cd = 'System.setProperty("user.dir", "{}");'
+    pid = 'String _res = String.valueOf(ProcessHandle.current().pid()); _res;'
+    cwd = ('String _res = new File(System.getProperty("user.dir"))'
+           '.getAbsoluteFile().getPath(); _res;')
+    hostname = 'String _res = InetAddress.getLocalHost().getHostName(); _res;'
+
+
 class Javascript(Language):
     prompt_in = 'Js [{:d}]: '
     print_string = 'console.log("{}");'
@@ -74,6 +84,7 @@ class Ruby(Language):
 # Dict: kernel_type -> class
 language_dict = {
     'bash': Bash,
+    'java': Java,
     'javascript': Javascript,
     'julia': Julia,
     'perl': Perl,
