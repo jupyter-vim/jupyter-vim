@@ -411,8 +411,7 @@ def thread_connect_to_kernel(kernel_type, filename=''):
         vim_echom('To: ', style='Question')
         vim_echom(kernel_string.replace('\"', '\\\"'), cmd='echom')
 
-        # Send command so that user knows vim is connected at bottom, more
-        # readable
+        # Send command so that user knows vim is connected at bottom, more readable
         vim_echom('Connected: {}'.format(shorten_filename(cfile)), style='Question')
 
     else:
@@ -651,7 +650,6 @@ def with_verbose(f):
 @with_verbose
 def change_directory(directory):
     """CD: Change (current working) to directory
-    Note: @with_verbose + send make perl bug. TODO restore that
     """
     # Cd
     cmd = lang.cd.format(directory)
@@ -764,25 +762,3 @@ def signal_kernel(sig=SIGTERM):
         vim_echom("signal #{v:d}, {n:s} failed to kill pid {p:d}"
                   .format(v=sig.value, n=sig.name, p=pid), style='Error')
         raise e
-
-
-# def set_breakpoint():
-#     send("__IP.InteractiveTB.pdb.set_break('%s',%d)" % (vim.current.buffer.name,
-#                                                         vim.current.window.cursor[0]))
-#     print("set breakpoint in %s:%d"% (vim.current.buffer.name,
-#                                       vim.current.window.cursor[0]))
-#
-# def clear_breakpoint():
-#     send("__IP.InteractiveTB.pdb.clear_break('%s',%d)" % (vim.current.buffer.name,
-#                                                           vim.current.window.cursor[0]))
-#     print("clearing breakpoint in %s:%d" % (vim.current.buffer.name,
-#                                             vim.current.window.cursor[0]))
-#
-# def clear_all_breakpoints():
-#     send("__IP.InteractiveTB.pdb.clear_all_breaks()");
-#     print("clearing all breakpoints")
-#
-# def run_this_file_pdb():
-#     send(' __IP.InteractiveTB.pdb.run(\'execfile("%s")\')' % (vim.current.buffer.name,))
-#     #send('run -d %s' % (vim.current.buffer.name,))
-#     echo("In[]: run -d %s (using pdb)" % vim.current.buffer.name)
