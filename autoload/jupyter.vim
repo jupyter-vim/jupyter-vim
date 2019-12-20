@@ -191,7 +191,13 @@ function! s:get_opfunc(callback) abort
         let saved = [&selection, &clipboard, @@]
         try
             set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
-            silent exe "norm! `[" . get({'l': 'V', 'b': "\<C-V>"}, a:type[0], 'v') . "`]y"
+            " Invoked from visual mode (V, v, ^V)
+            if a:type =~# '^.$'
+                silent exe 'norm! `<' . a:type . '`>y'
+            " Invoked from operator pending (line, block or visual)
+            else
+                silent exe "norm! `[" . get({'l': 'V', 'b': "\<C-V>"}, a:type[0], 'v') . "`]y"
+            endif
             redraw
             let l:text = @@
         finally
