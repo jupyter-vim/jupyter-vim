@@ -164,13 +164,13 @@ def get_res_from_code_string(code):
     try:
         reply = get_reply_msg(msg_id)
         line_number = reply['content'].get('execution_count', -1)
-    except Empty: pass
+    except (Empty, KeyError, TypeError): pass
 
     # Parse response
     try:
         # Requires the fix for https://github.com/JuliaLang/IJulia.jl/issues/815
         res = reply['content']['user_expressions']['_res']['data']['text/plain']
-    except KeyError: pass
+    except (TypeError, KeyError): pass
 
     # If bad luck, try again, cross your finger
     # Explain: some kernel (iperl) do not discriminate when clien ask user_expressions.
