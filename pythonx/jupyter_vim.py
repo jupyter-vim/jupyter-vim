@@ -164,7 +164,8 @@ def get_res_from_code_string(code):
     try:
         reply = get_reply_msg(msg_id)
         line_number = reply['content'].get('execution_count', -1)
-    except (Empty, KeyError, TypeError): pass
+    except (Empty, KeyError, TypeError):
+        line_number = -1
 
     # Parse response
     try:
@@ -203,9 +204,7 @@ def get_res_from_code_string(code):
             except (KeyError): pass
 
     # Game over
-    if None is res:
-        res = -1
-        vim_echom("no reply from jupyter kernel", "WarningMsg")
+    if None is res: res = -1
 
     # Convert
     res = unquote_string(res)
