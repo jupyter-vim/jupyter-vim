@@ -21,9 +21,9 @@ from time import sleep
 import re
 
 try:
-    from queue import Empty
+    from queue import Empty, Queue
 except ImportError:
-    from Queue import Empty
+    from Queue import Empty, Queue
 
 _install_instructions = """You *must* install the jupyter package into the
 Python that your vim is linked against. If you are seeing this message, this
@@ -58,6 +58,73 @@ if is_py3:
     unicode = str
 
 
+# -----------------------------------------------------------------------------
+#        Check Connection:
+# -----------------------------------------------------------------------------
+def check_connection():
+    """Check that we have a client connected to the kernel."""
+    return SI.km_client.hb_channel.is_beating() if SI.km_client else False
+
+
+def warn_no_connection():
+    """Echo warning: not connected"""
+    vim_echom('WARNING: Not connected to Jupyter!'
+              '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
+
+
+class SectionInfo():
+    """Info relative to the jupyter <-> vim current section
+    The only global object is of this class
+    """
+    def __init__(self):
+        # KernelManager client
+        self.km_client = None
+        # Pid of the kernel
+        self.kernel_pid = None
+        # Pid of current vim section executing me
+        self.vim_pid = vim.eval('getpid()')
+        # Number of column of vim section
+        # # will be setted at last sync moment
+        self.vim_column = 80
+        # Connection file
+        self.cfile = None
+        # Language static class of the kernel (python || java || ...)
+        # # implemented in ./language.py
+        self.lang = get_language('default')
+        # Last command sent and it's id
+        self.cmd = None
+        self.cmd_id = None
+        # Last received messages
+        self.io_pub = []
+
+        # Thread running
+        self.thread = None
+        # Should the current thread stop (cleanly)
+        self.stop = False
+        # Message queue
+        self.message_queue = Queue()
+
+
+# if module has not yet been imported, define global kernel manager, client and
+# kernel pid. Otherwise, just check that we're connected to a kernel.
+if 'SI' in globals():
+    if not check_connection():
+        warn_no_connection()
+else:
+    SI = SectionInfo()
+
+
+# -----------------------------------------------------------------------------
+#        Utilities
+# -----------------------------------------------------------------------------
+# Define wrapper for encoding
+# get around unicode problems when interfacing with vim
+vim_encoding = vim.eval('&encoding') or 'utf-8'
+# from <http://serverfault.com/questions/71285/\
+# in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file>
+strip = re.compile(r'\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mK]')
+
+
 # General message command
 def vim_echom(arg, style="None", cmd='echom'):
     """
@@ -74,48 +141,6 @@ def vim_echom(arg, style="None", cmd='echom'):
         vim.command("echohl None")
     except vim.error:
         print("-- {}".format(arg))
-
-
-# -----------------------------------------------------------------------------
-#        Check Connection:
-# -----------------------------------------------------------------------------
-def check_connection():
-    """Check that we have a client connected to the kernel."""
-    return kc.hb_channel.is_beating() if kc else False
-
-
-def warn_no_connection():
-    vim_echom('WARNING: Not connected to Jupyter!'
-              '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
-
-
-# if module has not yet been imported, define global kernel manager, client and
-# kernel pid. Otherwise, just check that we're connected to a kernel.
-if all([x in globals() for x in ('kc', 'pid', 'cfile', 'lang', 'cmd', 'cmd_id', 'io_pub',
-                                 'thread', 'stop')]):
-    if not check_connection():
-        warn_no_connection()
-else:
-    kc = None
-    pid = None
-    cfile = None
-    lang = None
-    cmd = None
-    cmd_id = None
-    io_pub = []
-    thread = None
-    stop = False
-
-
-# -----------------------------------------------------------------------------
-#        Utilities
-# -----------------------------------------------------------------------------
-# Define wrapper for encoding
-# get around unicode problems when interfacing with vim
-vim_encoding = vim.eval('&encoding') or 'utf-8'
-# from <http://serverfault.com/questions/71285/\
-# in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file>
-strip = re.compile(r'\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mK]')
 
 
 def vim2py_str(var):
@@ -153,6 +178,39 @@ class PythonToVimStr(unicode):
         return '"{:s}"'.format(s.replace('\\', '\\\\').replace('"', r'\"'))
 
 
+def get_res_from_iopub(line_number):
+    """Try again to get kernel response
+    Param: line_number: the message number of the corresponding code
+    """
+    res = None
+    # Parse all execute
+    msgs = SI.km_client.iopub_channel.get_msgs()
+    for msg in msgs:
+        try:
+            # Get the result of execution
+            # 1 content
+            content = msg.get('content', False)
+            if not content: continue
+
+            # 2 execution _count
+            ec = int(content.get('execution_count', 0))
+            if not ec: continue
+            if line_number not in (-1, ec): continue
+
+            # 3 message type
+            if msg['header']['msg_type'] not in ('execute_result', 'stream'): continue
+
+            # 4 text
+            if 'data' in content:
+                res = content['data']['text/plain']
+            else:
+                # Jupyter bash style ...
+                res = content['text']
+            break
+        except KeyError: pass
+    return res
+
+
 def get_res_from_code_string(code):
     """Helper: Get variable _res from code string (setting _res)"""
     res = None
@@ -176,32 +234,7 @@ def get_res_from_code_string(code):
     # If bad luck, try again, cross your finger
     # Explain: some kernel (iperl) do not discriminate when clien ask user_expressions.
     # But still they give a printable output
-    if None is res:
-        # Parse all execute
-        msgs = kc.iopub_channel.get_msgs()
-        for msg in msgs:
-            try:
-                # Get the result of execution
-                # 1 content
-                content = msg.get('content', False)
-                if not content: continue
-
-                # 2 execution _count
-                ec = int(content.get('execution_count', 0))
-                if not ec: continue
-                if line_number not in (-1, ec): continue
-
-                # 3 message type
-                if msg['header']['msg_type'] not in ('execute_result', 'stream'): continue
-
-                # 4 text
-                if 'data' in content:
-                    res = content['data']['text/plain']
-                else:
-                    # Jupyter bash style ...
-                    res = content['text']
-                break
-            except (KeyError): pass
+    if None is res: get_res_from_code_string(line_number)
 
     # Game over
     if None is res: res = -1
@@ -225,9 +258,13 @@ def unquote_string(string):
 
 def get_kernel_info(kernel_type):
     """Explicitly ask the jupyter kernel for its pid
+    Thread: <- cfile
+            <- vim_pid
+            -> lang
+            -> kernel_pid
     Returns: dict with 'kernel_type', 'pid', 'cwd', 'hostname'
     """
-    global pid, lang
+    global SI
 
     # Check in
     if kernel_type not in list_languages():
@@ -235,36 +272,35 @@ def get_kernel_info(kernel_type):
                   ' type "{}"'.format(kernel_type), 'WarningMsg')
 
     # Get language
-    lang = get_language(kernel_type)
+    SI.lang = get_language(kernel_type)
 
     # Set kernel type
     res = {'kernel_type': kernel_type}
 
     # Get full connection file
-    res['connection_file'] = cfile
+    res['connection_file'] = SI.cfile
 
     # Get kernel id
-    res['id'] = shorten_filename(cfile)
+    res['id'] = shorten_filename(SI.cfile)
 
     # Get pid
-    try: res['pid'] = get_res_from_code_string(lang.pid)
+    try: res['pid'] = get_res_from_code_string(SI.lang.pid)
     except Exception: res['pid'] = -1
-    pid = res['pid']
+    SI.kernel_pid = res['pid']
 
     # Get cwd
-    try: res['cwd'] = get_res_from_code_string(lang.cwd)
+    try: res['cwd'] = get_res_from_code_string(SI.lang.cwd)
     except Exception: res['cwd'] = 'unknown'
 
     # Get hostname
-    try: res['hostname'] = get_res_from_code_string(lang.hostname)
+    try: res['hostname'] = get_res_from_code_string(SI.lang.hostname)
     except Exception: res['hostname'] = 'unknown'
 
     # Print vim connected
-    vim_pid = vim.eval('getpid()')
     hi_string = '\\n\\n'
-    hi_string += 'Received connection from vim client with pid ' + vim_pid
+    hi_string += 'Received connection from vim client with pid ' + SI.vim_pid
     hi_string += '\\n' + '-' * 60 + '\\n'
-    get_res_from_code_string(lang.print_string.format(hi_string))
+    get_res_from_code_string(SI.lang.print_string.format(hi_string))
 
     # Return
     return res
@@ -283,6 +319,7 @@ def strip_color_escapes(s):
 
 
 def shorten_filename(runtime_file):
+    """Shorten connection filename kernel-24536.json -> 24536"""
     if runtime_file is None: return ''
     r_cfile = r'.*kernel-([0-9a-fA-F]*)[0-9a-fA-F\-]*.json'
     return re.sub(r_cfile, r'\1', runtime_file)
@@ -300,7 +337,7 @@ def find_jupyter_kernels():
     for file_path in listdir(jupyter_path):
         full_path = join(jupyter_path, file_path)
         file_ext = splitext(file_path)[1]
-        if (isfile(full_path) and '.json' == file_ext):
+        if (isfile(full_path) and file_ext == '.json'):
             runtime_files.append(file_path)
 
     # Get all the kernel ids
@@ -316,32 +353,34 @@ def find_jupyter_kernels():
 
 # Alias execute function
 def send(msg, **kwargs):
-    """Send a message to the kernel client."""
-    global cmd, cmd_id
-    if kc is None:
+    """Send a message to the kernel client
+    Global: -> cmd, cmd_id
+    """
+    global SI
+    if SI.km_client is None:
         vim_echom('kernel failed sending message, client not created'
                   '\ndid you run :JupyterConnect ?'
                   '\n msg to be sent : {}'.format(msg), style="Error")
         return -1
 
     # Include dedent of msg so we don't get odd indentation errors.
-    cmd = dedent(msg)
-    cmd_id = kc.execute(cmd, **kwargs)
+    SI.cmd = dedent(msg)
+    SI.cmd_id = SI.km_client.execute(SI.cmd, **kwargs)
 
-    return cmd_id
+    return SI.cmd_id
 
 
 def stop_thread():
-    global stop, thread
-    if thread is None: return
-    if not thread.isAlive(): thread = None; return
+    """Stop current thread <- SI.thread"""
+    global SI
+    if SI.thread is None: return
+    if not SI.thread.isAlive(): SI.thread = None; return
 
     # Wait 1 sec max
-    stop = True
-    for i in range(100):
-        if not stop: False
-        sleep(0.010)
-    thread = None
+    SI.stop = True
+    for _ in range(100):
+        if not SI.stop: sleep(0.010)
+    SI.thread = None
     return
 
 
@@ -349,84 +388,34 @@ def stop_thread():
 #        Major Function Definitions:
 # -----------------------------------------------------------------------------
 def connect_to_kernel(kernel_type, filename=''):
-    global thread
+    """JupyterConnect"""
+    global SI
+
+    # Get number of column (used for pretty printing)
+    SI.vim_column = vim.eval('&columns')
 
     # Create thread
     stop_thread()
-    thread = Thread(target=thread_connect_to_kernel,
-                    args=(kernel_type, filename))
-    thread.start()
+    SI.thread = Thread(target=thread_connect_to_kernel,
+                       args=(kernel_type, filename))
+    SI.thread.start()
 
-
-def thread_connect_to_kernel(kernel_type, filename=''):
-    """Create kernel manager from existing connection file."""
-    from jupyter_client import KernelManager, find_connection_file
-
-    global kc, cfile, stop
-    if stop: stop = False; return
-
-    # Test if connection is alive
-    connected = check_connection()
-    attempt = 0
-    max_attempts = 3
-    while not connected and attempt < max_attempts:
-        if stop: stop = False; return
-
-        attempt += 1
-        try:
-            cfile = find_connection_file(filename=filename)
-        except IOError:
-            vim_echom("kernel connection attempt {:d}/{:d} failed - no kernel file"
-                      .format(attempt, max_attempts), style="Error")
-            continue
-
-        # Create the kernel manager and connect a client
-        # See: <http://jupyter-client.readthedocs.io/en/stable/api/client.html>
-        km = KernelManager(connection_file=cfile)
-        km.load_connection_file()
-        kc = km.client()
-        kc.start_channels()
-
-        # Ping the kernel
-        kc.kernel_info()
-        try:
-            kc.get_shell_msg(timeout=1)
-        except Empty:
-            continue
-        else:
-            connected = True
-
-    if connected:
-        # Collect kernel info
-        kernel_info = get_kernel_info(kernel_type)
-
-        # More info (anyway screen is redrawn)
-        #  # Prettify output: appearance rules
-        from pprint import PrettyPrinter
-        pp = PrettyPrinter(indent=4, width=vim.eval('&columns'))
-        kernel_string = pp.pformat(kernel_info)[4:-1]
-
-        # # Echo message
-        vim_echom('To: ', style='Question')
-        vim_echom(kernel_string.replace('\"', '\\\"'), cmd='echom')
-
-        # Send command so that user knows vim is connected at bottom, more readable
-        vim_echom('Connected: {}'.format(shorten_filename(cfile)), style='Question')
-
-    else:
-        if None is not kc: kc.stop_channels()
-        vim_echom('kernel connection attempt timed out', style='Error')
+    # Launch timers: update echom
+    for sleep_ms in (500, 1000, 1500, 2000, 3000):
+        vim_cmd = ('let timer = timer_start(' + str(sleep_ms) +
+                   ', "jupyter#UpdateEchom")')
+        vim.command(vim_cmd)
 
 
 def disconnect_from_kernel():
     """Disconnect kernel client."""
-    if None is not kc: kc.stop_channels()
-    vim_echom("Disconnected: {}".format(shorten_filename(cfile)), style='Directory')
+    if None is not SI.km_client: SI.km_client.stop_channels()
+    vim_echom("Disconnected: {}".format(shorten_filename(SI.cfile)), style='Directory')
 
 
 def update_console_msgs():
     """Grab pending messages and place them inside the vim console monitor."""
-    global thread
+    global SI
 
     # Open the Jupyter terminal in vim, and move cursor to it
     b_nb = vim.eval('jupyter#OpenJupyterTerm()')
@@ -438,8 +427,8 @@ def update_console_msgs():
     thread_intervals = (10, 100)
     timer_intervals = (100, 400)
     stop_thread()
-    thread = Thread(target=thread_update_console_msgs, args=[thread_intervals])
-    thread.start()
+    SI.thread = Thread(target=thread_update_console_msgs, args=[thread_intervals])
+    SI.thread.start()
 
     # Launch timers
     for sleep_ms in timer_intervals:
@@ -448,64 +437,9 @@ def update_console_msgs():
         vim.command(vim_cmd)
 
 
-def thread_update_console_msgs(intervals):
-    global io_pub, thread, stop
-    io_cache = []
-    for sleep_ms in intervals:
-        if stop: stop = False; return
-        # Get messages
-        io_new = handle_messages()
-
-        # Insert code line Check not already here (check with substr 'Py [')
-        do_add_cmd = cmd is not None
-        do_add_cmd &= 0 != len(io_new)
-        do_add_cmd &= not any(lang.prompt_in[:4] in msg for msg in (io_new + io_cache))
-        if do_add_cmd:
-            # Get cmd number from id
-            try:
-                reply = get_reply_msg(cmd_id)
-                line_number = reply['content'].get('execution_count', 0)
-            except(Empty, KeyError, TypeError):
-                line_number = -1
-            s = prettify_execute_intput(line_number, cmd)
-            io_new.insert(0, s)
-
-        # Append just new
-        io_pub = [s for s in io_new if s not in io_cache]
-        # Update cache
-        io_cache = list(set().union(io_cache, io_new))
-
-        # Sleep ms
-        if stop: stop = False; return
-        sleep(sleep_ms / 1000)
-
-
-def write_console_msgs(b_nb):
-    global io_pub
-
-    # Check in
-    if len(io_pub) == 0: return
-
-    # Get buffer (same indexes as vim)
-    b = vim.buffers[b_nb]
-
-    # Append mesage to jupyter terminal buffer
-    for msg in io_pub:
-        b.append([PythonToVimStr(line) for line in msg.splitlines()])
-    io_pub = []
-
-    # # Update view (moving cursor)
-    cur_win = vim.eval('win_getid()')
-    term_win = vim.eval('bufwinid({})'.format(str(b_nb)))
-    vim.command('call win_gotoid({})'.format(term_win))
-    vim.command('normal! G')
-    vim.command('call win_gotoid({})'.format(cur_win))
-
-
-
 def prettify_execute_intput(line_number, cmd):
     """Also used with my own input (as iperl does not send it back)"""
-    prompt = lang.prompt_in.format(line_number)
+    prompt = SI.lang.prompt_in.format(line_number)
     s = prompt
     # add continuation line, if necessary
     dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
@@ -518,12 +452,13 @@ def handle_messages():
     Message handler for Jupyter protocol.
 
     Takes all messages on the I/O Public channel, including stdout, stderr,
-    etc. and returns a list of the formatted strings of their content.
+    etc.
+    Returns: a list of the formatted strings of their content.
 
     See also: <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
     """
-    io_pub = []
-    msgs = kc.iopub_channel.get_msgs()
+    res = []
+    msgs = SI.km_client.iopub_channel.get_msgs()
     for msg in msgs:
         s = ''
         if 'msg_type' not in msg['header']:
@@ -534,12 +469,12 @@ def handle_messages():
             # I don't care status (idle or busy)
             continue
 
-        elif msg_type == 'stream':
+        if msg_type == 'stream':
             # Get data
             text = strip_color_escapes(msg['content']['text'])
             line_number = msg['content'].get('execution_count', 0)
             # Set prompt
-            if 'stderr' == msg['content'].get('name', 'stdout'):
+            if msg['content'].get('name', 'stdout') == 'stderr':
                 prompt = 'StdErr [{:d}]: '.format(line_number)
                 dots = (' ' * (len(prompt.rstrip()) - 4)) + '...x '
             else:
@@ -559,7 +494,7 @@ def handle_messages():
 
         elif msg_type in ('execute_result', 'pyout'):
             # Get the output
-            s = lang.prompt_out.format(msg['content']['execution_count'])
+            s = SI.lang.prompt_out.format(msg['content']['execution_count'])
             s += msg['content']['data']['text/plain']
 
         elif msg_type in ('error', 'pyerr'):
@@ -574,9 +509,158 @@ def handle_messages():
             continue
 
         # List all messages
-        io_pub.append(s)
+        res.append(s)
 
-    return io_pub
+    return res
+
+
+# -----------------------------------------------------------------------------
+#        Thread Functions: vim function forbidden here:
+#            could lead to segmentation fault
+# -----------------------------------------------------------------------------
+def thread_connect_to_kernel(kernel_type, filename=''):
+    """Create kernel manager from existing connection file.
+    Thread: <- stop
+            -> cfile
+    """
+    from jupyter_client import KernelManager, find_connection_file
+    global SI
+
+    if SI.stop: SI.stop = False; return
+
+    # Test if connection is alive
+    connected = check_connection()
+    attempt = 0
+    max_attempts = 3
+    while not connected and attempt < max_attempts:
+        if SI.stop: SI.stop = False; return
+
+        attempt += 1
+        try:
+            SI.cfile = find_connection_file(filename=filename)
+        except IOError:
+            thread_queue_message(
+                "kernel connection attempt {:d}/{:d} failed - no kernel file"
+                .format(attempt, max_attempts), style="Error")
+            continue
+
+        # Create the kernel manager and connect a client
+        # See: <http://jupyter-client.readthedocs.io/en/stable/api/client.html>
+        km = KernelManager(connection_file=SI.cfile)
+        km.load_connection_file()
+        SI.km_client = km.client()
+        SI.km_client.start_channels()
+
+        # Ping the kernel
+        SI.km_client.kernel_info()
+        try:
+            SI.km_client.get_shell_msg(timeout=1)
+        except Empty:
+            continue
+        else:
+            connected = True
+
+    if connected:
+        # Collect kernel info
+        kernel_info = get_kernel_info(kernel_type)
+
+        # More info (anyway screen is redrawn)
+        #  # Prettify output: appearance rules
+        from pprint import PrettyPrinter
+        pp = PrettyPrinter(indent=4, width=SI.vim_column)
+        kernel_string = pp.pformat(kernel_info)[4:-1]
+
+        # # Echo message
+        thread_queue_message('To: ', style='Question')
+        thread_queue_message(kernel_string.replace('\"', '\\\"'), cmd='echom')
+
+        # Send command so that user knows vim is connected at bottom, more readable
+        thread_queue_message('Connected: {}'.format(shorten_filename(SI.cfile)), style='Question')
+
+    else:
+        if None is not SI.km_client: SI.km_client.stop_channels()
+        thread_queue_message('kernel connection attempt timed out', style='Error')
+
+
+def thread_update_console_msgs(intervals):
+    """Update message that timer will append to console message
+    Thread: <- stop
+            -> io_pub
+    """
+    global SI
+
+    io_cache = []
+    for sleep_ms in intervals:
+        if SI.stop: SI.stop = False; return
+        # Get messages
+        io_new = handle_messages()
+
+        # Insert code line Check not already here (check with substr 'Py [')
+        do_add_cmd = SI.cmd is not None
+        do_add_cmd &= len(io_new) != 0
+        do_add_cmd &= not any(SI.lang.prompt_in[:4] in msg for msg in io_new + io_cache)
+        if do_add_cmd:
+            # Get cmd number from id
+            try:
+                reply = get_reply_msg(SI.cmd_id)
+                line_number = reply['content'].get('execution_count', 0)
+            except(Empty, KeyError, TypeError):
+                line_number = -1
+            s = prettify_execute_intput(line_number, SI.cmd)
+            io_new.insert(0, s)
+
+        # Append just new
+        SI.io_pub = [s for s in io_new if s not in io_cache]
+        # Update cache
+        io_cache = list(set().union(io_cache, io_new))
+
+        # Sleep ms
+        if SI.stop: SI.stop = False; return
+        sleep(sleep_ms / 1000)
+
+
+def thread_queue_message(arg, **args):
+    """Wrap echo async: put message to be echo in a queue
+    Thread: -> message_queue
+    """
+    SI.message_queue.put((arg, args))
+
+
+def timer_echom_queue():
+    """Call echom sync: all messages in queue"""
+    # Check in
+    if SI.message_queue.empty(): return
+
+    # Show user the force
+    while not SI.message_queue.empty():
+        (arg, args) = SI.message_queue.get_nowait()
+        vim_echom(arg, **args)
+
+    # Restore peace in the galaxy
+    vim.command('redraw')
+
+
+def timer_write_console_msgs(b_nb):
+    """Write kernel <-> vim messages to console buffer"""
+    global SI
+
+    # Check in
+    if len(SI.io_pub) == 0: return
+
+    # Get buffer (same indexes as vim)
+    b = vim.buffers[b_nb]
+
+    # Append mesage to jupyter terminal buffer
+    for msg in SI.io_pub:
+        b.append([PythonToVimStr(line) for line in msg.splitlines()])
+    SI.io_pub = []
+
+    # # Update view (moving cursor)
+    cur_win = vim.eval('win_getid()')
+    term_win = vim.eval('bufwinid({})'.format(str(b_nb)))
+    vim.command('call win_gotoid({})'.format(term_win))
+    vim.command('normal! G')
+    vim.command('call win_gotoid({})'.format(cur_win))
 
 
 # -----------------------------------------------------------------------------
@@ -588,13 +672,14 @@ def get_reply_msg(msg_id):
     """
     # TODO handle 'is_complete' requests?
     # <http://jupyter-client.readthedocs.io/en/stable/messaging.html#code-completeness>
-    for i in range(3):
+    for _ in range(3):
         try:
-            m = kc.get_shell_msg(block=True, timeout=1)
+            reply = SI.km_client.get_shell_msg(block=True, timeout=1)
         except Empty:
             continue
-        if m['parent_header']['msg_id'] == msg_id:
-            return m
+        if reply['parent_header']['msg_id'] == msg_id:
+            return reply
+    return None
 
 
 def print_prompt(prompt, msg_id=None):
@@ -604,18 +689,18 @@ def print_prompt(prompt, msg_id=None):
         try:
             reply = get_reply_msg(msg_id)
             count = reply['content']['execution_count']
-            vim_echom(lang.prompt_in.format(count) + str(prompt))
+            vim_echom(SI.lang.prompt_in.format(count) + str(prompt))
         except Empty:
             # if the kernel is waiting for input it's normal to get no reply
-            if not kc.stdin_channel.msg_ready():
-                vim_echom(lang.prompt_in.format(-1)
+            if not SI.km_client.stdin_channel.msg_ready():
+                vim_echom(SI.lang.prompt_in.format(-1)
                           + '{} (no reply from Jupyter kernel)'.format(prompt))
     else:
         vim_echom("In[]: {}".format(prompt))
 
 
 # Decorator for all sending commands
-def with_console(f):
+def with_console(fct):
     """
     Decorator for sending messages to the kernel. Conditionally monitor
     the kernel replies, as well as messages from other clients.
@@ -625,21 +710,21 @@ def with_console(f):
             warn_no_connection()
             return
         monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
-        f(*args, **kwargs)
+        fct(*args, **kwargs)
         if monitor_console:
             update_console_msgs()
     return wrapper
 
 
 # Include verbose output to vim command line
-def with_verbose(f):
+def with_verbose(fct):
     """
     Decorator to receive message id from sending function, and report back to
     vim with output.
     """
     def wrapper(*args, **kwargs):
         verbose = bool(int(vim.vars.get('jupyter_verbose', 0)))
-        (prompt, msg_id) = f(*args, **kwargs)
+        (prompt, msg_id) = fct(*args, **kwargs)
         if verbose:
             print_prompt(prompt, msg_id=msg_id)
     return wrapper
@@ -651,18 +736,18 @@ def change_directory(directory):
     """CD: Change (current working) to directory
     """
     # Cd
-    cmd = lang.cd.format(directory)
-    msg_id = send(cmd)
+    msg = SI.lang.cd.format(directory)
+    msg_id = send(msg)
 
     # Print cwd
     try:
-        cwd = get_res_from_code_string(lang.cwd)
+        cwd = get_res_from_code_string(SI.lang.cwd)
         vim_echom('CWD: ', style='Question')
         vim.command("echon \"{}\"".format(cwd))
     except Exception: pass
 
     # Return to decorators
-    return (cmd, msg_id)
+    return (msg, msg_id)
 
 
 @with_console
@@ -694,10 +779,10 @@ def run_file_in_ipython(flags='', filename=''):
 @with_verbose
 def send_range():
     """Send a range of lines from the current vim buffer to the kernel."""
-    r = vim.current.range
-    lines = "\n".join(vim.current.buffer[r.start:r.end+1])
+    rang = vim.current.range
+    lines = "\n".join(vim.current.buffer[rang.start:rang.end+1])
     msg_id = send(lines)
-    prompt = "range {:d}-{:d} ".format(r.start+1, r.end+1)
+    prompt = "range {:d}-{:d} ".format(rang.start+1, rang.end+1)
     return (prompt, msg_id)
 
 
@@ -706,8 +791,7 @@ def send_range():
 def run_cell():
     """Run all the code between two cell separators"""
     cur_buf = vim.current.buffer
-    (cur_line, cur_col) = vim.current.window.cursor
-    cur_line -= 1
+    cur_line = vim.current.window.cursor[0] - 1
 
     # Search upwards for cell separator
     upper_bound = cur_line
@@ -750,14 +834,14 @@ def signal_kernel(sig=SIGTERM):
     Only works on posix.
     """
     try:
-        kill(pid, int(sig))
+        kill(SI.kernel_pid, int(sig))
         vim_echom("kill pid {p:d} with signal #{v:d}, {n:s}"
-                  .format(p=pid, v=sig.value, n=sig.name), style='WarningMsg')
+                  .format(p=SI.kernel_pid, v=sig.value, n=sig.name), style='WarningMsg')
     except ProcessLookupError:
         vim_echom(("pid {p:d} does not exist! " +
                    "Kernel may have been terminated by outside process")
-                  .format(p=pid), style='Error')
-    except OSError as e:
+                  .format(p=SI.kernel_pid), style='Error')
+    except OSError as err:
         vim_echom("signal #{v:d}, {n:s} failed to kill pid {p:d}"
-                  .format(v=sig.value, n=sig.name, p=pid), style='Error')
-        raise e
+                  .format(v=sig.value, n=sig.name, p=SI.kernel_pid), style='Error')
+        raise err

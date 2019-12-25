@@ -83,6 +83,7 @@ class Ruby(Language):
 
 # Dict: kernel_type -> class
 language_dict = {
+    'default': Language,
     'bash': Bash,
     'java': Java,
     'javascript': Javascript,

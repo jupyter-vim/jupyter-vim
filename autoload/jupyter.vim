@@ -196,7 +196,7 @@ function! s:get_opfunc(callback) abort
                 silent exe 'norm! `<' . a:type . '`>y'
             " Invoked from operator pending (line, block or visual)
             else
-                silent exe "norm! `[" . get({'l': 'V', 'b': "\<C-V>"}, a:type[0], 'v') . "`]y"
+                silent exe 'norm! `[' . get({'l': 'V', 'b': '\<C-V>'}, a:type[0], 'v') . '`]y'
             endif
             redraw
             let l:text = @@
@@ -328,8 +328,13 @@ endfunction
 
 " Timer callback to fill jupyter console buffer
 function! jupyter#UpdateConsoleBuffer(timer)
-    Pythonx jupyter_vim.write_console_msgs(int(
+    Pythonx jupyter_vim.timer_write_console_msgs(int(
                 \ vim.eval('bufnr("__jupyter_term__")')))
+endfunction
+
+" Timer callback to fill jupyter console buffer
+function! jupyter#UpdateEchom(timer)
+    Pythonx jupyter_vim.timer_echom_queue()
 endfunction
 
 "=============================================================================
