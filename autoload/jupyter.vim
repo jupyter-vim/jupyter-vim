@@ -95,7 +95,7 @@ endfunction
 
 function! jupyter#CompleteConnect(ArgLead, CmdLine, CursorPos) abort
     " Get kernel id from python
-    let l:kernel_ids = Pyeval(find_jupyter_kernels())
+    let l:kernel_ids = Pyevalx('find_jupyter_kernels()')
     " Filter id matching user arg
     call filter(l:kernel_ids, '-1 != match(v:val, a:ArgLead)')
     " Return list
@@ -181,7 +181,8 @@ function! jupyter#TerminateKernel(kill, ...) abort
         let l:sig='SIGTERM'
     endif
     " Check signal here?
-    execute 'Pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.'.l:sig.')'
+    execute 'Pythonx from signal import '. l:sig . '; '
+                \ 'jupyter_vim.signal_kernel('.l:sig.')'
 endfunction
 
 function! jupyter#UpdateShell() abort
