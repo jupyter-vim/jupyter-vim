@@ -47,8 +47,8 @@ except ImportError as e:
 
 from jupyter_client import KernelManager, find_connection_file
 from language import list_languages, get_language
-from message_parser import parse_iopub_for_reply, unquote_string, str_to_py, shorten_filename
-from monitor_console import print_prompt, update_console_msgs
+from message_parser import parse_iopub_for_reply, unquote_string, str_to_py, \
+    shorten_filename, vim_echom, get_error_list
 from os import kill, remove
 from os.path import splitext
 from signal import SIGTERM, SIGKILL
@@ -126,7 +126,10 @@ class SectionInfo():
 
     def get_msgs(self):
         """Get pending message pool"""
-        return self.km_client.iopub_channel.get_msgs()
+        try:
+            return self.km_client.iopub_channel.get_msgs()
+        except get_error_list():
+            return []
 
     def get_reply_msg(self, msg_id):
         """Get kernel reply from sent client message with msg_id.
@@ -137,7 +140,7 @@ class SectionInfo():
         for _ in range(3):
             try:
                 reply = self.km_client.get_shell_msg(block=True, timeout=1)
-            except Empty:
+            except get_error_list():
                 continue
             if reply['parent_header']['msg_id'] == msg_id:
                 return reply
@@ -284,30 +287,6 @@ class SectionInfo():
 # -----------------------------------------------------------------------------
 #        Utilities
 # -----------------------------------------------------------------------------
-
-
-def warn_no_connection():
-    """Echo warning: not connected"""
-    vim_echom('WARNING: Not connected to Jupyter!'
-              '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
-
-
-# General message command
-def vim_echom(arg, style="None", cmd='echom'):
-    """
-    Report string `arg` using vim's echomessage command.
-
-    Keyword args:
-    style -- the vim highlighting style to use
-    """
-    try:
-        vim.command("echohl {}".format(style))
-        messages = arg.split('\n')
-        for msg in messages:
-            vim.command(cmd + " \"{}\"".format(msg.replace('\"', '\\\"')))
-        vim.command("echohl None")
-    except vim.error:
-        print("-- {}".format(arg))
 
 
 def is_cell_separator(line):
@@ -482,25 +461,25 @@ def timer_echom():
 def monitorable(fct):
     """Decorator to monitor messages"""
     def wrapper(*args, **kwargs):
+        # Check
+        if not SI.check_connection():
+            warn_no_connection()
+            return
+
         # Call
-        prompt = fct(*args, **kwargs)[0]
+        last_cmd = fct(*args, **kwargs)[0]
 
         # Verbose: receive message id from sending function
         # and report back to vim with output.
         verbose = bool(int(vim.vars.get('jupyter_verbose', 0)))
         # Monitor: the kernel replies, as well as messages from other clients.
         monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
-
-        if verbose:
-            print_prompt(SI, prompt, vim_echom)
-
-        # Check
-        if not SI.check_connection():
-            warn_no_connection()
+        if not verbose and not monitor_console:
             return
 
-        if monitor_console:
-            update_console_msgs(SI, vim_echom)
+        # Launch update threads
+        from monitor_console import update_msgs
+        update_msgs(SI, last_cmd=last_cmd, verbose=verbose, console=monitor_console)
     return wrapper
 
 

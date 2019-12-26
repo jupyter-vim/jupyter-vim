@@ -62,6 +62,5 @@ endfunction
 
 " Timer callback to fill jupyter console buffer
 function! jupyter_monitor_console#UpdateConsoleBuffer(timer) abort
-    Pythonx monitor_console.timer_write_console_msgs(int(
-                \ vim.eval('bufnr("__jupyter_term__")')))
+    Pythonx monitor_console.timer_write_console_msgs()
 endfunction

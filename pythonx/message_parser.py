@@ -11,9 +11,43 @@ from os import listdir
 from os.path import isfile, join, splitext
 import vim
 
+try:
+    from queue import Empty
+except ImportError:
+    from Queue import Empty
+
 # -----------------------------------------------------------------------------
 #        Helpers
 # -----------------------------------------------------------------------------
+
+
+def get_error_list():
+    """Get possible errors from message"""
+    return (Empty, TypeError, KeyError, IndexError, ValueError)
+
+
+def warn_no_connection():
+    """Echo warning: not connected"""
+    vim_echom('WARNING: Not connected to Jupyter!'
+              '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
+
+
+# General message command
+def vim_echom(arg, style="None", cmd='echom'):
+    """
+    Report string `arg` using vim's echomessage command.
+
+    Keyword args:
+    style -- the vim highlighting style to use
+    """
+    try:
+        vim.command("echohl {}".format(style))
+        messages = arg.split('\n')
+        for msg in messages:
+            vim.command(cmd + " \"{}\"".format(msg.replace('\"', '\\\"')))
+        vim.command("echohl None")
+    except vim.error:
+        print("-- {}".format(arg))
 
 
 def unquote_string(string):
