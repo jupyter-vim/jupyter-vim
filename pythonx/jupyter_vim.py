@@ -47,7 +47,7 @@ except ImportError as e:
 
 from jupyter_client import KernelManager, find_connection_file
 from language import list_languages, get_language
-from message_parser import parse_iopub_for_reply, unquote_string, str_to_vim, shorten_filename
+from message_parser import parse_iopub_for_reply, unquote_string, str_to_py, shorten_filename
 from monitor_console import print_prompt, update_console_msgs
 from os import kill
 from os.path import splitext
@@ -508,10 +508,10 @@ def run_file_in_ipython(flags='', filename=''):
     ext = splitext(filename)[-1][1:]
     if ext in ('pxd', 'pxi', 'pyx', 'pyxbld'):
         run_cmd = '%run_cython'
-        params = str_to_vim(vim.vars.get('cython_run_flags', ''))
+        params = str_to_py(vim.vars.get('cython_run_flags', ''))
     else:
         run_cmd = '%run'
-        params = flags or str_to_vim(vim.current.buffer.vars['ipython_run_flags'])
+        params = flags or str_to_py(vim.current.buffer.vars['ipython_run_flags'])
     cmd = '{run_cmd} {params} "{filename}"'.format(
         run_cmd=run_cmd, params=params, filename=filename)
     msg_id = SI.send(cmd)
