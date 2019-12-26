@@ -1,0 +1,210 @@
+"""
+Jupyter <-> Vim
+String Utility functions:
+    1/ Helper (unquote_string)
+    2/ Formater / Parser (parse_messages)
+"""
+
+import re
+from sys import version_info
+from os import listdir
+from os.path import isfile, join, splitext
+import vim
+
+# -----------------------------------------------------------------------------
+#        Helpers
+# -----------------------------------------------------------------------------
+
+
+def unquote_string(string):
+    """Unquote some text/plain response from kernel"""
+    res = str(string)
+    for quote in ("'", '"'):
+        res = res.rstrip(quote).lstrip(quote)
+    return res
+
+
+def str_to_py(var):
+    """Convert: Vim -> Py"""
+    is_py3 = version_info[0] >= 3
+    encoding = vim.eval('&encoding') or 'utf-8'
+    if is_py3 and isinstance(var, bytes):
+        var = str(var, encoding)
+    elif not is_py3 and isinstance(var, str):
+        # pylint: disable=undefined-variable
+        var = unicode(var, encoding)  # noqa: E0602
+    return var
+
+
+def str_to_vim(obj):
+    """Convert: Py -> Vim
+    Independant of vim's version
+    """
+    # Enco
+    if version_info[0] < 3:
+        # pylint: disable=undefined-variable
+        obj = unicode(obj, 'utf-8')  # noqa: E0602
+    elif not isinstance(obj, bytes):
+        obj = str(obj.encode(), 'utf-8')
+
+    # Vim cannot deal with zero bytes:
+    obj = obj.replace('\0', '\\0')
+
+    # Escape
+    obj.replace('\\', '\\\\').replace('"', r'\"')
+
+    return '"{:s}"'.format(obj)
+
+
+def strip_color_escapes(s):
+    """Remove ANSI color escape sequences from a string."""
+    re_strip_ansi = re.compile(r'\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mK]')
+    return re_strip_ansi.sub('', s)
+
+
+def prettify_execute_intput(line_number, cmd, prompt_in):
+    """Also used with my own input (as iperl does not send it back)"""
+    prompt = prompt_in.format(line_number)
+    s = prompt
+    # add continuation line, if necessary
+    dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
+    s += cmd.rstrip().replace('\n', '\n' + dots)
+    return s
+
+
+def shorten_filename(runtime_file):
+    """Shorten connection filename kernel-24536.json -> 24536"""
+    if runtime_file is None: return ''
+    r_cfile = r'.*kernel-([0-9a-fA-F]*)[0-9a-fA-F\-]*.json'
+    return re.sub(r_cfile, r'\1', runtime_file)
+
+
+def find_jupyter_kernels():
+    """Find opened kernels
+    Called: <- vim completion method
+    Returns: List of string
+    """
+    from jupyter_core.paths import jupyter_runtime_dir
+
+    # Get all kernel json files
+    jupyter_path = jupyter_runtime_dir()
+    runtime_files = []
+    for file_path in listdir(jupyter_path):
+        full_path = join(jupyter_path, file_path)
+        file_ext = splitext(file_path)[1]
+        if (isfile(full_path) and file_ext == '.json'):
+            runtime_files.append(file_path)
+
+    # Get all the kernel ids
+    kernel_ids = []
+    for runtime_file in runtime_files:
+        kernel_id = shorten_filename(runtime_file)
+        if runtime_file.startswith('nbserver'): continue
+        kernel_ids.append(kernel_id)
+
+    # Return -> vim caller
+    return kernel_ids
+
+
+# -----------------------------------------------------------------------------
+#        Parsers
+# -----------------------------------------------------------------------------
+
+
+def parse_iopub_for_reply(msgs, line_number):
+    """Get kernel response from message pool
+    Param: line_number: the message number of the corresponding code
+    Use: some kernel (iperl) do not discriminate when clien ask user_expressions.
+        But still they give a printable output
+    """
+    res = None
+    # Parse all execute
+    for msg in msgs:
+        try:
+            # Get the result of execution
+            # 1 content
+            content = msg.get('content', False)
+            if not content: continue
+
+            # 2 execution _count
+            ec = int(content.get('execution_count', 0))
+            if not ec: continue
+            if line_number not in (-1, ec): continue
+
+            # 3 message type
+            if msg['header']['msg_type'] not in ('execute_result', 'stream'): continue
+
+            # 4 text
+            if 'data' in content:
+                res = content['data']['text/plain']
+            else:
+                # Jupyter bash style ...
+                res = content['text']
+            break
+        except KeyError: pass
+    return res
+
+
+def parse_messages(msgs, error_callback, kernel_language):
+    """Message handler for Jupyter protocol.
+
+    Takes all messages on the I/O Public channel, including stdout, stderr,
+    etc.
+    Returns: a list of the formatted strings of their content.
+
+    See also: <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
+    """
+    res = []
+    for msg in msgs:
+        s = ''
+        if 'msg_type' not in msg['header']:
+            continue
+        msg_type = msg['header']['msg_type']
+
+        if msg_type == 'status':
+            # I don't care status (idle or busy)
+            continue
+
+        if msg_type == 'stream':
+            # Get data
+            text = strip_color_escapes(msg['content']['text'])
+            line_number = msg['content'].get('execution_count', 0)
+            # Set prompt
+            if msg['content'].get('name', 'stdout') == 'stderr':
+                prompt = 'StdErr [{:d}]: '.format(line_number)
+                dots = (' ' * (len(prompt.rstrip()) - 4)) + '...x '
+            else:
+                prompt = 'StdOut [{:d}]: '.format(line_number)
+                dots = (' ' * (len(prompt.rstrip()) - 4)) + '...< '
+            s = prompt
+            # Add continuation line, if necessary
+            s += text.rstrip().replace('\n', '\n' + dots)
+
+        elif msg_type == 'display_data':
+            s += msg['content']['data']['text/plain']
+
+        elif msg_type in ('execute_input', 'pyin'):
+            line_number = msg['content'].get('execution_count', 0)
+            cmd = msg['content']['code']
+            s = prettify_execute_intput(line_number, cmd, kernel_language.prompt_in)
+
+        elif msg_type in ('execute_result', 'pyout'):
+            # Get the output
+            s = kernel_language.prompt_out.format(msg['content']['execution_count'])
+            s += msg['content']['data']['text/plain']
+
+        elif msg_type in ('error', 'pyerr'):
+            s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
+
+        elif msg_type == 'input_request':
+            error_callback('python input not supported in vim.', 'Error')
+            continue  # unsure what to do here... maybe just return False?
+
+        else:
+            error_callback("Message type {} unrecognized!".format(msg_type))
+            continue
+
+        # List all messages
+        res.append(s)
+
+    return res
