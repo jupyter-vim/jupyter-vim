@@ -359,6 +359,10 @@ def signal_kernel(sig=SIGTERM):
     This side steps the (non-functional) jupyter interrupt mechanisms.
     Only works on posix.
     """
+    if SI.kernel_pid < 1:
+        vim_echom("Cannot kill kernel: unknown pid", style='Error')
+        return
+
     try:
         kill(SI.kernel_pid, int(sig))
         vim_echom("kill pid {p:d} with signal #{v:d}, {n:s}"
