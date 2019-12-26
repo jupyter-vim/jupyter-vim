@@ -11,6 +11,7 @@ class Language:
     prompt_in = 'In [{:d}]: '
     prompt_out = 'Out[{:d}]: '
     print_string = 'print("{}")'
+    run_file = 'include("{}")'
     cd = 'cd "{}"'
     pid = -1
     cwd = '"unknown"'
@@ -20,6 +21,7 @@ class Language:
 class Bash(Language):
     prompt_in = 'Sh [{:d}]: '
     print_string = 'echo -e "{}"'
+    run_file = 'source "{}"'
     cd = 'cd "{}"'
     pid = '_res=$$; echo $_res;'
     cwd = '_res=$(pwd); echo $_res;'
@@ -29,6 +31,23 @@ class Bash(Language):
 class Java(Language):
     prompt_in = 'Ja [{:d}]: '
     print_string = 'System.out.println("{}");'
+    run_file = """ // Import
+        import java.nio.file.Files;
+        import java.nio.file.Paths;
+        import jdk.jshell.JShell;
+        import jdk.jshell.SnippetEvent;
+        // Slurp file
+        String _res_file = "{}";
+        String _res_content = Files.readString(Paths.get(_res_file));
+        // Eval
+        JShell _res_shell = JShell.create();
+        List<SnippetEvent> _res_event = _res_shell.eval(_res_content);
+        // Message
+        System.out.printf("\\n\\n<-- Run status: %s <- \\"%s\\"\\n",
+            _res_event.get(0).status(), _res_file);
+        System.out.println(
+            "------------------------------------------------------------");
+    """
     cd = 'System.setProperty("user.dir", "{}");'
     pid = 'String _res = String.valueOf(ProcessHandle.current().pid()); _res;'
     cwd = ('String _res = new File(System.getProperty("user.dir"))'
@@ -39,6 +58,7 @@ class Java(Language):
 class Javascript(Language):
     prompt_in = 'Js [{:d}]: '
     print_string = 'console.log("{}");'
+    run_file = 'eval("" + require("fs").readFileSync("{}"));'
     cd = 'require("process").chdir("{}");'
     pid = '_res = require("process").pid;'
     cwd = '_res = require("process").cwd();'
@@ -48,6 +68,7 @@ class Javascript(Language):
 class Julia(Language):
     prompt_in = 'Jl [{:d}]: '
     print_string = 'println("{}")'
+    run_file = 'include("{}")'
     cd = 'cd "{}"'
     pid = '_res = getpid()'
     cwd = '_res = pwd()'
@@ -57,6 +78,7 @@ class Julia(Language):
 class Perl(Language):
     prompt_in = 'Pl [{:d}]: '
     print_string = 'print("{}")'
+    run_file = 'my $_res = "{}"; $_res =~ s/\\.[^.]+$//; do $_res;'
     cd = 'chdir("{}")'
     pid = '$_res = $$'
     cwd = 'use Cwd; $_res = getcwd();'
@@ -66,6 +88,7 @@ class Perl(Language):
 class Python(Language):
     prompt_in = 'Py [{:d}]: '
     print_string = 'print("{}")'
+    run_file = '%run "{}"'
     cd = '%cd "{}"'
     pid = 'import os; _res = os.getpid()'
     cwd = 'import os; _res = os.getcwd()'
@@ -75,6 +98,7 @@ class Python(Language):
 class Ruby(Language):
     prompt_in = 'Rb [{:d}]: '
     print_string = 'print("{}")'
+    run_file = 'load "{}"'
     cd = '_res = Dir.chdir "{}"'
     pid = '_res = Process.pid'
     cwd = '_res = Dir.pwd'

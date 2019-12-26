@@ -124,21 +124,9 @@ function! jupyter#RunFile(...) abort
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
     let l:filename = a:0 ? a:000[-1] : expand('%:p')
-    if b:jupyter_kernel_type ==# 'python'
-        Pythonx jupyter_vim.run_file_in_ipython(
-                    \ flags=vim.eval('l:flags'),
-                    \ filename=vim.eval('l:filename'))
-    elseif b:jupyter_kernel_type ==# 'julia'
-        if l:flags !=# ''
-            echoerr 'RunFile in kernel type "julia" doesn''t support flags.'
-                \ . ' All arguments except the last (file location) will be'
-                \ . ' ignored.'
-        endif
-        JupyterSendCode 'include("""'.escape(l:filename, '"').'""")'
-    else
-        echoerr 'I don''t know how to do the `RunFile` command in Jupyter'
-            \ . ' kernel type "' . b:jupyter_kernel_type . '"'
-    endif
+    Pythonx jupyter_vim.run_file(
+                \ flags=vim.eval('l:flags'),
+                \ filename=vim.eval('l:filename'))
 endfunction
 
 function! jupyter#SendCell() abort

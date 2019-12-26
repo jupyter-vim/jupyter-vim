@@ -377,6 +377,22 @@ def signal_kernel(sig=SIGTERM):
         raise err
 
 
+def run_file(flags='', filename=''):
+    """:JupyterRunFile"""
+    # Special cpython cases
+    if SI.kernel_type == 'python':
+        return run_file_in_ipython(flags=flags, filename=filename)
+
+    # Message warning to user
+    if flags != '':
+        vim_echom('RunFile in other kernel than "python" doesn\'t support flags.'
+                  ' All arguments except the last (file location) will be ignored.',
+                  style='Error')
+
+    # Run it
+    return run_command(SI.lang.run_file.format(filename))
+
+
 # -----------------------------------------------------------------------------
 #        Thread Functions: vim function forbidden here:
 #            could lead to segmentation fault
