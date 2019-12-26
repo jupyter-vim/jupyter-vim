@@ -71,8 +71,7 @@ def thread_update_console_msgs(section_info, intervals, callback_echom):
 
         # Get messages
         msgs = section_info.get_msgs()
-        io_new = parse_messages(
-            msgs, callback_echom, section_info.lang)
+        io_new = parse_messages(section_info, msgs, callback_echom)
 
         # Insert code line Check not already here (check with substr 'Py [')
         do_add_cmd = section_info.cmd is not None

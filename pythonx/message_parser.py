@@ -145,7 +145,7 @@ def parse_iopub_for_reply(msgs, line_number):
     return res
 
 
-def parse_messages(msgs, error_callback, kernel_language):
+def parse_messages(section_info, msgs, error_callback):
     """Message handler for Jupyter protocol.
 
     Takes all messages on the I/O Public channel, including stdout, stderr,
@@ -157,6 +157,7 @@ def parse_messages(msgs, error_callback, kernel_language):
     res = []
     for msg in msgs:
         s = ''
+        default_count = section_info.cmd_count
         if 'msg_type' not in msg['header']:
             continue
         msg_type = msg['header']['msg_type']
@@ -168,30 +169,40 @@ def parse_messages(msgs, error_callback, kernel_language):
         if msg_type == 'stream':
             # Get data
             text = strip_color_escapes(msg['content']['text'])
-            line_number = msg['content'].get('execution_count', 0)
+            line_number = msg['content'].get('execution_count', default_count)
             # Set prompt
             if msg['content'].get('name', 'stdout') == 'stderr':
-                prompt = 'StdErr [{:d}]: '.format(line_number)
+                prompt = 'SdE[{:d}]: '.format(line_number)
                 dots = (' ' * (len(prompt.rstrip()) - 4)) + '...x '
             else:
-                prompt = 'StdOut [{:d}]: '.format(line_number)
+                prompt = 'SdO[{:d}]: '.format(line_number)
                 dots = (' ' * (len(prompt.rstrip()) - 4)) + '...< '
             s = prompt
             # Add continuation line, if necessary
             s += text.rstrip().replace('\n', '\n' + dots)
+            # Set cmd_count: if it changed
+            if line_number != default_count:
+                section_info.set_cmd_count(line_number)
 
         elif msg_type == 'display_data':
             s += msg['content']['data']['text/plain']
 
         elif msg_type in ('execute_input', 'pyin'):
-            line_number = msg['content'].get('execution_count', 0)
+            line_number = msg['content'].get('execution_count', default_count)
             cmd = msg['content']['code']
-            s = prettify_execute_intput(line_number, cmd, kernel_language.prompt_in)
+            s = prettify_execute_intput(line_number, cmd, section_info.lang.prompt_in)
+            # Set cmd_count: if it changed
+            if line_number != default_count:
+                section_info.set_cmd_count(line_number)
 
         elif msg_type in ('execute_result', 'pyout'):
             # Get the output
-            s = kernel_language.prompt_out.format(msg['content']['execution_count'])
+            line_number = msg['content'].get('execution_count', default_count)
+            s = section_info.lang.prompt_out.format(line_number)
             s += msg['content']['data']['text/plain']
+            # Set cmd_count: if it changed
+            if line_number != default_count:
+                section_info.set_cmd_count(line_number)
 
         elif msg_type in ('error', 'pyerr'):
             s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))

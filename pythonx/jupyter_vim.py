@@ -80,6 +80,7 @@ class SectionInfo():
         # Last command sent and it's id
         self.cmd = None
         self.cmd_id = None
+        self.cmd_count = 0
 
         # Vim
         # Pid of current vim section executing me
@@ -201,6 +202,10 @@ class SectionInfo():
     def set_cfile(self):
         """Set connection file from argument"""
         self.cfile = find_connection_file(filename=self.filename_arg)
+
+    def set_cmd_count(self, num):
+        """Set command count number, to record it if wanted (console buffer)"""
+        self.cmd_count = num
 
     def connect_new_client(self):
         """Create the kernel manager and connect a client

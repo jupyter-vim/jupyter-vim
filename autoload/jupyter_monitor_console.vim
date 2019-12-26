@@ -38,9 +38,9 @@ function! jupyter_monitor_console#OpenJupyterTerm() abort
     syn match JupyterPromptIn /^\(\w\w \[[ 0-9]*\]:\)\|\(\s*\.\{3}:\)/
     syn match JupyterPromptOut /^Out\[[ 0-9]*\]:/
     syn match JupyterPromptOut2 /^\.\.\.* /
-    syn match JupyterPromptStdOut /^StdOut \[[ 0-9]*\]:/
+    syn match JupyterPromptStdOut /^St\?dOu\?t\? \?\[[ 0-9]*\]:/
     syn match JupyterPromptStdOut2 /^ *\.\.\.< /
-    syn match JupyterPromptStdErr /^StdErr \[[ 0-9]*\]:/
+    syn match JupyterPromptStdErr /^St\?dEr\?r\? \?\[[ 0-9]*\]:/
     syn match JupyterPromptStdErr2 /^ *\.\.\.x /
     syn match JupyterMagic /^\]: \zs%\w\+/
 
