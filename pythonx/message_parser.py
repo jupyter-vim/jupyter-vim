@@ -40,12 +40,14 @@ def str_to_vim(obj):
     """Convert: Py -> Vim
     Independant of vim's version
     """
-    # Enco
+    # Encode
     if version_info[0] < 3:
         # pylint: disable=undefined-variable
         obj = unicode(obj, 'utf-8')  # noqa: E0602
-    elif not isinstance(obj, bytes):
-        obj = str(obj.encode(), 'utf-8')
+    else:
+        if not isinstance(obj, bytes):
+            obj = obj.encode()
+        obj = str(obj, 'utf-8')
 
     # Vim cannot deal with zero bytes:
     obj = obj.replace('\0', '\\0')
