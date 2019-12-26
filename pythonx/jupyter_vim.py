@@ -49,9 +49,9 @@ from jupyter_client import KernelManager, find_connection_file
 from language import list_languages, get_language
 from message_parser import parse_iopub_for_reply, unquote_string, str_to_py, shorten_filename
 from monitor_console import print_prompt, update_console_msgs
-from os import kill
+from os import kill, remove
 from os.path import splitext
-from signal import SIGTERM
+from signal import SIGTERM, SIGKILL
 from textwrap import dedent
 from threading import Thread
 from time import sleep
@@ -359,14 +359,15 @@ def signal_kernel(sig=SIGTERM):
     This side steps the (non-functional) jupyter interrupt mechanisms.
     Only works on posix.
     """
-    if SI.kernel_pid < 1:
-        vim_echom("Cannot kill kernel: unknown pid", style='Error')
-        return
-
+    # Kill process
     try:
-        kill(SI.kernel_pid, int(sig))
-        vim_echom("kill pid {p:d} with signal #{v:d}, {n:s}"
-                  .format(p=SI.kernel_pid, v=sig.value, n=sig.name), style='WarningMsg')
+        # Check if valid pid
+        if SI.kernel_pid < 1:
+            vim_echom("Cannot kill kernel: unknown pid", style='Error')
+        else:
+            kill(SI.kernel_pid, int(sig))
+            vim_echom("kill pid {p:d} with signal #{v:d}, {n:s}"
+                      .format(p=SI.kernel_pid, v=sig.value, n=sig.name), style='WarningMsg')
     except ProcessLookupError:
         vim_echom(("pid {p:d} does not exist! " +
                    "Kernel may have been terminated by outside process")
@@ -375,6 +376,13 @@ def signal_kernel(sig=SIGTERM):
         vim_echom("signal #{v:d}, {n:s} failed to kill pid {p:d}"
                   .format(v=sig.value, n=sig.name, p=SI.kernel_pid), style='Error')
         raise err
+
+    # Delete connection file
+    if sig in (SIGTERM, SIGKILL):
+        try:
+            remove(SI.cfile)
+        except OSError:
+            pass
 
 
 def run_file(flags='', filename=''):
