@@ -138,6 +138,13 @@ def find_jupyter_kernels():
         if runtime_file.startswith('nbserver'): continue
         kernel_ids.append(kernel_id)
 
+    # Sort
+    def hex_sort(value):
+        try: res = int('0x' + value, 16)
+        except ValueError: res = 0
+        return res
+    kernel_ids.sort(key=hex_sort, reverse=True)
+
     # Return -> vim caller
     return kernel_ids
 
