@@ -6,23 +6,26 @@ from message_parser import parse_messages, prettify_execute_intput, \
     unquote_string, str_to_vim, vim_echom
 import vim
 from time import sleep
+from threading import Lock
 
 try:
-    from queue import Empty
+    from queue import Empty, Queue
 except ImportError:
-    from Queue import Empty
+    from Queue import Empty, Queue
 
 # Global
-new_lines = []
+line_queue = Queue()
+msg_lock = Lock()
 b_console = False
 b_verbose = False
 
 
 def update_msgs(section_info, last_cmd='', console=False, verbose=False):
-    """Grab pending messages and place them inside the vim console monitor
+    """Launch pending messages grabbers (Sync but not for long)
     Param: console (boolean): should I update console
            prompt  (boolean): should I update prompt
            last_cmd (string): not used already
+
     """
     # Set global used by timer
     global b_console, b_verbose
@@ -51,7 +54,7 @@ def update_msgs(section_info, last_cmd='', console=False, verbose=False):
 def thread_fetch_msgs(section_info, intervals):
     """Update message that timer will append to console message
     """
-    global new_lines
+    global line_queue
 
     io_cache = []
     for sleep_ms in intervals:
@@ -61,8 +64,10 @@ def thread_fetch_msgs(section_info, intervals):
         if section_info.check_stop(): return
 
         # Get messages
+        msg_lock.acquire()
         msgs = section_info.get_msgs()
-        io_new = parse_messages(section_info, msgs, vim_echom)
+        msg_lock.release()
+        io_new = parse_messages(section_info, msgs)
 
         # Insert code line Check not already here (check with substr 'Py [')
         do_add_cmd = section_info.cmd is not None
@@ -71,7 +76,9 @@ def thread_fetch_msgs(section_info, intervals):
         if do_add_cmd:
             # Get cmd number from id
             try:
+                msg_lock.acquire()
                 reply = section_info.get_reply_msg(section_info.cmd_id)
+                msg_lock.release()
                 line_number = reply['content'].get('execution_count', 0)
             except (Empty, KeyError, TypeError):
                 line_number = -1
@@ -80,17 +87,17 @@ def thread_fetch_msgs(section_info, intervals):
             io_new.insert(0, s)
 
         # Append just new
-        new_lines += [s for s in io_new if s not in io_cache]
+        [line_queue.put(s) for s in io_new if s not in io_cache]
         # Update cache
         io_cache = list(set().union(io_cache, io_new))
 
 
 def timer_write_console_msgs():
     """Write kernel <-> vim messages to console buffer"""
-    global new_lines
+    global line_queue
 
     # Check in
-    if len(new_lines) == 0: return
+    if line_queue.empty(): return
     if not b_console and not b_verbose: return
 
     # Get buffer (same indexes as vim)
@@ -99,14 +106,14 @@ def timer_write_console_msgs():
         b = vim.buffers[b_nb]
 
     # Append mesage to jupyter terminal buffer
-    for msg in new_lines:
+    while not line_queue.empty():
+        msg = line_queue.get_nowait()
         for line in msg.splitlines():
             line = unquote_string(str_to_vim(line))
             if b_console:
                 b.append(line)
             if b_verbose:
                 vim_echom(line)
-    new_lines = []
 
     # Update view (moving cursor)
     if b_console:
