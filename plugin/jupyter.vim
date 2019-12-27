@@ -12,10 +12,6 @@ if exists('g:loaded_jupyter_vim') || !(has('pythonx') || has('python') || has('p
     finish
 endif
 
-if !jupyter#init_python()
-    finish
-endif
-
 "-----------------------------------------------------------------------------
 "        Configuration: {{{
 "-----------------------------------------------------------------------------

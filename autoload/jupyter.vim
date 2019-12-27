@@ -82,11 +82,13 @@ function! jupyter#init_python() abort
     return s:_init_python
 endfunction
 
+
 "-----------------------------------------------------------------------------
 "        Vim -> Jupyter Public Functions:
 "-----------------------------------------------------------------------------
+
 function! jupyter#Connect(...) abort
-    " call jupyter#init_python()
+    call jupyter#init_python()
     let l:kernel_file = a:0 > 0 ? a:1 : '*.json'
     Pythonx jupyter_vim.connect_to_kernel(
                 \ str_to_py(vim.current.buffer.vars['jupyter_kernel_type']),
@@ -94,6 +96,7 @@ function! jupyter#Connect(...) abort
 endfunction
 
 function! jupyter#CompleteConnect(ArgLead, CmdLine, CursorPos) abort
+    call jupyter#init_python()
     " Get kernel id from python
     let l:kernel_ids = Pyevalx('find_jupyter_kernels()')
     " Filter id matching user arg
@@ -103,10 +106,12 @@ function! jupyter#CompleteConnect(ArgLead, CmdLine, CursorPos) abort
 endfunction
 
 function! jupyter#Disconnect(...) abort
+    call jupyter#init_python()
     Pythonx jupyter_vim.disconnect_from_kernel()
 endfunction
 
 function! jupyter#JupyterCd(...) abort 
+    call jupyter#init_python()
     " Behaves just like typical `cd`.
     let l:dirname = a:0 ? a:1 : "$HOME"
     " Helpers:
@@ -121,6 +126,7 @@ function! jupyter#JupyterCd(...) abort
 endfunction
 
 function! jupyter#RunFile(...) abort
+    call jupyter#init_python()
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
     let l:filename = a:0 ? a:000[-1] : expand('%:p')
@@ -130,19 +136,23 @@ function! jupyter#RunFile(...) abort
 endfunction
 
 function! jupyter#SendCell() abort
+    call jupyter#init_python()
     Pythonx jupyter_vim.run_cell()
 endfunction
 
 function! jupyter#SendCode(code) abort
+    call jupyter#init_python()
     " NOTE: 'run_command' gives more checks than just raw 'send'
     Pythonx jupyter_vim.run_command(vim.eval('a:code'))
 endfunction
 
 function! jupyter#SendRange() range abort
+    call jupyter#init_python()
     execute a:firstline . ',' . a:lastline . 'Pythonx jupyter_vim.send_range()'
 endfunction
 
 function! jupyter#SendCount(count) abort
+    call jupyter#init_python()
     " TODO move this function to pure(ish) python like SendRange
     let sel_save = &selection
     let cb_save = &clipboard
@@ -160,6 +170,7 @@ function! jupyter#SendCount(count) abort
 endfunction
 
 function! jupyter#TerminateKernel(kill, ...) abort
+    call jupyter#init_python()
     if a:kill
         let l:sig='SIGKILL'
     elseif a:0 > 0
@@ -174,6 +185,7 @@ function! jupyter#TerminateKernel(kill, ...) abort
 endfunction
 
 function! jupyter#UpdateShell() abort
+    call jupyter#init_python()
     Pythonx jupyter_vim.update_console_msgs()
 endfunction
 
