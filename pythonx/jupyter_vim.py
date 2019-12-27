@@ -37,6 +37,7 @@ except ImportError:
 try:
     # pylint: disable=unused-import
     import jupyter   # noqa
+    from jupyter_client import KernelManager, find_connection_file
 except ImportError as e:
     raise ImportError("Could not find kernel. " + __doc__, e)
 
@@ -45,10 +46,12 @@ try:
 except ImportError as e:
     raise ImportError('vim module only available within vim!', e)
 
-from jupyter_client import KernelManager, find_connection_file
+# Local
 from language import list_languages, get_language
 from message_parser import parse_iopub_for_reply, unquote_string, str_to_py, \
-    shorten_filename, vim_echom, get_error_list
+    shorten_filename, vim_echom, get_error_list, warn_no_connection
+
+# Standard
 from os import kill, remove
 from os.path import splitext
 from signal import SIGTERM, SIGKILL
