@@ -138,6 +138,7 @@ class SectionInfo():
         # TODO handle 'is_complete' requests?
         # <http://jupyter-client.readthedocs.io/en/stable/messaging.html#code-completeness>
         for _ in range(3):
+            if self.stop: return None
             try:
                 reply = self.km_client.get_shell_msg(block=True, timeout=1)
             except get_error_list():
