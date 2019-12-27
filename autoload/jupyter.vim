@@ -41,6 +41,7 @@ function! s:init_python() abort
           \ 'try:',
           \ '    import jupyter_vim',
           \ '    from message_parser import str_to_py, find_jupyter_kernels',
+          \ '    from message_parser import timer_echom',
           \ 'except Exception as exc:',
           \ '    vim.command(''let s:init_outcome = "could not import jupyter_vim:'
           \                    .'{0}: {1}"''.format(exc.__class__.__name__, exc))',
@@ -281,7 +282,7 @@ endfunction
 
 " Timer callback to fill jupyter console buffer
 function! jupyter#UpdateEchom(timer) abort
-    Pythonx jupyter_vim.timer_echom()
+    Pythonx timer_echom()
 endfunction
 
 "=============================================================================
