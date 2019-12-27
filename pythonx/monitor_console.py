@@ -37,9 +37,14 @@ def update_msgs(section_info, last_cmd='', console=False, verbose=False):
         vim_echom('__jupyter_term__ failed to open!', 'Error')
         return
 
+    # Define time: thread (additive) sleep and timer wait
+    # TODO get as user parameter
+    timer_intervals = (100, 200, 400, 800, 1500, 3000, 10000)
+    thread_intervals = [50]
+    for i in range(len(timer_intervals)-1):
+        thread_intervals.append(timer_intervals[i+1] - timer_intervals[i] - 50)
+
     # Create thread
-    thread_intervals = (0, 100, 500, 1000)
-    timer_intervals = (50, 200, 600, 1100)
     section_info.start_thread(
         target=thread_fetch_msgs,
         args=[section_info, thread_intervals])
