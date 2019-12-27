@@ -49,8 +49,7 @@ except ImportError as e:
 # Local
 from language import list_languages, get_language
 from message_parser import parse_iopub_for_reply, unquote_string, str_to_py, \
-    shorten_filename, vim_echom, get_error_list, warn_no_connection, \
-    thread_echom
+    shorten_filename, vim_echom, warn_no_connection, thread_echom
 
 # Standard
 from os import kill, remove
@@ -130,7 +129,7 @@ class SectionInfo():
         """Get pending message pool"""
         try:
             return self.km_client.iopub_channel.get_msgs()
-        except get_error_list():
+        except (Empty, TypeError, KeyError, IndexError, ValueError):
             return []
 
     def get_reply_msg(self, msg_id):
@@ -143,7 +142,7 @@ class SectionInfo():
             if self.stop: return None
             try:
                 reply = self.km_client.get_shell_msg(block=True, timeout=1)
-            except get_error_list():
+            except (Empty, TypeError, KeyError, IndexError, ValueError):
                 continue
             if reply['parent_header']['msg_id'] == msg_id:
                 return reply

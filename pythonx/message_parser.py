@@ -12,9 +12,9 @@ from os.path import isfile, join, splitext
 import vim
 
 try:
-    from queue import Empty, Queue
+    from queue import Queue
 except ImportError:
-    from Queue import Empty, Queue
+    from Queue import Queue
 
 # -----------------------------------------------------------------------------
 #        Helpers
@@ -22,11 +22,6 @@ except ImportError:
 
 # Message queue
 message_queue = Queue()
-
-
-def get_error_list():
-    """Get possible errors from message"""
-    return (Empty, TypeError, KeyError, IndexError, ValueError)
 
 
 def warn_no_connection():
@@ -221,6 +216,7 @@ def parse_messages(section_info, msgs):
 
     See also: <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
     """
+    # pylint: disable=too-many-branches
     res = []
     for msg in msgs:
         s = ''

@@ -147,6 +147,7 @@ language_dict = {
 
 
 def list_languages():
+    """List coding languages implemented by module"""
     return language_dict.keys()
 
 
