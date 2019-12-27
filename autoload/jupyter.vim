@@ -66,19 +66,19 @@ endfunction
 " Public initialization routine
 let s:_init_python = -1
 function! jupyter#init_python() abort
-    if s:_init_python == -1
-        let s:_init_python = 0
-        try
-            let s:_init_python = s:init_python()
-            let s:_init_python = 1
-        catch /^jupyter/
-            " Only catch errors from jupyter-vim itself here, so that for
-            " unexpected Python exceptions the traceback will be shown
-            echoerr 'Error: jupyter-vim failed to initialize Python: '
-                        \ . v:exception . ' (in ' . v:throwpoint . ')'
-            " throw v:exception
-        endtry
-    endif
+    " Check in
+    if s:_init_python != -1 | return s:_init_python | endif
+    let s:_init_python = 0
+    try
+        let s:_init_python = s:init_python()
+        let s:_init_python = 1
+    catch /^jupyter/
+        " Only catch errors from jupyter-vim itself here, so that for
+        " unexpected Python exceptions the traceback will be shown
+        echoerr 'Error: jupyter-vim failed to initialize Python: '
+                    \ . v:exception . ' (in ' . v:throwpoint . ')'
+        " throw v:exception
+    endtry
     return s:_init_python
 endfunction
 
