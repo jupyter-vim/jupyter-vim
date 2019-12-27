@@ -1,5 +1,9 @@
 """
 Jupyter language interface for vim client:
+
+To add a language, please fill all the field.
+If it is hard, just put '-1', it will never complain.
+See cpp's way to run a file (defer work to python)
 """
 
 # Export only: see at end
@@ -11,11 +15,11 @@ class Language:
     prompt_in = 'In [{:d}]: '
     prompt_out = 'Out[{:d}]: '
     print_string = 'print("{}")'
-    run_file = 'include("{}")'
+    run_file = '-1'
     cd = 'cd "{}"'
-    pid = -1
-    cwd = '"unknown"'
-    hostname = '"unknown"'
+    pid = '-1'
+    cwd = '-1'
+    hostname = '-1'
 
 
 class Bash(Language):

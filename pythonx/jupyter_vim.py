@@ -377,8 +377,14 @@ def run_file(flags='', filename=''):
                   ' All arguments except the last (file location) will be ignored.',
                   style='Error')
 
+    # Get command and slurp file if not implemented
+    cmd_run = SI.lang.run_file.format(filename)
+    if cmd_run == '-1':
+        with open(filename, 'r') as file_run:
+            cmd_run = file_run.read()
+
     # Run it
-    return run_command(SI.lang.run_file.format(filename))
+    return run_command(cmd_run)
 
 
 # -----------------------------------------------------------------------------
