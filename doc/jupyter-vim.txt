@@ -207,6 +207,8 @@ buffer, according to the mapping:
 | Filetype           | Kernel language |
 +--------------------+-----------------+
 | sh                 | 'bash'          |
+| c                  | 'cpp'           |
+| cpp                | 'cpp'           |
 | java               | 'java'          |
 | javascript         | 'javascript'    |
 | julia              | 'julia'         |

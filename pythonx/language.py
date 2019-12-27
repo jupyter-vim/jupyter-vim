@@ -32,6 +32,29 @@ class Bash(Language):
     hostname = '_res=$(hostname); echo $_res;'
 
 
+class Cpp(Language):
+    """Note :Pid is the first to run, so make import there
+    I don't want to implement include so let it to -1,
+        then python send file content
+    """
+    prompt_in = 'C++[{:d}]: '
+    prompt_out = 'Out[{:d}]: '
+    print_string = 'printf("%s", "{}");'
+    run_file = '-1'
+    cd = 'chdir("{}");'
+    pid = """
+        #include <unistd.h>
+        #include <stdio.h>
+        #include <limits.h>
+        int _res_pid = getpid();
+        printf("%d", _res_pid);
+        """
+    cwd = 'printf("%s", get_current_dir_name();'
+    hostname = ('char _res_hostname[HOST_NAME_MAX];'
+                ' gethostname(_res_hostname, HOST_NAME_MAX);'
+                ' printf("%s", _res_hostname);')
+
+
 class Java(Language):
     prompt_in = 'Ja [{:d}]: '
     print_string = 'System.out.println("{}");'
@@ -113,6 +136,7 @@ class Ruby(Language):
 language_dict = {
     'default': Language,
     'bash': Bash,
+    'cpp': Cpp,
     'java': Java,
     'javascript': Javascript,
     'julia': Julia,

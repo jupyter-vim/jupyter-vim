@@ -35,6 +35,8 @@ endfor
 " Dict: &ft -> kernel_name
 let s:language_dict = {
     \ 'sh': 'bash',
+    \ 'c': 'cpp',
+    \ 'cpp': 'cpp',
     \ 'java': 'java',
     \ 'javascript': 'javascript',
     \ 'julia': 'julia',
