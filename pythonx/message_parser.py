@@ -12,13 +12,16 @@ from os.path import isfile, join, splitext
 import vim
 
 try:
-    from queue import Empty
+    from queue import Empty, Queue
 except ImportError:
-    from Queue import Empty
+    from Queue import Empty, Queue
 
 # -----------------------------------------------------------------------------
 #        Helpers
 # -----------------------------------------------------------------------------
+
+# Message queue
+message_queue = Queue()
 
 
 def get_error_list():
@@ -149,13 +152,34 @@ def find_jupyter_kernels():
     return kernel_ids
 
 
+def thread_echom(arg, **args):
+    """Wrap echo async: put message to be echo in a queue
+    Thread: -> message_queue
+    """
+    message_queue.put((arg, args))
+
+
+def timer_echom():
+    """Call echom sync: all messages in queue"""
+    # Check in
+    if message_queue.empty(): return
+
+    # Show user the force
+    while not message_queue.empty():
+        (arg, args) = message_queue.get_nowait()
+        vim_echom(arg, **args)
+
+    # Restore peace in the galaxy
+    vim.command('redraw')
+
+
 # -----------------------------------------------------------------------------
 #        Parsers
 # -----------------------------------------------------------------------------
 
 
 def parse_iopub_for_reply(msgs, line_number):
-    """Get kernel response from message pool
+    """Get kernel response from message pool (Async)
     Param: line_number: the message number of the corresponding code
     Use: some kernel (iperl) do not discriminate when clien ask user_expressions.
         But still they give a printable output
@@ -188,8 +212,8 @@ def parse_iopub_for_reply(msgs, line_number):
     return res
 
 
-def parse_messages(section_info, msgs, error_callback):
-    """Message handler for Jupyter protocol.
+def parse_messages(section_info, msgs):
+    """Message handler for Jupyter protocol (Async)
 
     Takes all messages on the I/O Public channel, including stdout, stderr,
     etc.
@@ -251,11 +275,11 @@ def parse_messages(section_info, msgs, error_callback):
             s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
 
         elif msg_type == 'input_request':
-            error_callback('python input not supported in vim.', 'Error')
+            thread_echom('python input not supported in vim.', style='Error')
             continue  # unsure what to do here... maybe just return False?
 
         else:
-            error_callback("Message type {} unrecognized!".format(msg_type))
+            thread_echom("Message type {} unrecognized!".format(msg_type))
             continue
 
         # List all messages

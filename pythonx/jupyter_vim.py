@@ -30,9 +30,9 @@ Install:
 """
 
 try:
-    from queue import Empty, Queue
+    from queue import Empty
 except ImportError:
-    from Queue import Empty, Queue
+    from Queue import Empty
 
 try:
     # pylint: disable=unused-import
@@ -49,7 +49,8 @@ except ImportError as e:
 # Local
 from language import list_languages, get_language
 from message_parser import parse_iopub_for_reply, unquote_string, str_to_py, \
-    shorten_filename, vim_echom, get_error_list, warn_no_connection
+    shorten_filename, vim_echom, get_error_list, warn_no_connection, \
+    thread_echom
 
 # Standard
 from os import kill, remove
@@ -97,8 +98,6 @@ class SectionInfo():
         self.thread = None
         # Should the current thread stop (cleanly)
         self.stop = False
-        # Message queue
-        self.message_queue = Queue()
 
     def send(self, msg, **kwargs):
         """Send a message to the kernel client
@@ -331,7 +330,7 @@ def connect_to_kernel(kernel_type, filename=''):
 
 
 def disconnect_from_kernel():
-    """:JupyterDisconnect kernel client."""
+    """:JupyterDisconnect kernel client (Sync)"""
     if SI.km_client is not None: SI.km_client.stop_channels()
     vim_echom("Disconnected: {}".format(shorten_filename(SI.cfile)), style='Directory')
 
@@ -395,10 +394,7 @@ def run_file(flags='', filename=''):
 #            could lead to segmentation fault
 # -----------------------------------------------------------------------------
 def thread_connect_to_kernel():
-    """Create kernel manager from existing connection file.
-    Thread: <- stop
-            -> cfile
-    """
+    """Create kernel manager from existing connection file (Async)"""
     if SI.check_stop(): return
 
     # Test if connection is alive
@@ -442,27 +438,6 @@ def thread_connect_to_kernel():
     else:
         if None is not SI.km_client: SI.km_client.stop_channels()
         thread_echom('kernel connection attempt timed out', style='Error')
-
-
-def thread_echom(arg, **args):
-    """Wrap echo async: put message to be echo in a queue
-    Thread: -> message_queue
-    """
-    SI.message_queue.put((arg, args))
-
-
-def timer_echom():
-    """Call echom sync: all messages in queue"""
-    # Check in
-    if SI.message_queue.empty(): return
-
-    # Show user the force
-    while not SI.message_queue.empty():
-        (arg, args) = SI.message_queue.get_nowait()
-        vim_echom(arg, **args)
-
-    # Restore peace in the galaxy
-    vim.command('redraw')
 
 
 # -----------------------------------------------------------------------------
