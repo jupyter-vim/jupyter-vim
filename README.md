@@ -24,8 +24,8 @@ git clone --depth 1 https://github.com/jupyter-vim/jupyter-vim.git ~/.vim/pack/g
 ### NeoVim
 
 ```bash
-mkdir -p ~/.local/share/nvim/site/pack/git-plugins/start
-git clone --depth 1 https://github.com/jupyter-vim/jupyter-vim.git ~/.vim/pack/git-plugins/start/jupyter-vim
+mkdir -p ~/.local/share/nvim/site/pack/git-plugins/start  # %USERPROFILE%\AppData\Local\nvim\pack\git-plugins\start on windows!
+git clone --depth 1 https://github.com/jupyter-vim/jupyter-vim.git ~/.vim/pack/git-plugins/start/jupyter-vim  # %USERPROFILE%\AppData\Local\nvim\pack\git-plugins\start on windows!
 ```
 
 ### Pathogen
@@ -157,7 +157,7 @@ c.ZMQTerminalInteractiveShell.include_other_output = True
 To begin a session:
 ```bash
 $ jupyter qtconsole &  # open a jupyter console window
-$ vim <your_script>.py
+$ vim <your_script>.py  # python script must be specified for :JupyterConnect to work!
 ```
 
 In vim: `:JupyterConnect`
