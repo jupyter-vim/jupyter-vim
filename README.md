@@ -10,17 +10,15 @@ Currently Python and Julia kernels are supported, and more languages are on the 
 
 To install this plugin, you should use one of the following methods.
 
-#### Note for Windows users:
+On __Windows__, replace in the next sections the Unix directories with the following:
 
-Follow steps in the next setions replacing usage of the Unix directories:
+* On __Vim__:
+    * `~/.vim` -> `%USERPROFILE%\vimfiles`
+    * `~/.vimrc` -> `%USERPROFILE%\_vimrc`
 
-On __Vim__:
-* `~/.vim` -> `%USERPROFILE%\vimfiles`
-* `~/.vimrc` -> `%USERPROFILE%\_vimrc`
-
-On __Nvim__:
-* `~/.vim` -> `%USERPROFILE%\AppData\Local\nvim`
-* `~/.local/share/nvim` -> `%USERPROFILE%\AppData\Local\nvim`
+* On __Nvim__:
+    * `~/.vim` -> `%USERPROFILE%\AppData\Local\nvim`
+    * `~/.local/share/nvim` -> `%USERPROFILE%\AppData\Local\nvim`
 
 Or other directories if you have configured/installed Vim/Nvim differently.
 
