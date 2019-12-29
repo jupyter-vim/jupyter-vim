@@ -54,7 +54,10 @@ from message_parser import parse_iopub_for_reply, unquote_string, str_to_py, \
 # Standard
 from os import kill, remove
 from os.path import splitext
-from signal import SIGTERM, SIGKILL
+from platform import system
+from signal import SIGTERM
+if system() != 'Windows':
+    from signal import SIGKILL
 from textwrap import dedent
 from threading import Thread
 from time import sleep
@@ -359,7 +362,9 @@ def signal_kernel(sig=SIGTERM):
         raise err
 
     # Delete connection file
-    if sig in (SIGTERM, SIGKILL):
+    sig_list = [SIGTERM];
+    sig_list.append(SIGKILL) if system() != 'Windows' else None
+    if sig in sig_list:
         try:
             remove(SI.cfile)
         except OSError:

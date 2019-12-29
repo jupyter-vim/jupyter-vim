@@ -172,7 +172,7 @@ endfunction
 
 function! jupyter#TerminateKernel(kill, ...) abort
     call jupyter#init_python()
-    if a:kill
+    if a:kill && !has('win32') && !has('win64')
         let l:sig='SIGKILL'
     elseif a:0 > 0
         let l:sig=a:1
