@@ -17,7 +17,8 @@ On __Windows__, replace in the next sections the Unix directories with the follo
     * `~/.vimrc` -> `%USERPROFILE%\_vimrc`
 
 * On __Nvim__:
-    * `~/.local/share/nvim` -> `%USERPROFILE%\AppData\Local\nvim`
+    * `~/.vim` -> `%USERPROFILE%\AppData\Local\nvim`
+    * `~/.local/share/nvim/site` -> `%USERPROFILE%\AppData\Local\nvim`
 
 Or other directories if you have configured/installed Vim/Nvim differently.
 
