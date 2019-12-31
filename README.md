@@ -18,7 +18,6 @@ On __Windows__, replace in the next sections the Unix directories with the follo
 
 * On __Nvim__:
     * `~/.vim` -> `%USERPROFILE%\AppData\Local\nvim`
-    * `~/.local/share/nvim/site` -> `%USERPROFILE%\AppData\Local\nvim`
 
 Or other directories if you have configured/installed Vim/Nvim differently.
 
@@ -32,7 +31,7 @@ git clone --depth 1 https://github.com/jupyter-vim/jupyter-vim.git ~/.vim/pack/g
 ### NeoVim
 
 ```bash
-mkdir -p ~/.local/share/nvim/site/pack/git-plugins/start
+mkdir -p ~/.vim/pack/git-plugins/start
 git clone --depth 1 https://github.com/jupyter-vim/jupyter-vim.git ~/.vim/pack/git-plugins/start/jupyter-vim
 ```
 
