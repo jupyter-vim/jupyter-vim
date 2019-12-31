@@ -165,7 +165,7 @@ c.ZMQTerminalInteractiveShell.include_other_output = True
 To begin a session:
 ```bash
 $ jupyter qtconsole &  # open a jupyter console window
-$ vim <your_script>.py  # python script must be specified for :JupyterConnect to work!
+$ vim <your_script>.py  # a python script must be specified to activate the plugin
 ```
 
 In vim: `:JupyterConnect`
