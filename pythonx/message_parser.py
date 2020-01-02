@@ -27,14 +27,24 @@ class VimMessenger:
     def __init__(self, sync):
         # Message queue: for async echom
         self.message_queue = Queue()
-        # Pid of current vim section executing me
+        # Pid of current vim section
         self.pid = vim.eval('getpid()')
-        # Number of column of vim section
-        self.column = 80
-        # List of regex for lines to separate cells
-        self.cell_separators = self.set_cell_separators()
+
+        # Define members python <- vim
+        self.set_column()
+        self.set_cell_separators()
+        self.set_monitor_bools()
+
         # Sync object
         self.sync = sync
+
+    def set_monitor_bools(self):
+        """Set boolean defining if jupyter-vim.py must monitor it messages"""
+        # Verbose: receive message id from sending function
+        # and report back to vim with output.
+        self.verbose = bool(int(vim.vars.get('jupyter_verbose', 0)))
+        # Monitor: the kernel replies, as well as messages from other clients.
+        self.monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
 
     def set_column(self):
         """Set vim column number <- vim"""
@@ -46,7 +56,6 @@ class VimMessenger:
         """
         self.cell_separators = vim.bindeval('g:jupyter_cell_separators')
         self.cell_separators = list(map(unquote_string, self.cell_separators))
-        return self.cell_separators
 
     @staticmethod
     def get_timer_intervals():

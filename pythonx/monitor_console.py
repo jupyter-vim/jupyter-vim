@@ -3,7 +3,7 @@ Feature to get a buffer with jupyter output
 """
 
 from message_parser import parse_messages, prettify_execute_intput, \
-    unquote_string, str_to_vim, echom
+    unquote_string, str_to_vim, echom, warn_no_connection
 import vim
 from time import sleep
 
@@ -12,23 +12,42 @@ try:
 except ImportError:
     from Queue import Empty
 
-# Global
-b_console = False
-b_verbose = False
 SI = None
 
 
-def update_msgs(section_info, last_cmd='', console=False, verbose=False):
+def set_monitor_section_info(section_info):
+    """Set global section info"""
+    # pylint: disable=global-statement
+    global SI; SI = section_info
+
+
+def monitorable(fct):
+    """Decorator to monitor messages"""
+    def wrapper(*args, **kwargs):
+        # Check
+        if not SI.client.check_connection():
+            warn_no_connection()
+            return
+
+        # Call
+        fct(*args, **kwargs)
+
+        # Clause
+        SI.vim.set_monitor_bools()
+        if not SI.vim.verbose and not SI.vim.monitor_console: return
+
+        # Launch update threads
+        update_msgs()
+    return wrapper
+
+
+def update_msgs():
     """Launch pending messages grabbers (Sync but not for long)
     Param: console (boolean): should I update console
            prompt  (boolean): should I update prompt
            last_cmd (string): not used already
 
     """
-    # Set global used by timer
-    global SI, b_console, b_verbose
-    SI = section_info; b_console = console; b_verbose = verbose
-
     # Open the Jupyter terminal in vim, and move cursor to it
     b_nb = vim.eval('jupyter_monitor_console#OpenJupyterTerm()')
     if -1 == b_nb:
@@ -43,7 +62,7 @@ def update_msgs(section_info, last_cmd='', console=False, verbose=False):
         thread_intervals.append(timer_intervals[i+1] - timer_intervals[i] - 50)
 
     # Create thread
-    section_info.sync.start_thread(
+    SI.sync.start_thread(
         target=thread_fetch_msgs,
         args=[thread_intervals])
 
@@ -88,7 +107,7 @@ def thread_fetch_msgs(intervals):
             io_new.insert(0, s)
 
         # Append just new
-        [SI.sync.line_queue.put(s) for s in io_new if s not in io_cache]
+        _ = [SI.sync.line_queue.put(s) for s in io_new if s not in io_cache]
         # Update cache
         io_cache = list(set().union(io_cache, io_new))
 
@@ -97,10 +116,10 @@ def timer_write_console_msgs():
     """Write kernel <-> vim messages to console buffer"""
     # Check in
     if SI.sync.line_queue.empty(): return
-    if not b_console and not b_verbose: return
+    if not SI.vim.monitor_console and not SI.vim.verbose: return
 
     # Get buffer (same indexes as vim)
-    if b_console:
+    if SI.vim.monitor_console:
         b_nb = int(vim.eval('bufnr("__jupyter_term__")'))
         b = vim.buffers[b_nb]
 
@@ -109,13 +128,13 @@ def timer_write_console_msgs():
         msg = SI.sync.line_queue.get_nowait()
         for line in msg.splitlines():
             line = unquote_string(str_to_vim(line))
-            if b_console:
+            if SI.vim.monitor_console:
                 b.append(line)
-            if b_verbose:
+            if SI.vim.verbose:
                 echom(line)
 
     # Update view (moving cursor)
-    if b_console:
+    if SI.vim.monitor_console:
         cur_win = vim.eval('win_getid()')
         term_win = vim.eval('bufwinid({})'.format(str(b_nb)))
         vim.command('call win_gotoid({})'.format(term_win))

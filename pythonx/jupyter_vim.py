@@ -42,9 +42,10 @@ except ImportError as e:
     raise ImportError('vim module only available within vim!', e)
 
 # Local
-from language import list_languages, get_language
+from monitor_console import monitorable, set_monitor_section_info
 from message_parser import VimMessenger, JupyterMessenger, Sync, \
     shorten_filename, str_to_py, echom, warn_no_connection
+from language import list_languages, get_language
 
 # Standard
 from os import kill, remove
@@ -120,6 +121,7 @@ if 'SI' not in globals():
     VIM = SI.vim
     CLIENT = SI.client
     SYNC = SI.sync
+    set_monitor_section_info(SI)
 
 else:
     if not CLIENT.check_connection():
@@ -255,31 +257,6 @@ def thread_connect_to_kernel():
 # -----------------------------------------------------------------------------
 #        Communicate with Kernel
 # -----------------------------------------------------------------------------
-def monitorable(fct):
-    """Decorator to monitor messages"""
-    def wrapper(*args, **kwargs):
-        # Check
-        if not CLIENT.check_connection():
-            warn_no_connection()
-            return
-
-        # Call
-        last_cmd = fct(*args, **kwargs)[0]
-
-        # Verbose: receive message id from sending function
-        # and report back to vim with output.
-        verbose = bool(int(vim.vars.get('jupyter_verbose', 0)))
-        # Monitor: the kernel replies, as well as messages from other clients.
-        monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
-        if not verbose and not monitor_console:
-            return
-
-        # Launch update threads
-        from monitor_console import update_msgs
-        update_msgs(SI, last_cmd=last_cmd, verbose=verbose, console=monitor_console)
-    return wrapper
-
-
 @monitorable
 def change_directory(directory):
     """CD: Change (current working) to directory
