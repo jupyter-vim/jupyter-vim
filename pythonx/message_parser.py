@@ -137,6 +137,12 @@ class JupyterMessenger:
         except Empty:
             return False
 
+    def disconnnect(self):
+        """Disconnect (silently from kernel): close channels"""
+        if self.km_client is None: return
+        self.km_client.stop_channels()
+        self.km_client = None
+
     def check_connection(self):
         """Check that we have a client connected to the kernel."""
         return self.km_client.hb_channel.is_beating() if self.km_client else False

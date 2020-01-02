@@ -144,7 +144,7 @@ def connect_to_kernel(kernel_type, filename=''):
 
 def disconnect_from_kernel():
     """:JupyterDisconnect kernel client (Sync)"""
-    if CLIENT.km_client is not None: CLIENT.km_client.stop_channels()
+    CLIENT.disconnnect()
     echom("Disconnected: {}".format(SI.kernel_info['id']), style='Directory')
 
 
@@ -233,9 +233,9 @@ def thread_connect_to_kernel():
         if CLIENT.create_kernel_manager():
             connected = True
 
-    # Early return
+    # Early return if failed
     if not connected:
-        if CLIENT.km_client is not None: CLIENT.km_client.stop_channels()
+        CLIENT.disconnnect()
         VIM.thread_echom('kernel connection attempt timed out', style='Error')
         return
 
