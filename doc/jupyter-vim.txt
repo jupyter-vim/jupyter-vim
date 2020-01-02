@@ -1,4 +1,4 @@
-*jupyter-vim* Integrate your jupyter console process with vim!
+*jupyter-vim.txt* Integrate your jupyter console process with vim!
 
 A two-way integration between Vim and Jupyter [Qt]Console.
 
