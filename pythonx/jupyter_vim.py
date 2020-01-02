@@ -180,11 +180,6 @@ class SectionInfo():
         # Return
         return res
 
-    def set_from_connect_attempt(self, kernel_type, filename):
-        """Set what can when user calls JupyterConnect"""
-        self.kernel_type = kernel_type
-        self.filename_arg = filename
-
     def set_cfile(self):
         """Set connection file from argument"""
         self.cfile = find_connection_file(filename=self.filename_arg)
@@ -287,7 +282,7 @@ def is_cell_separator(line):
 def connect_to_kernel(kernel_type, filename=''):
     """:JupyterConnect"""
     # Set what can
-    SI.set_from_connect_attempt(kernel_type, filename)
+    SI.kernel_type = kernel_type; SI.filename_arg = filename
 
     # Get number of column (used for pretty printing)
     VIM.set_column()
