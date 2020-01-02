@@ -19,6 +19,7 @@ let s:default_settings = {
     \ 'auto_connect': 0,
     \ 'mapkeys': 1,
     \ 'monitor_console': 0,
+    \ 'timer_intervals': '[100, 200, 400, 800, 1500, 3000, 10000]',
     \ 'verbose': 0
 \ }
 
@@ -41,7 +42,7 @@ let s:language_dict = {
     \ 'ruby': 'ruby',
 \ }
 
-let s:language_string = join(keys(s:language_dict), ",")
+let s:language_string = join(keys(s:language_dict), ',')
 
 
 augroup JupyterVimInit
