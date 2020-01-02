@@ -99,7 +99,7 @@ class VimMessenger:
 
         # # Echo message
         self.thread_echom('To: ', style='Question')
-        self.thread_echom(kernel_string.replace('\"', '\\\"'), cmd='echom')
+        self.thread_echom(kernel_string)
 
         # Send command so that user knows vim is connected at bottom, more readable
         self.thread_echom('Connected: {}'.format(kernel_info['id']), style='Question')
@@ -212,18 +212,18 @@ class JupyterMessenger:
         # Wait to get message back from kernel (1 sec)
         reply = self.get_reply_msg(msg_id)
 
-        # Return _res from user expression
+        # Get _res from user expression
         res = reply.get('content', {}).get('user_expressions', {}) \
                    .get('_res', {}).get('data', {}).get('text/plain', -1)
-        if res != -1: return res
 
         # Try again parse messages
-        line_number = reply.get('content', {}).get('execution_count', -1)
-        msgs = self.get_pending_msgs()
-        res = parse_iopub_for_reply(msgs, line_number)
+        if res == -1:
+            line_number = reply.get('content', {}).get('execution_count', -1)
+            msgs = self.get_pending_msgs()
+            res = parse_iopub_for_reply(msgs, line_number)
 
         # Rest in peace
-        return res
+        return unquote_string(res)
 
 
 class Sync:
