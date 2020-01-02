@@ -42,9 +42,9 @@ except ImportError as e:
     raise ImportError('vim module only available within vim!', e)
 
 # Local
-from monitor_console import monitorable, set_monitor_section_info
+from monitor_console import Monitor
 from message_parser import VimMessenger, JupyterMessenger, Sync, \
-    shorten_filename, str_to_py, echom, warn_no_connection
+    shorten_filename, str_to_py, echom
 from language import list_languages, get_language
 
 # Standard
@@ -63,15 +63,11 @@ class SectionInfo():
     def __init__(self):
         self.kernel_info = {}
 
-        # TODO remove me
-        self.cmd = None
-        self.cmd_id = None
-        self.cmd_count = 0
-
         self.sync = Sync()
         self.client = JupyterMessenger(self.sync)
         self.vim = VimMessenger(self.sync)
         self.lang = get_language('')
+        self.monitor = Monitor(self)
 
 
     def get_kernel_info(self):
@@ -109,10 +105,6 @@ class SectionInfo():
         # Return
         return self.kernel_info
 
-    def set_cmd_count(self, num):
-        """Set command count number, to record it if wanted (console buffer)"""
-        self.cmd_count = num
-
 
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
@@ -121,11 +113,9 @@ if 'SI' not in globals():
     VIM = SI.vim
     CLIENT = SI.client
     SYNC = SI.sync
-    set_monitor_section_info(SI)
 
 else:
-    if not CLIENT.check_connection():
-        warn_no_connection()
+    CLIENT.check_connection_or_warn()
 
 
 # -----------------------------------------------------------------------------
@@ -250,14 +240,13 @@ def thread_connect_to_kernel():
         return
 
     # Collect and echom kernel info
-    kernel_info = SI.get_kernel_info()
-    VIM.thread_echom_kernel_info(kernel_info)
+    VIM.thread_echom_kernel_info(SI.get_kernel_info())
 
 
 # -----------------------------------------------------------------------------
 #        Communicate with Kernel
 # -----------------------------------------------------------------------------
-@monitorable
+@SI.monitor.monitorable
 def change_directory(directory):
     """CD: Change (current working) to directory
     """
@@ -276,14 +265,14 @@ def change_directory(directory):
     return (msg, msg_id)
 
 
-@monitorable
+@SI.monitor.monitorable
 def run_command(cmd):
     """Send a single command to the kernel."""
     msg_id = CLIENT.send(cmd)
     return (cmd, msg_id)
 
 
-@monitorable
+@SI.monitor.monitorable
 def run_file_in_ipython(flags='', filename=''):
     """Run a given python file using ipython's %run magic."""
     ext = splitext(filename)[-1][1:]
@@ -299,7 +288,7 @@ def run_file_in_ipython(flags='', filename=''):
     return (cmd, msg_id)
 
 
-@monitorable
+@SI.monitor.monitorable
 def send_range():
     """Send a range of lines from the current vim buffer to the kernel."""
     rang = vim.current.range
@@ -309,7 +298,7 @@ def send_range():
     return (prompt, msg_id)
 
 
-@monitorable
+@SI.monitor.monitorable
 def run_cell():
     """Run all the code between two cell separators"""
     # Get line and buffer and cellseparators

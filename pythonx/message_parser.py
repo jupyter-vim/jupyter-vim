@@ -141,28 +141,45 @@ class JupyterMessenger:
         """Check that we have a client connected to the kernel."""
         return self.km_client.hb_channel.is_beating() if self.km_client else False
 
+    def check_connection_or_warn(self):
+        """Echo warning: if not connected"""
+        if self.check_connection(): return True
+        echom('WARNING: Not connected to Jupyter!'
+              '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
+        return False
+
     def get_pending_msgs(self):
         """Get pending message pool"""
         try:
-            return self.km_client.iopub_channel.get_msgs()
+            self.sync.msg_lock.acquire()
+            msgs = self.km_client.iopub_channel.get_msgs()
+            return msgs
         except (Empty, TypeError, KeyError, IndexError, ValueError):
             return []
+        finally:
+            self.sync.msg_lock.release()
 
     def get_reply_msg(self, msg_id):
-        """Get kernel reply from sent client message with msg_id.
+        """Get kernel reply from sent client message with msg_id (async)
         I can block 3 sec, so call me in a thread
         """
         # TODO handle 'is_complete' requests?
         # <http://jupyter-client.readthedocs.io/en/stable/messaging.html#code-completeness>
         for _ in range(3):
-            if self.sync.stop: return None
+            # Check
+            if self.sync.stop: return {}
+
+            # Get
+            self.sync.msg_lock.acquire()
             try:
                 reply = self.km_client.get_shell_msg(block=True, timeout=1)
-            except (Empty, TypeError, KeyError, IndexError, ValueError):
-                continue
-            if reply['parent_header']['msg_id'] == msg_id:
+            except (Empty, TypeError, KeyError, IndexError, ValueError): pass
+            self.sync.msg_lock.release()
+
+            # Return
+            if reply.get('parent_header', {}).get('msg_id', -1) == msg_id:
                 return reply
-        return None
+        return {}
 
     def find_cfile(self, user_cfile):
         """Find connection file from argument"""
@@ -173,36 +190,31 @@ class JupyterMessenger:
         """Send a message to the kernel client
         Global: -> cmd, cmd_id
         """
-        if self.km_client is None:
-            echom('kernel failed sending message, client not created'
-                  '\ndid you run :JupyterConnect ?'
-                  '\n msg to be sent : {}'.format(msg), style="Error")
-            return -1
+        if not self.check_connection_or_warn(): return -1
 
         # Include dedent of msg so we don't get odd indentation errors.
         cmd = dedent(msg)
         cmd_id = self.km_client.execute(cmd, **kwargs)
 
-        return (cmd_id, cmd)
+        return cmd_id
 
     def send_code_and_get_reply(self, code):
         """Helper: Get variable _res from code string (setting _res)"""
-        res = -1; line_number = -1
-
         # Send message
-        try:
-            msg_id = self.send(code, silent=False, user_expressions={'_res': '_res'})
-        except Exception: pass
+        msg_id = self.send(code, silent=False, user_expressions={'_res': '_res'})
 
         # Wait to get message back from kernel (1 sec)
-        try:
-            reply = self.get_reply_msg(msg_id)
-            line_number = reply['content'].get('execution_count', -1)
-        except (Empty, KeyError, TypeError): pass
+        reply = self.get_reply_msg(msg_id)
 
-        # Get and Parse response
+        # Return _res from user expression
+        res = reply.get('content', {}).get('user_expressions', {}) \
+                   .get('_res', {}).get('data', {}).get('text/plain', -1)
+        if res != -1: return res
+
+        # Try again parse messages
+        line_number = reply.get('content', {}).get('execution_count', -1)
         msgs = self.get_pending_msgs()
-        parse_iopub_for_reply(msgs, line_number)
+        res = parse_iopub_for_reply(msgs, line_number)
 
         # Rest in peace
         return res
@@ -265,12 +277,6 @@ def echom(arg, style="None", cmd='echom'):
         vim.command("echohl None")
     except vim.error:
         print("-- {}".format(arg))
-
-
-def warn_no_connection():
-    """Echo warning: not connected"""
-    echom('WARNING: Not connected to Jupyter!'
-          '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
 
 
 def str_to_py(var):
@@ -387,12 +393,6 @@ def parse_iopub_for_reply(msgs, line_number):
         But still they give a printable output
     """
     res = -1
-
-    # Get _res from user expression
-    try:
-        # Requires the fix for https://github.com/JuliaLang/IJulia.jl/issues/815
-        res = msgs['content']['user_expressions']['_res']['data']['text/plain']
-    except (TypeError, KeyError): pass
 
     # Parse all execute
     for msg in msgs:
