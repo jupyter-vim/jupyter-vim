@@ -86,7 +86,7 @@ class VimMessenger:
 
     def string_hi(self):
         """Return Hi froom vim string"""
-        return ('\\n\\nReceived connection from vim client with pid %d'
+        return ('\\n\\nReceived connection from vim client with pid {}'
                 '\\n' + '-' * 60 + '\\n').format(self.pid)
 
     def thread_echom_kernel_info(self, kernel_info):
