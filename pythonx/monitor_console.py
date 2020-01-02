@@ -2,8 +2,8 @@
 Feature to get a buffer with jupyter output
 """
 
-from message_parser import parse_messages, prettify_execute_intput, \
-    unquote_string, str_to_vim, vim_echom
+from message_parser import VimMessenger, parse_messages, prettify_execute_intput, \
+    unquote_string, str_to_vim, echom
 import vim
 from time import sleep
 from threading import Lock
@@ -34,7 +34,7 @@ def update_msgs(section_info, last_cmd='', console=False, verbose=False):
     # Open the Jupyter terminal in vim, and move cursor to it
     b_nb = vim.eval('jupyter_monitor_console#OpenJupyterTerm()')
     if -1 == b_nb:
-        vim_echom('__jupyter_term__ failed to open!', 'Error')
+        echom('__jupyter_term__ failed to open!', 'Error')
         return
 
     # Define time: thread (additive) sleep and timer wait
@@ -118,7 +118,7 @@ def timer_write_console_msgs():
             if b_console:
                 b.append(line)
             if b_verbose:
-                vim_echom(line)
+                echom(line)
 
     # Update view (moving cursor)
     if b_console:

@@ -20,20 +20,67 @@ except ImportError:
 #        Helpers
 # -----------------------------------------------------------------------------
 
-# Message queue
-message_queue = Queue()
+
+class VimMessenger():
+    """Handle message to/from Vim"""
+    def __init__(self):
+        # Message queue: for async echom
+        self.message_queue = Queue()
+        # Pid of current vim section executing me
+        self.pid = vim.eval('getpid()')
+        # Number of column of vim section
+        self.column = 80
+
+    def set_column(self):
+        """Set vim column number <- vim"""
+        self.column = vim.eval('&columns')
+
+    @staticmethod
+    def get_timer_intervals():
+        """Return list<int> timers in ms user defined"""
+        vim_list = vim.bindeval('g:jupyter_timer_intervals')
+        return [i for i in vim_list if isinstance(i, int)]
+
+    def thread_echom(self, arg, **args):
+        """Wrap echo async: put message to be echo in a queue """
+        self.message_queue.put((arg, args))
+
+    def timer_echom(self):
+        """Call echom sync: all messages in queue"""
+        # Check in
+        if self.message_queue.empty(): return
+
+        # Show user the force
+        while not self.message_queue.empty():
+            (arg, args) = self.message_queue.get_nowait()
+            echom(arg, **args)
+
+        # Restore peace in the galaxy
+        vim.command('redraw')
+
+    def string_hi(self):
+        """Return Hi froom vim string"""
+        return ('\\n\\nReceived connection from vim client with pid %d'
+                '\\n' + '-' * 60 + '\\n').format(self.pid)
+
+    def thread_echom_kernel_info(self, kernel_info, cfile_id):
+        """Echo kernel info (async)
+        Prettify output: appearance rules
+        """
+        from pprint import PrettyPrinter
+        pp = PrettyPrinter(indent=4, width=self.column)
+        kernel_string = pp.pformat(kernel_info)[4:-1]
+
+        # # Echo message
+        self.thread_echom('To: ', style='Question')
+        self.thread_echom(kernel_string.replace('\"', '\\\"'), cmd='echom')
+
+        # Send command so that user knows vim is connected at bottom, more readable
+        self.thread_echom('Connected: {}'.format(cfile_id), style='Question')
 
 
-def warn_no_connection():
-    """Echo warning: not connected"""
-    vim_echom('WARNING: Not connected to Jupyter!'
-              '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
-
-
-# General message command
-def vim_echom(arg, style="None", cmd='echom'):
-    """
-    Report string `arg` using vim's echomessage command.
+def echom(arg, style="None", cmd='echom'):
+    """Report string `arg` using vim's echomessage command.
 
     Keyword args:
     style -- the vim highlighting style to use
@@ -48,12 +95,10 @@ def vim_echom(arg, style="None", cmd='echom'):
         print("-- {}".format(arg))
 
 
-def unquote_string(string):
-    """Unquote some text/plain response from kernel"""
-    res = str(string)
-    for quote in ("'", '"'):
-        res = res.rstrip(quote).lstrip(quote)
-    return res
+def warn_no_connection():
+    """Echo warning: not connected"""
+    echom('WARNING: Not connected to Jupyter!'
+          '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
 
 
 def str_to_py(var):
@@ -88,6 +133,14 @@ def str_to_vim(obj):
     obj.replace('\\', '\\\\').replace('"', r'\"')
 
     return '"{:s}"'.format(obj)
+
+
+def unquote_string(string):
+    """Unquote some text/plain response from kernel"""
+    res = str(string)
+    for quote in ("'", '"'):
+        res = res.rstrip(quote).lstrip(quote)
+    return res
 
 
 def strip_color_escapes(s):
@@ -147,27 +200,6 @@ def find_jupyter_kernels():
     return kernel_ids
 
 
-def thread_echom(arg, **args):
-    """Wrap echo async: put message to be echo in a queue
-    Thread: -> message_queue
-    """
-    message_queue.put((arg, args))
-
-
-def timer_echom():
-    """Call echom sync: all messages in queue"""
-    # Check in
-    if message_queue.empty(): return
-
-    # Show user the force
-    while not message_queue.empty():
-        (arg, args) = message_queue.get_nowait()
-        vim_echom(arg, **args)
-
-    # Restore peace in the galaxy
-    vim.command('redraw')
-
-
 # -----------------------------------------------------------------------------
 #        Parsers
 # -----------------------------------------------------------------------------
@@ -179,7 +211,14 @@ def parse_iopub_for_reply(msgs, line_number):
     Use: some kernel (iperl) do not discriminate when clien ask user_expressions.
         But still they give a printable output
     """
-    res = None
+    res = -1
+
+    # Get _res from user expression
+    try:
+        # Requires the fix for https://github.com/JuliaLang/IJulia.jl/issues/815
+        res = msgs['content']['user_expressions']['_res']['data']['text/plain']
+    except (TypeError, KeyError): pass
+
     # Parse all execute
     for msg in msgs:
         try:
@@ -217,6 +256,8 @@ def parse_messages(section_info, msgs):
     See also: <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
     """
     # pylint: disable=too-many-branches
+    # TODO section_info is not perfectly async
+    # TODO remove complexity
     res = []
     for msg in msgs:
         s = ''
@@ -271,11 +312,11 @@ def parse_messages(section_info, msgs):
             s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
 
         elif msg_type == 'input_request':
-            thread_echom('python input not supported in vim.', style='Error')
+            section_info.vim.thread_echom('python input not supported in vim.', style='Error')
             continue  # unsure what to do here... maybe just return False?
 
         else:
-            thread_echom("Message type {} unrecognized!".format(msg_type))
+            section_info.vim.thread_echom("Message type {} unrecognized!".format(msg_type))
             continue
 
         # List all messages
