@@ -1,5 +1,5 @@
 
-Pythonx import monitor_console
+Pythonx import jupyter_vim
 
 
 " NOTE: Generally unused except for communication debugging
@@ -62,5 +62,5 @@ endfunction
 
 " Timer callback to fill jupyter console buffer
 function! jupyter_monitor_console#UpdateConsoleBuffer(timer) abort
-    Pythonx monitor_console.timer_write_console_msgs()
+    Pythonx jupyter_vim.SI.monitor.timer_write_console_msgs()
 endfunction

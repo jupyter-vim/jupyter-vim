@@ -442,7 +442,7 @@ def parse_messages(section_info, msgs):
     res = []
     for msg in msgs:
         s = ''
-        default_count = section_info.cmd_count
+        default_count = section_info.monitor.cmd_count
         if 'msg_type' not in msg['header']:
             continue
         msg_type = msg['header']['msg_type']
@@ -467,7 +467,7 @@ def parse_messages(section_info, msgs):
             s += text.rstrip().replace('\n', '\n' + dots)
             # Set cmd_count: if it changed
             if line_number != default_count:
-                section_info.set_cmd_count(line_number)
+                section_info.monitor.set_cmd_count(line_number)
 
         elif msg_type == 'display_data':
             s += msg['content']['data']['text/plain']
@@ -478,7 +478,7 @@ def parse_messages(section_info, msgs):
             s = prettify_execute_intput(line_number, cmd, section_info.lang.prompt_in)
             # Set cmd_count: if it changed
             if line_number != default_count:
-                section_info.set_cmd_count(line_number)
+                section_info.monitor.set_cmd_count(line_number)
 
         elif msg_type in ('execute_result', 'pyout'):
             # Get the output
@@ -487,7 +487,7 @@ def parse_messages(section_info, msgs):
             s += msg['content']['data']['text/plain']
             # Set cmd_count: if it changed
             if line_number != default_count:
-                section_info.set_cmd_count(line_number)
+                section_info.monitor.set_cmd_count(line_number)
 
         elif msg_type in ('error', 'pyerr'):
             s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))

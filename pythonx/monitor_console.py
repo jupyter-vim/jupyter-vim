@@ -29,7 +29,7 @@ class Monitor:
         """Decorator to monitor messages"""
         def wrapper(*args, **kwargs):
             # Check in
-            if self.si.client.check_connection_or_warn: return
+            if not self.si.client.check_connection_or_warn: return
 
             # Call
             fct(*args, **kwargs)
@@ -87,18 +87,18 @@ class Monitor:
             io_new = parse_messages(self.si, msgs)
 
             # Insert code line Check not already here (check with substr 'Py [')
-            do_add_cmd = self.si.cmd is not None
+            do_add_cmd = self.cmd is not None
             do_add_cmd &= len(io_new) != 0
             do_add_cmd &= not any(self.si.lang.prompt_in[:4] in msg for msg in io_new + io_cache)
             if do_add_cmd:
                 # Get cmd number from id
                 try:
-                    reply = self.si.client.get_reply_msg(self.si.cmd_id)
+                    reply = self.si.client.get_reply_msg(self.cmd_id)
                     line_number = reply['content'].get('execution_count', 0)
                 except (Empty, KeyError, TypeError):
                     line_number = -1
                 s = prettify_execute_intput(
-                    line_number, self.si.cmd, self.si.lang.prompt_in)
+                    line_number, self.cmd, self.si.lang.prompt_in)
                 io_new.insert(0, s)
 
             # Append just new
