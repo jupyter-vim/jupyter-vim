@@ -9,27 +9,30 @@ import re
 from sys import version_info
 from os import listdir
 from os.path import isfile, join, splitext
+from textwrap import dedent
 import vim
+from jupyter_client import KernelManager, find_connection_file
+
+from threading import Thread, Lock
+from time import sleep
 
 try:
-    from queue import Queue
+    from queue import Queue, Empty
 except ImportError:
-    from Queue import Queue
-
-# -----------------------------------------------------------------------------
-#        Helpers
-# -----------------------------------------------------------------------------
+    from Queue import Queue, Empty
 
 
-class VimMessenger():
+class VimMessenger:
     """Handle message to/from Vim"""
-    def __init__(self):
+    def __init__(self, sync):
         # Message queue: for async echom
         self.message_queue = Queue()
         # Pid of current vim section executing me
         self.pid = vim.eval('getpid()')
         # Number of column of vim section
         self.column = 80
+        # Sync object
+        self.sync = sync
 
     def set_column(self):
         """Set vim column number <- vim"""
@@ -63,7 +66,7 @@ class VimMessenger():
         return ('\\n\\nReceived connection from vim client with pid %d'
                 '\\n' + '-' * 60 + '\\n').format(self.pid)
 
-    def thread_echom_kernel_info(self, kernel_info, cfile_id):
+    def thread_echom_kernel_info(self, kernel_info):
         """Echo kernel info (async)
         Prettify output: appearance rules
         """
@@ -76,7 +79,153 @@ class VimMessenger():
         self.thread_echom(kernel_string.replace('\"', '\\\"'), cmd='echom')
 
         # Send command so that user knows vim is connected at bottom, more readable
-        self.thread_echom('Connected: {}'.format(cfile_id), style='Question')
+        self.thread_echom('Connected: {}'.format(kernel_info['id']), style='Question')
+
+
+class JupyterMessenger:
+    """Handle primitive messages to / from jupyter kernel
+    Alias client
+    """
+    def __init__(self, sync):
+        # KernelManager client
+        self.km_client = None
+        # Connection file
+        self.cfile = None
+        # Sync object
+        self.sync = sync
+
+    def create_kernel_manager(self):
+        """Create the kernel manager and connect a client
+        See: <http://jupyter-client.readthedocs.io/en/stable/api/client.html>
+        """
+        # Get client
+        kernel_manager = KernelManager(connection_file=self.cfile)
+        kernel_manager.load_connection_file()
+        self.km_client = kernel_manager.client()
+
+        # Open channel
+        self.km_client.start_channels()
+
+        # Ping the kernel
+        self.km_client.kernel_info()
+        try:
+            self.km_client.get_shell_msg(timeout=1)
+            return True
+        except Empty:
+            return False
+
+    def check_connection(self):
+        """Check that we have a client connected to the kernel."""
+        return self.km_client.hb_channel.is_beating() if self.km_client else False
+
+    def get_pending_msgs(self):
+        """Get pending message pool"""
+        try:
+            return self.km_client.iopub_channel.get_msgs()
+        except (Empty, TypeError, KeyError, IndexError, ValueError):
+            return []
+
+    def get_reply_msg(self, msg_id):
+        """Get kernel reply from sent client message with msg_id.
+        I can block 3 sec, so call me in a thread
+        """
+        # TODO handle 'is_complete' requests?
+        # <http://jupyter-client.readthedocs.io/en/stable/messaging.html#code-completeness>
+        for _ in range(3):
+            if self.sync.stop: return None
+            try:
+                reply = self.km_client.get_shell_msg(block=True, timeout=1)
+            except (Empty, TypeError, KeyError, IndexError, ValueError):
+                continue
+            if reply['parent_header']['msg_id'] == msg_id:
+                return reply
+        return None
+
+    def find_cfile(self, user_cfile):
+        """Find connection file from argument"""
+        self.cfile = find_connection_file(filename=user_cfile)
+        return self.cfile
+
+    def send(self, msg, **kwargs):
+        """Send a message to the kernel client
+        Global: -> cmd, cmd_id
+        """
+        if self.km_client is None:
+            echom('kernel failed sending message, client not created'
+                  '\ndid you run :JupyterConnect ?'
+                  '\n msg to be sent : {}'.format(msg), style="Error")
+            return -1
+
+        # Include dedent of msg so we don't get odd indentation errors.
+        cmd = dedent(msg)
+        cmd_id = self.km_client.execute(cmd, **kwargs)
+
+        return (cmd_id, cmd)
+
+    def send_code_and_get_reply(self, code):
+        """Helper: Get variable _res from code string (setting _res)"""
+        res = -1; line_number = -1
+
+        # Send message
+        try:
+            msg_id = self.send(code, silent=False, user_expressions={'_res': '_res'})
+        except Exception: pass
+
+        # Wait to get message back from kernel (1 sec)
+        try:
+            reply = self.get_reply_msg(msg_id)
+            line_number = reply['content'].get('execution_count', -1)
+        except (Empty, KeyError, TypeError): pass
+
+        # Get and Parse response
+        msgs = self.get_pending_msgs()
+        parse_iopub_for_reply(msgs, line_number)
+
+        # Rest in peace
+        return res
+
+
+class Sync:
+    """Sync primitive"""
+    def __init__(self):
+        # Thread running
+        self.thread = None
+        # Should the current thread stop (cleanly)
+        self.stop = False
+        # Queue for line to echom
+        self.line_queue = Queue()
+        # Lock to retrieve messages one thread at a time
+        self.msg_lock = Lock()
+
+    def check_stop(self):
+        """Check and reset stop value"""
+        last = self.stop
+        if self.stop: self.stop = False
+        return last
+
+    def stop_thread(self):
+        """Stop current thread"""
+        if self.thread is None: return
+        if not self.thread.isAlive(): self.thread = None; return
+
+        # Wait 1 sec max
+        self.stop = True
+        for _ in range(100):
+            if not self.stop: sleep(0.010)
+        self.thread = None
+        return
+
+    def start_thread(self, target=None, args=None):
+        """Stop last / Create new / Start thread"""
+        if args is None: args = []
+        self.stop_thread()
+        self.thread = Thread(target=target, args=args)
+        self.thread.start()
+
+
+# -----------------------------------------------------------------------------
+#        Helpers
+# -----------------------------------------------------------------------------
 
 
 def echom(arg, style="None", cmd='echom'):

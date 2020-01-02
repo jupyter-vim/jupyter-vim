@@ -29,15 +29,10 @@ Install:
     Python.
 """
 
-try:
-    from queue import Empty
-except ImportError:
-    from Queue import Empty
 
 try:
     # pylint: disable=unused-import
     import jupyter   # noqa
-    from jupyter_client import KernelManager, find_connection_file
 except ImportError as e:
     raise ImportError("Could not find kernel. " + __doc__, e)
 
@@ -48,8 +43,8 @@ except ImportError as e:
 
 # Local
 from language import list_languages, get_language
-from message_parser import VimMessenger, parse_iopub_for_reply, shorten_filename, \
-    str_to_py, echom, warn_no_connection
+from message_parser import VimMessenger, JupyterMessenger, Sync, \
+    shorten_filename, str_to_py, echom, warn_no_connection
 
 # Standard
 from os import kill, remove
@@ -58,9 +53,6 @@ from platform import system
 from signal import SIGTERM
 if system() != 'Windows':
     from signal import SIGKILL
-from textwrap import dedent
-from threading import Thread
-from time import sleep
 
 
 class SectionInfo():
@@ -68,83 +60,18 @@ class SectionInfo():
     The only global object is of this class
     """
     def __init__(self):
-        # Kernel
-        # KernelManager client
-        self.km_client = None
-        # Connection file
-        self.cfile = None
-        # User argument to find running kernel
-        self.filename_arg = ''
-        # Kernel type string (or language)
-        self.kernel_type = 'default'
-        # Pid of the kernel
-        self.kernel_pid = None
-        # Language static class of the kernel (python || java || ...)
-        # # implemented in ./language.py
-        self.lang = get_language(self.kernel_type)
-        # Last command sent and it's id
+        self.kernel_info = {}
+
+        # TODO remove me
         self.cmd = None
         self.cmd_id = None
         self.cmd_count = 0
 
-        # Vim (ref for submodules)
-        self.vim = VimMessenger()
+        self.sync = Sync()
+        self.client = JupyterMessenger(self.sync)
+        self.vim = VimMessenger(self.sync)
+        self.lang = get_language('')
 
-        # Thread
-        # Thread running
-        self.thread = None
-        # Should the current thread stop (cleanly)
-        self.stop = False
-
-    def send(self, msg, **kwargs):
-        """Send a message to the kernel client
-        Global: -> cmd, cmd_id
-        """
-        if self.km_client is None:
-            echom('kernel failed sending message, client not created'
-                  '\ndid you run :JupyterConnect ?'
-                  '\n msg to be sent : {}'.format(msg), style="Error")
-            return -1
-
-        # Include dedent of msg so we don't get odd indentation errors.
-        self.cmd = dedent(msg)
-        self.cmd_id = self.km_client.execute(self.cmd, **kwargs)
-
-        return self.cmd_id
-
-
-    def check_connection(self):
-        """Check that we have a client connected to the kernel."""
-        return self.km_client.hb_channel.is_beating() if self.km_client else False
-
-    def check_stop(self):
-        """Check and reset stop value"""
-        last = self.stop
-        if self.stop: self.stop = False
-        return last
-
-    def get_msgs(self):
-        """Get pending message pool"""
-        try:
-            return self.km_client.iopub_channel.get_msgs()
-        except (Empty, TypeError, KeyError, IndexError, ValueError):
-            return []
-
-    def get_reply_msg(self, msg_id):
-        """Get kernel reply from sent client message with msg_id.
-        I can block 3 sec, so call me in a thread
-        """
-        # TODO handle 'is_complete' requests?
-        # <http://jupyter-client.readthedocs.io/en/stable/messaging.html#code-completeness>
-        for _ in range(3):
-            if self.stop: return None
-            try:
-                reply = self.km_client.get_shell_msg(block=True, timeout=1)
-            except (Empty, TypeError, KeyError, IndexError, ValueError):
-                continue
-            if reply['parent_header']['msg_id'] == msg_id:
-                return reply
-        return None
 
     def get_kernel_info(self):
         """Explicitly ask the jupyter kernel for its pid
@@ -155,99 +82,35 @@ class SectionInfo():
         Returns: dict with 'kernel_type', 'pid', 'cwd', 'hostname'
         """
         # Check in
-        if self.kernel_type not in list_languages():
+        kernel_type = self.kernel_info['kernel_type']
+        if kernel_type not in list_languages():
             echom('I don''t know how to get infos for a Jupyter kernel of'
-                  ' type "{}"'.format(self.kernel_type), 'WarningMsg')
+                  ' type "{}"'.format(kernel_type), 'WarningMsg')
 
         # Get language
-        self.lang = get_language(self.kernel_type)
+        self.lang = get_language(kernel_type)
 
-        # Get a priory info
-        res = {'kernel_type': self.kernel_type,
-               'connection_file': self.cfile,
-               'id': shorten_filename(self.cfile),
-               # Get from kernel info
-               'pid': self.send_code_and_get_reply(self.lang.pid),
-               'cwd': self.send_code_and_get_reply(self.lang.cwd),
-               'hostname': self.send_code_and_get_reply(self.lang.hostname),
-               }
-        self.kernel_pid = res['pid']
+        # Fill kernel_info
+        self.kernel_info.update({
+            'kernel_type': kernel_type,
+            'connection_file': CLIENT.cfile,
+            'id': shorten_filename(CLIENT.cfile),  # Id of cfile (reduced)
+            # Get from kernel info
+            'pid': CLIENT.send_code_and_get_reply(self.lang.pid),  # PID of kernel
+            'cwd': CLIENT.send_code_and_get_reply(self.lang.cwd),
+            'hostname': CLIENT.send_code_and_get_reply(self.lang.hostname),
+            })
 
         # Print vim connected
         cmd_hi = self.lang.print_string.format(VIM.string_hi())
-        self.send_code_and_get_reply(cmd_hi)
+        CLIENT.send_code_and_get_reply(cmd_hi)
 
         # Return
-        return res
-
-    def set_cfile(self):
-        """Set connection file from argument"""
-        self.cfile = find_connection_file(filename=self.filename_arg)
+        return self.kernel_info
 
     def set_cmd_count(self, num):
         """Set command count number, to record it if wanted (console buffer)"""
         self.cmd_count = num
-
-    def connect_new_client(self):
-        """Create the kernel manager and connect a client
-        See: <http://jupyter-client.readthedocs.io/en/stable/api/client.html>
-        """
-        # Get client
-        km = KernelManager(connection_file=self.cfile)
-        km.load_connection_file()
-        self.km_client = km.client()
-
-        # Open channel
-        self.km_client.start_channels()
-
-        # Ping the kernel
-        self.km_client.kernel_info()
-        try:
-            self.km_client.get_shell_msg(timeout=1)
-            return True
-        except Empty:
-            return False
-
-    def send_code_and_get_reply(self, code):
-        """Helper: Get variable _res from code string (setting _res)"""
-        res = -1; line_number = -1
-
-        # Send message
-        try:
-            msg_id = self.send(code, silent=False, user_expressions={'_res': '_res'})
-        except Exception: pass
-
-        # Wait to get message back from kernel (1 sec)
-        try:
-            reply = self.get_reply_msg(msg_id)
-            line_number = reply['content'].get('execution_count', -1)
-        except (Empty, KeyError, TypeError): pass
-
-        # Get and Parse response
-        msgs = self.get_msgs()
-        parse_iopub_for_reply(msgs, line_number)
-
-        # Rest in peace
-        return res
-
-    def stop_thread(self):
-        """Stop current thread"""
-        if self.thread is None: return
-        if not self.thread.isAlive(): self.thread = None; return
-
-        # Wait 1 sec max
-        self.stop = True
-        for _ in range(100):
-            if not self.stop: sleep(0.010)
-        self.thread = None
-        return
-
-    def start_thread(self, target=None, args=None):
-        """Stop last / Create new / Start thread"""
-        if args is None: args = []
-        self.stop_thread()
-        self.thread = Thread(target=target, args=args)
-        self.thread.start()
 
 
 # if module has not yet been imported, define global kernel manager, client and
@@ -255,10 +118,11 @@ class SectionInfo():
 if 'SI' not in globals():
     SI = SectionInfo()
     VIM = SI.vim
-
+    CLIENT = SI.client
+    SYNC = SI.sync
 
 else:
-    if not SI.check_connection():
+    if not CLIENT.check_connection():
         warn_no_connection()
 
 
@@ -282,13 +146,14 @@ def is_cell_separator(line):
 def connect_to_kernel(kernel_type, filename=''):
     """:JupyterConnect"""
     # Set what can
-    SI.kernel_type = kernel_type; SI.filename_arg = filename
+    SI.kernel_info['kernel_type'] = kernel_type
+    SI.kernel_info['cfile_user'] = filename
 
     # Get number of column (used for pretty printing)
     VIM.set_column()
 
     # Create thread
-    SI.start_thread(target=thread_connect_to_kernel)
+    SYNC.start_thread(target=thread_connect_to_kernel)
 
     # Launch timers: update echom
     for sleep_ms in (500, 1000, 1500, 2000, 3000):
@@ -299,8 +164,8 @@ def connect_to_kernel(kernel_type, filename=''):
 
 def disconnect_from_kernel():
     """:JupyterDisconnect kernel client (Sync)"""
-    if SI.km_client is not None: SI.km_client.stop_channels()
-    echom("Disconnected: {}".format(shorten_filename(SI.cfile)), style='Directory')
+    if CLIENT.km_client is not None: CLIENT.km_client.stop_channels()
+    echom("Disconnected: {}".format(SI.kernel_info['id']), style='Directory')
 
 
 def signal_kernel(sig=SIGTERM):
@@ -312,19 +177,19 @@ def signal_kernel(sig=SIGTERM):
     # Kill process
     try:
         # Check if valid pid
-        if SI.kernel_pid < 1:
+        if SI.kernel_info['pid'] < 1:
             echom("Cannot kill kernel: unknown pid", style='Error')
         else:
-            kill(SI.kernel_pid, int(sig))
+            kill(SI.kernel_info['pid'], int(sig))
             echom("kill pid {p:d} with signal #{v:d}, {n:s}"
-                  .format(p=SI.kernel_pid, v=sig.value, n=sig.name), style='WarningMsg')
+                  .format(p=SI.kernel_info['pid'], v=sig.value, n=sig.name), style='WarningMsg')
     except ProcessLookupError:
         echom(("pid {p:d} does not exist! " +
                "Kernel may have been terminated by outside process")
-              .format(p=SI.kernel_pid), style='Error')
+              .format(p=SI.kernel_info['pid']), style='Error')
     except OSError as err:
         echom("signal #{v:d}, {n:s} failed to kill pid {p:d}"
-              .format(v=sig.value, n=sig.name, p=SI.kernel_pid), style='Error')
+              .format(v=sig.value, n=sig.name, p=SI.kernel_info['pid']), style='Error')
         raise err
 
     # Delete connection file
@@ -332,7 +197,7 @@ def signal_kernel(sig=SIGTERM):
     if system() != 'Windows': sig_list.append(SIGKILL)
     if sig in sig_list:
         try:
-            remove(SI.cfile)
+            remove(CLIENT.cfile)
         except OSError:
             pass
 
@@ -340,7 +205,7 @@ def signal_kernel(sig=SIGTERM):
 def run_file(flags='', filename=''):
     """:JupyterRunFile"""
     # Special cpython cases
-    if SI.kernel_type == 'python':
+    if SI.kernel_info['kernel_type'] == 'python':
         return run_file_in_ipython(flags=flags, filename=filename)
 
     # Message warning to user
@@ -365,39 +230,38 @@ def run_file(flags='', filename=''):
 # -----------------------------------------------------------------------------
 def thread_connect_to_kernel():
     """Create kernel manager from existing connection file (Async)"""
-    if SI.check_stop(): return
+    if SYNC.check_stop(): return
 
-    # Test if connection is alive
-    connected = SI.check_connection()
-    attempt = 0
-    max_attempts = 3
-    while not connected and attempt < max_attempts:
-        attempt += 1
-        if SI.check_stop(): return
+    # Check if connection is alive
+    connected = CLIENT.check_connection()
 
-        # Get cfile
-        try:
-            SI.set_cfile()
+    # Try to connect
+    for attempt in range(3):
+        if connected: break
+        # Check if thread want to return
+        if SYNC.check_stop(): return
+
+        # Find connection file
+        try: CLIENT.find_cfile(SI.kernel_info['cfile_user'])
         except IOError:
             VIM.thread_echom(
-                "kernel connection attempt {:d}/{:d} failed - no kernel file"
-                .format(attempt, max_attempts), style="Error")
+                "kernel connection attempt {:d}/3 failed - no kernel file"
+                .format(attempt), style="Error")
             continue
 
         # Connect
-        if SI.connect_new_client():
+        if CLIENT.create_kernel_manager():
             connected = True
 
     # Early return
     if not connected:
-        if SI.km_client is not None: SI.km_client.stop_channels()
+        if CLIENT.km_client is not None: CLIENT.km_client.stop_channels()
         VIM.thread_echom('kernel connection attempt timed out', style='Error')
         return
 
     # Collect and echom kernel info
     kernel_info = SI.get_kernel_info()
-    cfile_id = shorten_filename(SI.cfile)
-    VIM.thread_echom_kernel_info(kernel_info, cfile_id)
+    VIM.thread_echom_kernel_info(kernel_info)
 
 
 # -----------------------------------------------------------------------------
@@ -407,7 +271,7 @@ def monitorable(fct):
     """Decorator to monitor messages"""
     def wrapper(*args, **kwargs):
         # Check
-        if not SI.check_connection():
+        if not CLIENT.check_connection():
             warn_no_connection()
             return
 
@@ -434,11 +298,11 @@ def change_directory(directory):
     """
     # Cd
     msg = SI.lang.cd.format(directory)
-    msg_id = SI.send(msg)
+    msg_id = CLIENT.send(msg)
 
     # Print cwd
     try:
-        cwd = SI.send_code_and_get_reply(SI.lang.cwd)
+        cwd = CLIENT.send_code_and_get_reply(SI.lang.cwd)
         echom('CWD: ', style='Question')
         vim.command("echon \"{}\"".format(cwd))
     except Exception: pass
@@ -450,7 +314,7 @@ def change_directory(directory):
 @monitorable
 def run_command(cmd):
     """Send a single command to the kernel."""
-    msg_id = SI.send(cmd)
+    msg_id = CLIENT.send(cmd)
     return (cmd, msg_id)
 
 
@@ -466,7 +330,7 @@ def run_file_in_ipython(flags='', filename=''):
         params = flags or str_to_py(vim.current.buffer.vars['ipython_run_flags'])
     cmd = '{run_cmd} {params} "{filename}"'.format(
         run_cmd=run_cmd, params=params, filename=filename)
-    msg_id = SI.send(cmd)
+    msg_id = CLIENT.send(cmd)
     return (cmd, msg_id)
 
 
@@ -475,7 +339,7 @@ def send_range():
     """Send a range of lines from the current vim buffer to the kernel."""
     rang = vim.current.range
     lines = "\n".join(vim.current.buffer[rang.start:rang.end+1])
-    msg_id = SI.send(lines)
+    msg_id = CLIENT.send(lines)
     prompt = "range {:d}-{:d} ".format(rang.start+1, rang.end+1)
     return (prompt, msg_id)
 
@@ -515,6 +379,6 @@ def run_cell():
 
     # Execute cell
     lines = "\n".join(cur_buf[upper_bound:lower_bound+1])
-    msg_id = SI.send(lines)
+    msg_id = CLIENT.send(lines)
     prompt = "execute lines {:d}-{:d} ".format(upper_bound+1, lower_bound+1)
     return (prompt, msg_id)
