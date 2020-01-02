@@ -9,10 +9,17 @@ Currently Python and Julia kernels are supported, and more languages are on the 
 ## Installation of the plugin
 
 To install this plugin, you should use one of the following methods.
-For Windows users, replace usage of the Unix `~/.vim` directory with
-`%USERPROFILE%\vimfiles`, or another directory if you have configured
-Vim differently. On Windows, your `~/.vimrc` file will be similarly
-stored in `%USERPROFILE%\_vimrc`.
+
+On __Windows__, replace in the next sections the Unix directories with the following:
+
+* On __Vim__:
+    * `~/.vim` -> `%USERPROFILE%\vimfiles`
+    * `~/.vimrc` -> `%USERPROFILE%\_vimrc`
+
+* On __Nvim__:
+    * `~/.local/share/nvim/site` -> `%USERPROFILE%\AppData\Local\nvim`
+
+Or other directories if you have configured/installed Vim/Nvim differently.
 
 ### Vim 8 package manager
 
@@ -25,7 +32,7 @@ git clone --depth 1 https://github.com/jupyter-vim/jupyter-vim.git ~/.vim/pack/g
 
 ```bash
 mkdir -p ~/.local/share/nvim/site/pack/git-plugins/start
-git clone --depth 1 https://github.com/jupyter-vim/jupyter-vim.git ~/.vim/pack/git-plugins/start/jupyter-vim
+git clone --depth 1 https://github.com/jupyter-vim/jupyter-vim.git ~/.local/share/nvim/site/pack/git-plugins/start/jupyter-vim
 ```
 
 ### Pathogen
