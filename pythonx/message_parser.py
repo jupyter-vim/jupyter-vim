@@ -31,6 +31,8 @@ class VimMessenger:
         self.pid = vim.eval('getpid()')
         # Number of column of vim section
         self.column = 80
+        # List of regex for lines to separate cells
+        self.cell_separators = self.set_cell_separators()
         # Sync object
         self.sync = sync
 
@@ -38,11 +40,23 @@ class VimMessenger:
         """Set vim column number <- vim"""
         self.column = vim.eval('&columns')
 
+    def set_cell_separators(self):
+        """Set cell separators list<regex> from vim globals to python object
+        Once to avoid mutliple call at parsing file
+        """
+        self.cell_separators = vim.bindeval('g:jupyter_cell_separators')
+        self.cell_separators = list(map(unquote_string, self.cell_separators))
+        return self.cell_separators
+
     @staticmethod
     def get_timer_intervals():
         """Return list<int> timers in ms user defined"""
-        vim_list = vim.bindeval('g:jupyter_timer_intervals')
-        return [i for i in vim_list if isinstance(i, int)]
+        timer_list = vim.bindeval('g:jupyter_timer_intervals')
+        return [i for i in timer_list if isinstance(i, int)]
+
+    def is_cell_separator(self, line):
+        """ Determine whether a given line is a cell separator """
+        return any([bool(re.match(separation, line)) for separation in self.cell_separators])
 
     def thread_echom(self, arg, **args):
         """Wrap echo async: put message to be echo in a queue """
@@ -286,10 +300,13 @@ def str_to_vim(obj):
 
 def unquote_string(string):
     """Unquote some text/plain response from kernel"""
-    res = str(string)
+    if isinstance(string, bytes):
+        string = string.decode()
+    if not isinstance(string, str):
+        string = str(string)
     for quote in ("'", '"'):
-        res = res.rstrip(quote).lstrip(quote)
-    return res
+        string = string.rstrip(quote).lstrip(quote)
+    return string
 
 
 def strip_color_escapes(s):

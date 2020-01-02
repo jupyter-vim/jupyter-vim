@@ -142,9 +142,8 @@ COMMANDS 					*jupyter-vim-commands*
 			not given, the current line is sent.
 
 :JupyterSendCell                	*jupyter-sendcell* *:JupyterSendCell*
-			Send the current code cell, as delineated by the strings
-                        "##", "#%%", "# %%", or "# <codecell>". Future updates
-                        include user-defined code cell delimiters.
+			Send the current code cell, as delineated by the lines
+			matching |g:jupyter_cell_separators|
 
 :PythonSetBreak 			*python-setbreak* *:PythonSetBreak*
                         Only makes sense to run when |b:jupyter_kernel_type| is
@@ -238,6 +237,18 @@ code file whose filetype is associated with a kernel language (other than
 'none') as described in |b:jupyter_kernel_type|. Due to the nature of the
 connection process, vim will be slow to start up if this option is set to 1. An
 asynchronous connection process is a work in progress.
+
+`g:jupyter_cell_separators`        		*g:jupyter_cell_separators*
+				  List of regex to separate jupyter cells
+Default: ['##', '#%%', '# %%', '# <codecell>']
+
+Define how jupyter-vim will find the current cell when running
+|:JupyterSendCell|.
+Example: `let g:jupyter_cell_separators = ['.*separator-placeholder']` will
+consider a cell every lines between two lines containing separator-placeholder
+string.
+The match starts at the beginning of line: hence the `.*` in the previous
+example
 
 `g:jupyter_mapkeys`   					*g:jupyter_mapkeys*
 Default: 1 					Map keys for python files

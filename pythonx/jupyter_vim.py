@@ -127,18 +127,6 @@ else:
 
 
 # -----------------------------------------------------------------------------
-#        Utilities
-# -----------------------------------------------------------------------------
-
-
-def is_cell_separator(line):
-    """ Determine whether a given line is a cell separator """
-    # TODO allow users to define their own cell separators
-    cell_sep = ('##', '#%%', '# %%', '# <codecell>')
-    return line.startswith(cell_sep)
-
-
-# -----------------------------------------------------------------------------
 #        Major Function Definitions:
 # -----------------------------------------------------------------------------
 
@@ -156,7 +144,7 @@ def connect_to_kernel(kernel_type, filename=''):
     SYNC.start_thread(target=thread_connect_to_kernel)
 
     # Launch timers: update echom
-    for sleep_ms in (500, 1000, 1500, 2000, 3000):
+    for sleep_ms in VIM.get_timer_intervals():
         vim_cmd = ('let timer = timer_start(' + str(sleep_ms) +
                    ', "jupyter#UpdateEchom")')
         vim.command(vim_cmd)
@@ -347,27 +335,29 @@ def send_range():
 @monitorable
 def run_cell():
     """Run all the code between two cell separators"""
+    # Get line and buffer and cellseparators
     cur_buf = vim.current.buffer
     cur_line = vim.current.window.cursor[0] - 1
+    VIM.set_cell_separators()
 
     # Search upwards for cell separator
     upper_bound = cur_line
-    while upper_bound > 0 and not is_cell_separator(cur_buf[upper_bound]):
+    while upper_bound > 0 and not VIM.is_cell_separator(cur_buf[upper_bound]):
         upper_bound -= 1
 
     # Skip past the first cell separator if it exists
-    if is_cell_separator(cur_buf[upper_bound]):
+    if VIM.is_cell_separator(cur_buf[upper_bound]):
         upper_bound += 1
 
     # Search downwards for cell separator
     lower_bound = min(upper_bound+1, len(cur_buf)-1)
 
     while lower_bound < len(cur_buf)-1 and \
-            not is_cell_separator(cur_buf[lower_bound]):
+            not VIM.is_cell_separator(cur_buf[lower_bound]):
         lower_bound += 1
 
     # Move before the last cell separator if it exists
-    if is_cell_separator(cur_buf[lower_bound]):
+    if VIM.is_cell_separator(cur_buf[lower_bound]):
         lower_bound -= 1
 
     # Make sure bounds are within buffer limits
