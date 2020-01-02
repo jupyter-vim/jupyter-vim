@@ -134,6 +134,7 @@ class Ruby(Language):
 
 # Dict: kernel_type -> class
 language_dict = {
+    '': Language,
     'default': Language,
     'bash': Bash,
     'cpp': Cpp,
