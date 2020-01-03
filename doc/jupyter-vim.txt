@@ -351,7 +351,20 @@ $ jupyter qtconsole --version # 4.3.1
 --------------------------------------------------------------------------------
 CHANGELOG					*jupyter-vim-changelog*
 
-[v0.0]
+[v0.01]
+* Kernel support: `Bash`, `Cpp`, `Java`, `Javascript`, `Perl`, `Ruby`
+* Asynchronous `:JupyterConnect`
+* Refactor interface: one global to rule them all
+	`:py3 print(jupyter_vim.SI.client.check_connection())`
+* `:JupyterConnect` -> autocompletion
+* `:jupyterCd` -> echo cwd
+* Parse message more tolerantly and resiliently
+* Add github wiki
+
+[v0.00]
+* Kernel support: `Python`, `Julia`
+* Add Readme.md
+* Migration at: https://github.com/jupyter-vim/jupyter-vim
 
 --------------------------------------------------------------------------------
 CONTRIBUTING					*jupyter-vim-contributing*
