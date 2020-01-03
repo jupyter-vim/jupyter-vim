@@ -54,14 +54,14 @@ class VimMessenger:
         """Set cell separators list<regex> from vim globals to python object
         Once to avoid mutliple call at parsing file
         """
-        self.cell_separators = vim.bindeval('g:jupyter_cell_separators')
+        self.cell_separators = vim.eval('g:jupyter_cell_separators')
         self.cell_separators = list(map(unquote_string, self.cell_separators))
 
     @staticmethod
     def get_timer_intervals():
         """Return list<int> timers in ms user defined"""
-        timer_list = vim.bindeval('g:jupyter_timer_intervals')
-        return [i for i in timer_list if isinstance(i, int)]
+        timer_list = vim.eval('g:jupyter_timer_intervals')
+        return list(map(int, timer_list))
 
     def is_cell_separator(self, line):
         """ Determine whether a given line is a cell separator """
