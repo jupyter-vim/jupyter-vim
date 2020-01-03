@@ -31,7 +31,6 @@ class VimMessenger:
         self.pid = vim.eval('getpid()')
 
         # Define members python <- vim
-        self.set_column()
         self.set_cell_separators()
         self.set_monitor_bools()
 
@@ -45,10 +44,6 @@ class VimMessenger:
         self.verbose = bool(int(vim.vars.get('jupyter_verbose', 0)))
         # Monitor: the kernel replies, as well as messages from other clients.
         self.monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
-
-    def set_column(self):
-        """Set vim column number <- vim"""
-        self.column = vim.eval('&columns')
 
     def set_cell_separators(self):
         """Set cell separators list<regex> from vim globals to python object
@@ -93,12 +88,12 @@ class VimMessenger:
         """Echo kernel info (async)
         Prettify output: appearance rules
         """
-        from pprint import PrettyPrinter
-        pp = PrettyPrinter(indent=4, width=self.column)
-        kernel_string = pp.pformat(kernel_info)[4:-1]
+        kernel_string = ""
+        for key in kernel_info:
+            kernel_string += "\n    " + str(key) + ': ' + str(kernel_info[key])
 
         # # Echo message
-        self.thread_echom('To: ', style='Question')
+        self.thread_echom('To:', style='Question')
         self.thread_echom(kernel_string)
 
         # Send command so that user knows vim is connected at bottom, more readable

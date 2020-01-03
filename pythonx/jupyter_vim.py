@@ -129,9 +129,6 @@ def connect_to_kernel(kernel_type, filename=''):
     SI.kernel_info['kernel_type'] = kernel_type
     SI.kernel_info['cfile_user'] = filename
 
-    # Get number of column (used for pretty printing)
-    VIM.set_column()
-
     # Create thread
     SYNC.start_thread(target=thread_connect_to_kernel)
 
