@@ -29,7 +29,7 @@ class Monitor:
         """Decorator to monitor messages"""
         def wrapper(*args, **kwargs):
             # Check in
-            if not self.si.client.check_connection_or_warn: return
+            if not self.si.client.check_connection_or_warn(): return
 
             # Call
             fct(*args, **kwargs)
