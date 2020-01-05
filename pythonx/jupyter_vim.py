@@ -100,7 +100,7 @@ class SectionInfo():
 
         # Print vim connected
         cmd_hi = self.lang.print_string.format(VIM.string_hi())
-        CLIENT.send_code_and_get_reply(cmd_hi)
+        CLIENT.send(cmd_hi)
 
         # Return
         return self.kernel_info

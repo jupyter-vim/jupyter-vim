@@ -166,6 +166,8 @@ class JupyterMessenger:
         """
         # TODO handle 'is_complete' requests?
         # <http://jupyter-client.readthedocs.io/en/stable/messaging.html#code-completeness>
+        # Declare default
+        reply = {}
         for _ in range(3):
             # Check
             if self.sync.stop: return {}
@@ -173,14 +175,14 @@ class JupyterMessenger:
             # Get
             self.sync.msg_lock.acquire()
             try:
-                reply = self.km_client.get_shell_msg(block=True, timeout=1)
+                reply = self.km_client.get_shell_msg(block=True, timeout=1) or {}
             except (Empty, TypeError, KeyError, IndexError, ValueError): pass
             self.sync.msg_lock.release()
 
-            # Return
-            if reply.get('parent_header', {}).get('msg_id', -1) == msg_id:
-                return reply
-        return {}
+            # Stop
+            if reply.get('parent_header', {}).get('msg_id', -1) == msg_id: break
+
+        return reply
 
     def find_cfile(self, user_cfile):
         """Find connection file from argument"""
