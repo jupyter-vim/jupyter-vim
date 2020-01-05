@@ -226,8 +226,7 @@ def thread_connect_to_kernel():
             continue
 
         # Connect
-        if CLIENT.create_kernel_manager():
-            connected = True
+        connected = CLIENT.create_kernel_manager()
 
     # Early return if failed
     if not connected:
