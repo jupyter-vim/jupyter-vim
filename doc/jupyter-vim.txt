@@ -214,6 +214,7 @@ buffer, according to the mapping:
 | perl               | 'perl'          |
 | python             | 'python'        |
 | ruby               | 'ruby'          |
+| rust               | 'rust'          |
 | <everything else>  | 'none'          |
 +--------------------+-----------------+
 
@@ -350,6 +351,9 @@ $ jupyter qtconsole --version # 4.3.1
 
 --------------------------------------------------------------------------------
 CHANGELOG					*jupyter-vim-changelog*
+
+[v0.0?]
+* Kernel support: `Rust`
 
 [v0.01]
 * Kernel support: `Bash`, `Cpp`, `Java`, `Javascript`, `Perl`, `Ruby`

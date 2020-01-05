@@ -41,6 +41,7 @@ let s:language_dict = {
     \ 'perl': 'perl',
     \ 'python': 'python',
     \ 'ruby': 'ruby',
+    \ 'rust': 'rust',
 \ }
 
 let s:language_string = join(keys(s:language_dict), ',')

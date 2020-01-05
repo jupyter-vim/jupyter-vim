@@ -132,6 +132,30 @@ class Ruby(Language):
     hostname = '_res = Socket.gethostname'
 
 
+class Rust(Language):
+    prompt_in = 'Rs [{:d}]: '
+    print_string = 'println!("{}");'
+    run_file = '-1'
+    cd = 'env::set_current_dir("{}");'
+    pid = 'use std::process; use std::env; let mut _res = process::id(); _res'
+    cwd = 'let mut _res = env::current_dir().unwrap(); _res'
+    hostname = (
+        # Import
+        "use std::process::Command;\n"
+        # Get shell output (as vector)
+        "let mut _res_status = Command::new(\"hostname\").output().expect(\"unknown\");\n"
+        # Stringify
+        "let mut _res = match String::from_utf8(_res_status.stdout){\n"
+        "    Ok(f) => f,\n"
+        "    Err(e) => String::from(\"unknown\")\n"
+        "};\n"
+        # Remove trailing newline
+        "while _res.ends_with('\\n') || _res.ends_with('\\r') { _res.pop(); };\n"
+        # Send to stdout
+        '_res'
+        )
+
+
 # Dict: kernel_type -> class
 language_dict = {
     '': Language,
@@ -144,6 +168,7 @@ language_dict = {
     'perl': Perl,
     'python': Python,
     'ruby': Ruby,
+    'rust': Rust,
 }
 
 
