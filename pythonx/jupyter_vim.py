@@ -61,12 +61,11 @@ class SectionInfo():
     The only global object is of this class
     """
     def __init__(self):
-
         self.sync = Sync()
         self.client = JupyterMessenger(self.sync)
         self.vim = VimMessenger(self.sync)
-        self.lang = get_language('')
         self.monitor = Monitor(self)
+        self.lang = get_language('')
 
 
 # if module has not yet been imported, define global kernel manager, client and
@@ -90,10 +89,11 @@ else:
 
 def connect_to_kernel(kernel_type, filename=''):
     """:JupyterConnect"""
+    global LANG
     # Set what can
     CLIENT.kernel_info['kernel_type'] = kernel_type
     CLIENT.kernel_info['cfile_user'] = filename
-    SI.lang = get_language(kernel_type)
+    LANG = SI.lang = get_language(kernel_type)
 
     # Create thread
     SYNC.start_thread(target=thread_connect_to_kernel)
@@ -158,7 +158,7 @@ def run_file(flags='', filename=''):
               style='Error')
 
     # Get command and slurp file if not implemented
-    cmd_run = SI.lang.run_file.format(filename)
+    cmd_run = LANG.run_file.format(filename)
     if cmd_run == '-1':
         with open(filename, 'r') as file_run:
             cmd_run = file_run.read()
@@ -205,10 +205,10 @@ def thread_connect_to_kernel():
     VIM.thread_echom('Connected! ', style='Question')
 
     # Collect and echom kernel info
-    VIM.thread_echom_kernel_info(CLIENT.get_kernel_info(SI.lang))
+    VIM.thread_echom_kernel_info(CLIENT.get_kernel_info(LANG))
 
     # Print vim connected -> client
-    cmd_hi = SI.lang.print_string.format(VIM.string_hi())
+    cmd_hi = LANG.print_string.format(VIM.string_hi())
     CLIENT.send(cmd_hi)
 
 
@@ -220,12 +220,12 @@ def change_directory(directory):
     """CD: Change (current working) to directory
     """
     # Cd
-    msg = SI.lang.cd.format(directory)
+    msg = LANG.cd.format(directory)
     msg_id = CLIENT.send(msg)
 
     # Print cwd
     try:
-        cwd = CLIENT.send_code_and_get_reply(SI.lang.cwd)
+        cwd = CLIENT.send_code_and_get_reply(LANG.cwd)
         echom('CWD: ', style='Question')
         vim.command("echon \"{}\"".format(cwd))
     except Exception: pass
