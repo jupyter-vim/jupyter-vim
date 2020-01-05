@@ -153,14 +153,14 @@ class JupyterMessenger:
 
     def get_pending_msgs(self):
         """Get pending message pool"""
+        msgs = []
         try:
             self.sync.msg_lock.acquire()
             msgs = self.km_client.iopub_channel.get_msgs()
-            return msgs
-        except (Empty, TypeError, KeyError, IndexError, ValueError):
-            return []
+        except (Empty, TypeError, KeyError, IndexError, ValueError): pass
         finally:
             self.sync.msg_lock.release()
+        return msgs
 
     def get_reply_msg(self, msg_id):
         """Get kernel reply from sent client message with msg_id (async)
@@ -179,7 +179,8 @@ class JupyterMessenger:
             try:
                 reply = self.km_client.get_shell_msg(block=True, timeout=1) or {}
             except (Empty, TypeError, KeyError, IndexError, ValueError): pass
-            self.sync.msg_lock.release()
+            finally:
+                self.sync.msg_lock.release()
 
             # Stop
             if reply.get('parent_header', {}).get('msg_id', -1) == msg_id: break
