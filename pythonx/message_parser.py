@@ -402,28 +402,24 @@ def parse_iopub_for_reply(msgs, line_number):
 
     # Parse all execute
     for msg in msgs:
-        try:
-            # Get the result of execution
-            # 1 content
-            content = msg.get('content', False)
-            if not content: continue
+        # Get the result of execution
+        # 1 content
+        content = msg.get('content', False)
+        if not content: continue
 
-            # 2 execution _count
-            ec = int(content.get('execution_count', 0))
-            if not ec: continue
-            if line_number not in (-1, ec): continue
+        # 2 execution _count
+        ec = int(content.get('execution_count', 0))
+        if not ec: continue
+        if line_number not in (-1, ec): continue
 
-            # 3 message type
-            if msg['header']['msg_type'] not in ('execute_result', 'stream'): continue
+        # 3 message type
+        msg_type = msg.get('header', {}).get('msg_type', '')
+        if msg_type not in ('execute_result', 'stream'): continue
 
-            # 4 text
-            if 'data' in content:
-                res = content['data']['text/plain']
-            else:
-                # Jupyter bash style ...
-                res = content['text']
-            break
-        except KeyError: pass
+        # 4 text
+        res = content.get('data', {}).get('text/plain', -1)
+        res = res or content.get('text', '')  # Jupyter bash style ...
+        break
     return res
 
 
