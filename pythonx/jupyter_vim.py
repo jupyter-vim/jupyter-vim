@@ -41,12 +41,6 @@ try:
 except ImportError as e:
     raise ImportError('vim module only available within vim!', e)
 
-# Local
-from monitor_console import Monitor
-from message_parser import VimMessenger, JupyterMessenger, Sync, \
-    shorten_filename, str_to_py, echom
-from language import list_languages, get_language
-
 # Standard
 from os import kill, remove
 from os.path import splitext
@@ -54,6 +48,12 @@ from platform import system
 from signal import SIGTERM
 if system() != 'Windows':
     from signal import SIGKILL
+
+# Local
+from monitor_console import Monitor
+from message_parser import VimMessenger, JupyterMessenger, Sync, \
+    shorten_filename, str_to_py, echom
+from language import list_languages, get_language
 
 
 class SectionInfo():

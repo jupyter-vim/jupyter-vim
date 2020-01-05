@@ -10,11 +10,13 @@ from sys import version_info
 from os import listdir
 from os.path import isfile, join, splitext
 from textwrap import dedent
-import vim
-from jupyter_client import KernelManager, find_connection_file
 
 from threading import Thread, Lock
 from time import sleep
+
+from jupyter_client import KernelManager, find_connection_file
+import vim
+
 
 try:
     from queue import Queue, Empty
