@@ -110,7 +110,7 @@ class JupyterMessenger:
         # KernelManager client
         self.km_client = None
         # Connection file
-        self.cfile = None
+        self.cfile = ''
         # Sync object
         self.sync = sync
 
@@ -348,8 +348,7 @@ def prettify_execute_intput(line_number, cmd, prompt_in):
 
 def shorten_filename(runtime_file):
     """Shorten connection filename kernel-24536.json -> 24536"""
-    if runtime_file is None: return ''
-    r_cfile = r'.*kernel-([0-9a-fA-F]*)[0-9a-fA-F\-]*.json'
+    r_cfile = r'.*kernel-([^\-]*).*\.json'
     return re.sub(r_cfile, r'\1', runtime_file)
 
 
