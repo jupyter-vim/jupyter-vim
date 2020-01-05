@@ -353,34 +353,32 @@ def shorten_filename(runtime_file):
     return re.sub(r_cfile, r'\1', runtime_file)
 
 
+def hex_sort(stg):
+    """Sort hex strings"""
+    try: res = int('0x' + stg, 16)
+    except ValueError: res = 0
+    return res
+
+
 def find_jupyter_kernels():
     """Find opened kernels
     Called: <- vim completion method
     Returns: List of string
     """
+    # Get jupyter runtime root dir
     from jupyter_core.paths import jupyter_runtime_dir
+    jupyter_path = jupyter_runtime_dir()
 
     # Get all kernel json files
-    jupyter_path = jupyter_runtime_dir()
-    runtime_files = []
-    for file_path in listdir(jupyter_path):
-        full_path = join(jupyter_path, file_path)
-        file_ext = splitext(file_path)[1]
-        if (isfile(full_path) and file_ext == '.json'):
-            runtime_files.append(file_path)
+    runtime_files = [fpath for fpath in listdir(jupyter_path)
+                     if isfile(join(jupyter_path, fpath))
+                     and splitext(fpath)[1] == '.json']
 
     # Get all the kernel ids
-    kernel_ids = []
-    for runtime_file in runtime_files:
-        kernel_id = shorten_filename(runtime_file)
-        if runtime_file.startswith('nbserver'): continue
-        kernel_ids.append(kernel_id)
+    kernel_ids = [shorten_filename(fpath) for fpath in runtime_files
+                  if not fpath.startswith('nbserver')]
 
     # Sort
-    def hex_sort(value):
-        try: res = int('0x' + value, 16)
-        except ValueError: res = 0
-        return res
     kernel_ids.sort(key=hex_sort, reverse=True)
 
     # Return -> vim caller
