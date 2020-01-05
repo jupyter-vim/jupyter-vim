@@ -5,6 +5,7 @@ String Utility functions:
     2/ Formater / Parser (parse_messages)
 """
 
+# Standard
 import re
 from sys import version_info
 from os import listdir
@@ -17,11 +18,13 @@ from time import sleep
 from jupyter_client import KernelManager, find_connection_file
 import vim
 
-
 try:
     from queue import Queue, Empty
 except ImportError:
     from Queue import Queue, Empty
+
+# Local
+from language import list_languages
 
 
 class VimMessenger:
@@ -109,6 +112,8 @@ class JupyterMessenger:
     def __init__(self, sync):
         # KernelManager client
         self.km_client = None
+        # Kernel information
+        self.kernel_info = {}
         # Connection file
         self.cfile = ''
         # Sync object
@@ -203,6 +208,32 @@ class JupyterMessenger:
         cmd_id = self.km_client.execute(cmd, **kwargs)
 
         return cmd_id
+
+    def get_kernel_info(self, language):
+        """Explicitly ask the jupyter kernel for its pid
+        Thread: <- cfile
+                <- vim_pid
+                -> lang
+                -> kernel_pid
+        Returns: dict with 'kernel_type', 'pid', 'cwd', 'hostname'
+        """
+        # Check in
+        if self.kernel_info['kernel_type'] not in list_languages():
+            echom('I don''t know how to get infos for a Jupyter kernel of type "{}"'
+                  .format(self.kernel_info['kernel_type']), 'WarningMsg')
+
+        # Fill kernel_info
+        self.kernel_info.update({
+            'connection_file': self.cfile,
+            'id': shorten_filename(self.cfile),  # Id of cfile (reduced)
+            # Get from kernel info
+            'pid': self.send_code_and_get_reply(language.pid),  # PID of kernel
+            'cwd': self.send_code_and_get_reply(language.cwd),
+            'hostname': self.send_code_and_get_reply(language.hostname),
+            })
+
+        # Return
+        return self.kernel_info
 
     def send_code_and_get_reply(self, code):
         """Helper: Get variable _res from code string (setting _res)"""
@@ -339,11 +370,9 @@ def strip_color_escapes(s):
 def prettify_execute_intput(line_number, cmd, prompt_in):
     """Also used with my own input (as iperl does not send it back)"""
     prompt = prompt_in.format(line_number)
-    s = prompt
-    # add continuation line, if necessary
+    # Add continuation line, if necessary
     dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
-    s += cmd.rstrip().replace('\n', '\n' + dots)
-    return s
+    return prompt + cmd.rstrip().replace('\n', '\n' + dots)
 
 
 def shorten_filename(runtime_file):

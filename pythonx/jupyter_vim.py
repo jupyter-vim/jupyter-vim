@@ -52,8 +52,8 @@ if system() != 'Windows':
 # Local
 from monitor_console import Monitor
 from message_parser import VimMessenger, JupyterMessenger, Sync, \
-    shorten_filename, str_to_py, echom
-from language import list_languages, get_language
+    str_to_py, echom
+from language import get_language
 
 
 class SectionInfo():
@@ -61,7 +61,6 @@ class SectionInfo():
     The only global object is of this class
     """
     def __init__(self):
-        self.kernel_info = {}
 
         self.sync = Sync()
         self.client = JupyterMessenger(self.sync)
@@ -70,46 +69,15 @@ class SectionInfo():
         self.monitor = Monitor(self)
 
 
-    def get_kernel_info(self):
-        """Explicitly ask the jupyter kernel for its pid
-        Thread: <- cfile
-                <- vim_pid
-                -> lang
-                -> kernel_pid
-        Returns: dict with 'kernel_type', 'pid', 'cwd', 'hostname'
-        """
-        # Check in
-        kernel_type = self.kernel_info['kernel_type']
-        if kernel_type not in list_languages():
-            echom('I don''t know how to get infos for a Jupyter kernel of'
-                  ' type "{}"'.format(kernel_type), 'WarningMsg')
-
-        # Fill kernel_info
-        self.kernel_info.update({
-            'kernel_type': kernel_type,
-            'connection_file': CLIENT.cfile,
-            'id': shorten_filename(CLIENT.cfile),  # Id of cfile (reduced)
-            # Get from kernel info
-            'pid': CLIENT.send_code_and_get_reply(self.lang.pid),  # PID of kernel
-            'cwd': CLIENT.send_code_and_get_reply(self.lang.cwd),
-            'hostname': CLIENT.send_code_and_get_reply(self.lang.hostname),
-            })
-
-        # Print vim connected
-        cmd_hi = self.lang.print_string.format(VIM.string_hi())
-        CLIENT.send(cmd_hi)
-
-        # Return
-        return self.kernel_info
-
-
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
 if 'SI' not in globals():
     SI = SectionInfo()
+    SYNC = SI.sync
     VIM = SI.vim
     CLIENT = SI.client
-    SYNC = SI.sync
+    LANG = SI.lang
+    MONITOR = SI.monitor
 
 else:
     CLIENT.check_connection_or_warn()
@@ -123,10 +91,9 @@ else:
 def connect_to_kernel(kernel_type, filename=''):
     """:JupyterConnect"""
     # Set what can
-    SI.kernel_info['kernel_type'] = kernel_type
-    SI.kernel_info['cfile_user'] = filename
+    CLIENT.kernel_info['kernel_type'] = kernel_type
+    CLIENT.kernel_info['cfile_user'] = filename
     SI.lang = get_language(kernel_type)
-
 
     # Create thread
     SYNC.start_thread(target=thread_connect_to_kernel)
@@ -141,7 +108,7 @@ def connect_to_kernel(kernel_type, filename=''):
 def disconnect_from_kernel():
     """:JupyterDisconnect kernel client (Sync)"""
     CLIENT.disconnnect()
-    echom("Disconnected: {}".format(SI.kernel_info['id']), style='Directory')
+    echom("Disconnected: {}".format(CLIENT.kernel_info['id']), style='Directory')
 
 
 def signal_kernel(sig=SIGTERM):
@@ -153,19 +120,19 @@ def signal_kernel(sig=SIGTERM):
     # Kill process
     try:
         # Check if valid pid
-        if SI.kernel_info['pid'] < 1:
+        if CLIENT.kernel_info['pid'] < 1:
             echom("Cannot kill kernel: unknown pid", style='Error')
         else:
-            kill(SI.kernel_info['pid'], int(sig))
+            kill(CLIENT.kernel_info['pid'], int(sig))
             echom("kill pid {p:d} with signal #{v:d}, {n:s}"
-                  .format(p=SI.kernel_info['pid'], v=sig.value, n=sig.name), style='WarningMsg')
+                  .format(p=CLIENT.kernel_info['pid'], v=sig.value, n=sig.name), style='WarningMsg')
     except ProcessLookupError:
         echom(("pid {p:d} does not exist! " +
                "Kernel may have been terminated by outside process")
-              .format(p=SI.kernel_info['pid']), style='Error')
+              .format(p=CLIENT.kernel_info['pid']), style='Error')
     except OSError as err:
         echom("signal #{v:d}, {n:s} failed to kill pid {p:d}"
-              .format(v=sig.value, n=sig.name, p=SI.kernel_info['pid']), style='Error')
+              .format(v=sig.value, n=sig.name, p=CLIENT.kernel_info['pid']), style='Error')
         raise err
 
     # Delete connection file
@@ -181,7 +148,7 @@ def signal_kernel(sig=SIGTERM):
 def run_file(flags='', filename=''):
     """:JupyterRunFile"""
     # Special cpython cases
-    if SI.kernel_info['kernel_type'] == 'python':
+    if CLIENT.kernel_info['kernel_type'] == 'python':
         return run_file_in_ipython(flags=flags, filename=filename)
 
     # Message warning to user
@@ -218,7 +185,7 @@ def thread_connect_to_kernel():
         if SYNC.check_stop(): return
 
         # Find connection file
-        try: CLIENT.find_cfile(SI.kernel_info['cfile_user'])
+        try: CLIENT.find_cfile(CLIENT.kernel_info['cfile_user'])
         except IOError:
             VIM.thread_echom(
                 "kernel connection attempt {:d}/3 failed - no kernel file"
@@ -238,13 +205,17 @@ def thread_connect_to_kernel():
     VIM.thread_echom('Connected! ', style='Question')
 
     # Collect and echom kernel info
-    VIM.thread_echom_kernel_info(SI.get_kernel_info())
+    VIM.thread_echom_kernel_info(CLIENT.get_kernel_info(SI.lang))
+
+    # Print vim connected -> client
+    cmd_hi = SI.lang.print_string.format(VIM.string_hi())
+    CLIENT.send(cmd_hi)
 
 
 # -----------------------------------------------------------------------------
 #        Communicate with Kernel
 # -----------------------------------------------------------------------------
-@SI.monitor.monitorable
+@MONITOR.monitorable
 def change_directory(directory):
     """CD: Change (current working) to directory
     """
@@ -263,14 +234,14 @@ def change_directory(directory):
     return (msg, msg_id)
 
 
-@SI.monitor.monitorable
+@MONITOR.monitorable
 def run_command(cmd):
     """Send a single command to the kernel."""
     msg_id = CLIENT.send(cmd)
     return (cmd, msg_id)
 
 
-@SI.monitor.monitorable
+@MONITOR.monitorable
 def run_file_in_ipython(flags='', filename=''):
     """Run a given python file using ipython's %run magic."""
     ext = splitext(filename)[-1][1:]
@@ -286,7 +257,7 @@ def run_file_in_ipython(flags='', filename=''):
     return (cmd, msg_id)
 
 
-@SI.monitor.monitorable
+@MONITOR.monitorable
 def send_range():
     """Send a range of lines from the current vim buffer to the kernel."""
     rang = vim.current.range
@@ -296,7 +267,7 @@ def send_range():
     return (prompt, msg_id)
 
 
-@SI.monitor.monitorable
+@MONITOR.monitorable
 def run_cell():
     """Run all the code between two cell separators"""
     # Get line and buffer and cellseparators
