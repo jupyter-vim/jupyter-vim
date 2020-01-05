@@ -84,9 +84,6 @@ class SectionInfo():
             echom('I don''t know how to get infos for a Jupyter kernel of'
                   ' type "{}"'.format(kernel_type), 'WarningMsg')
 
-        # Get language
-        self.lang = get_language(kernel_type)
-
         # Fill kernel_info
         self.kernel_info.update({
             'kernel_type': kernel_type,
@@ -128,6 +125,8 @@ def connect_to_kernel(kernel_type, filename=''):
     # Set what can
     SI.kernel_info['kernel_type'] = kernel_type
     SI.kernel_info['cfile_user'] = filename
+    SI.lang = get_language(kernel_type)
+
 
     # Create thread
     SYNC.start_thread(target=thread_connect_to_kernel)
@@ -235,6 +234,9 @@ def thread_connect_to_kernel():
         CLIENT.disconnnect()
         VIM.thread_echom('kernel connection attempt timed out', style='Error')
         return
+
+    # Pre-message the user
+    VIM.thread_echom('Connected! ', style='Question')
 
     # Collect and echom kernel info
     VIM.thread_echom_kernel_info(SI.get_kernel_info())
