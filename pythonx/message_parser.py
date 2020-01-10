@@ -9,7 +9,7 @@ String Utility functions:
 import re
 from sys import version_info
 from os import listdir
-from os.path import isfile, join, splitext
+from os.path import isfile, join
 from textwrap import dedent
 
 from threading import Thread, Lock
@@ -125,7 +125,9 @@ class JupyterMessenger:
         """
         # Get client
         kernel_manager = KernelManager(connection_file=self.cfile)
-        kernel_manager.load_connection_file()
+        # # The json may be badly encoding especially if autoconnecting
+        try: kernel_manager.load_connection_file()
+        except Exception: return False
         self.km_client = kernel_manager.client()
 
         # Open channel
@@ -400,7 +402,7 @@ def find_jupyter_kernels():
     # Get all kernel json files
     runtime_files = [fpath for fpath in listdir(jupyter_path)
                      if isfile(join(jupyter_path, fpath))
-                     and splitext(fpath)[1] == '.json']
+                     and re.match(r'kernel-.*\.json', fpath)]
 
     # Get all the kernel ids
     kernel_ids = [shorten_filename(fpath) for fpath in runtime_files
