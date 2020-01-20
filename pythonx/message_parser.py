@@ -402,7 +402,7 @@ def find_jupyter_kernels():
     # Get all kernel json files
     runtime_files = [fpath for fpath in listdir(jupyter_path)
                      if isfile(join(jupyter_path, fpath))
-                     and re.match(r'kernel-.*\.json', fpath)]
+                     and re.match(r'.*\.json', fpath)]
 
     # Get all the kernel ids
     kernel_ids = [shorten_filename(fpath) for fpath in runtime_files
