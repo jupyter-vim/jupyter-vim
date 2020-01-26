@@ -32,20 +32,24 @@ endfunction
 " See ~/.vim/bundle/jedi-vim/autoload/jedi.vim for initialization routine
 function! s:init_python() abort
     let s:init_outcome = 0
-    let init_lines = [
-          \ 'import sys; import os; import vim',
-          \ 'vim_path, _ = os.path.split(vim.eval("expand(''<sfile>:p:h'')"))',
-          \ 'vim_pythonx_path = os.path.join(vim_path, "pythonx")',
-          \ 'if vim_pythonx_path not in sys.path:',
-          \ '    sys.path.append(vim_pythonx_path)',
-          \ 'try:',
-          \ '    import jupyter_vim',
-          \ '    from message_parser import str_to_py, find_jupyter_kernels',
-          \ 'except Exception as exc:',
-          \ '    vim.command(''let s:init_outcome = "could not import jupyter_vim:'
-          \                    .'{0}: {1}"''.format(exc.__class__.__name__, exc))',
-          \ 'else:',
-          \ '    vim.command(''let s:init_outcome = 1'')']
+    let init_lines =<< EOF
+# Add path
+import sys; import os; import vim
+vim_path, _ = os.path.split(vim.eval("expand('<sfile>:p:h')"))
+vim_pythonx_path = os.path.join(vim_path, "pythonx")
+if vim_pythonx_path not in sys.path:
+    sys.path.append(vim_pythonx_path)
+
+# Import
+try:
+    import jupyter_vim
+    from message_parser import str_to_py, find_jupyter_kernels
+except Exception as exc:
+    vim.command('let s:init_outcome = "could not import jupyter_vim <- {0}: {1}"'
+                .format(exc.__class__.__name__, exc))
+else:
+    vim.command('let s:init_outcome = 1')
+EOF
 
     " Try running lines via python, which will set script variable
     try
