@@ -75,4 +75,3 @@ endfunction
 function! s:opfunc_run_code(type)
     call s:get_opfunc(function('jupyter#SendCode'))(a:type)
 endfunction
-
