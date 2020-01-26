@@ -1,9 +1,5 @@
-
-Pythonx import jupyter_vim
-
-
 " NOTE: Generally unused except for communication debugging
-function! jupyter_monitor_console#OpenJupyterTerm() abort
+function! jupyter#monitor_console#OpenJupyterTerm() abort
     " Set up console display window
     " If we're in the console display already, just go to the bottom.
     " Otherwise, create a new buffer in a split (or jump to it if open)
@@ -61,6 +57,6 @@ endfunction
 
 
 " Timer callback to fill jupyter console buffer
-function! jupyter_monitor_console#UpdateConsoleBuffer(timer) abort
+function! jupyter#monitor_console#UpdateConsoleBuffer(timer) abort
     Pythonx _jupyter_session.monitor.timer_write_console_msgs()
 endfunction

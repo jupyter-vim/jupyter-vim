@@ -53,7 +53,7 @@ class Monitor:
 
         """
         # Open the Jupyter terminal in vim, and move cursor to it
-        b_nb = vim.eval('jupyter_monitor_console#OpenJupyterTerm()')
+        b_nb = vim.eval('jupyter#monitor_console#OpenJupyterTerm()')
         if -1 == b_nb:
             echom('__jupyter_term__ failed to open!', 'Error')
             return
@@ -72,7 +72,7 @@ class Monitor:
         # Launch timers
         for sleep_ms in timer_intervals:
             vim_cmd = ('call timer_start(' + str(sleep_ms) +
-                       ', "jupyter_monitor_console#UpdateConsoleBuffer")')
+                       ', "jupyter#monitor_console#UpdateConsoleBuffer")')
             vim.command(vim_cmd)
 
     def thread_fetch_msgs(self, intervals):
