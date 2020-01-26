@@ -23,6 +23,7 @@ class Language:
 
 
 class Bash(Language):
+    """Bourne Again Shell"""
     prompt_in = 'Sh [{:d}]: '
     print_string = 'echo -e "{}"'
     run_file = 'source "{}"'
@@ -56,6 +57,7 @@ class Cpp(Language):
 
 
 class Java(Language):
+    """Java: compiled for jvm"""
     prompt_in = 'Ja [{:d}]: '
     print_string = 'System.out.println("{}");'
     run_file = """ // Import
@@ -83,6 +85,7 @@ class Java(Language):
 
 
 class Javascript(Language):
+    """Js script excutable with nodejs"""
     prompt_in = 'Js [{:d}]: '
     print_string = 'console.log("{}");'
     run_file = 'eval("" + require("fs").readFileSync("{}"));'
@@ -93,6 +96,7 @@ class Javascript(Language):
 
 
 class Julia(Language):
+    """Julia: interpreted dynamic programming"""
     prompt_in = 'Jl [{:d}]: '
     print_string = 'println("{}")'
     run_file = 'include("{}")'
@@ -103,6 +107,7 @@ class Julia(Language):
 
 
 class Perl(Language):
+    """Perl: script"""
     prompt_in = 'Pl [{:d}]: '
     print_string = 'print("{}")'
     run_file = 'my $_res = "{}"; $_res =~ s/\\.[^.]+$//; do $_res;'
@@ -113,6 +118,7 @@ class Perl(Language):
 
 
 class Python(Language):
+    """Python: script"""
     prompt_in = 'Py [{:d}]: '
     print_string = 'print("{}")'
     run_file = '%run "{}"'
@@ -123,6 +129,7 @@ class Python(Language):
 
 
 class Ruby(Language):
+    """Ruby: script"""
     prompt_in = 'Rb [{:d}]: '
     print_string = 'print("{}")'
     run_file = 'load "{}"'
@@ -133,6 +140,7 @@ class Ruby(Language):
 
 
 class Rust(Language):
+    """Rust: compiled, strongly typed"""
     prompt_in = 'Rs [{:d}]: '
     print_string = 'println!("{}");'
     run_file = '-1'
