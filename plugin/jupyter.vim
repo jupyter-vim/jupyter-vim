@@ -20,7 +20,7 @@ let s:default_settings = {
     \ 'cell_separators': "['##', '#%%', '# %%', '# <codecell>']",
     \ 'mapkeys': 1,
     \ 'monitor_console': 0,
-    \ 'timer_intervals': '[100, 200, 400, 800, 1500, 3000, 10000]',
+    \ 'timer_intervals': '[300, 600, 1000, 1500, 3000, 10000]',
     \ 'verbose': 0
 \ }
 
