@@ -137,3 +137,10 @@ class Monitor:
             vim.command('call win_gotoid({})'.format(term_win))
             vim.command('normal! G')
             vim.command('call win_gotoid({})'.format(cur_win))
+
+
+def monitor_decorator(fct):
+    """Redirect to self.monitor decorator"""
+    def wrapper(self, *args, **kwargs):
+        self.monitor.monitorable(fct)(self, *args, **kwargs)
+    return wrapper

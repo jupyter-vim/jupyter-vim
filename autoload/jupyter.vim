@@ -42,7 +42,10 @@ if vim_pythonx_path not in sys.path:
 
 # Import
 try:
-    import jupyter_vim
+    from jupyter_vim import JupyterVimSession
+    _jupyter_session = JupyterVimSession()
+
+    # For direct calls
     from message_parser import str_to_py, find_jupyter_kernels
 except Exception as exc:
     vim.command('let s:init_outcome = "could not import jupyter_vim <- {0}: {1}"'
@@ -95,7 +98,7 @@ call jupyter#init_python()
 
 function! jupyter#Connect(...) abort
     let l:kernel_file = a:0 > 0 ? a:1 : '*.json'
-    Pythonx jupyter_vim.connect_to_kernel(
+    Pythonx _jupyter_session.connect_to_kernel(
                 \ str_to_py(vim.current.buffer.vars['jupyter_kernel_type']),
                 \ filename=vim.eval('l:kernel_file'))
 endfunction
@@ -110,7 +113,7 @@ function! jupyter#CompleteConnect(ArgLead, CmdLine, CursorPos) abort
 endfunction
 
 function! jupyter#Disconnect(...) abort
-    Pythonx jupyter_vim.disconnect_from_kernel()
+    Pythonx _jupyter_session.disconnect_from_kernel()
 endfunction
 
 function! jupyter#JupyterCd(...) abort 
@@ -124,29 +127,29 @@ function! jupyter#JupyterCd(...) abort
     " Expand (to get %)
     let l:dirname = expand(l:dirname)
     let l:dirname = escape(l:dirname, '"')
-    Pythonx jupyter_vim.change_directory(vim.eval('l:dirname'))
+    Pythonx _jupyter_session.change_directory(vim.eval('l:dirname'))
 endfunction
 
 function! jupyter#RunFile(...) abort
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
     let l:filename = a:0 ? a:000[-1] : expand('%:p')
-    Pythonx jupyter_vim.run_file(
+    Pythonx _jupyter_session.run_file(
                 \ flags=vim.eval('l:flags'),
                 \ filename=vim.eval('l:filename'))
 endfunction
 
 function! jupyter#SendCell() abort
-    Pythonx jupyter_vim.run_cell()
+    Pythonx _jupyter_session.run_cell()
 endfunction
 
 function! jupyter#SendCode(code) abort
     " NOTE: 'run_command' gives more checks than just raw 'send'
-    Pythonx jupyter_vim.run_command(vim.eval('a:code'))
+    Pythonx _jupyter_session.run_command(vim.eval('a:code'))
 endfunction
 
 function! jupyter#SendRange() range abort
-    execute a:firstline . ',' . a:lastline . 'Pythonx jupyter_vim.send_range()'
+    execute a:firstline . ',' . a:lastline . 'Pythonx _jupyter_session.send_range()'
 endfunction
 
 function! jupyter#SendCount(count) abort
@@ -177,11 +180,11 @@ function! jupyter#TerminateKernel(kill, ...) abort
     endif
     " Check signal here?
     execute 'Pythonx from signal import '. l:sig . '; '
-                \ 'jupyter_vim.signal_kernel('.l:sig.')'
+                \ '_jupyter_session.signal_kernel('.l:sig.')'
 endfunction
 
 function! jupyter#UpdateShell() abort
-    Pythonx jupyter_vim.update_console_msgs()
+    Pythonx _jupyter_session.update_console_msgs()
 endfunction
 
 
@@ -197,5 +200,5 @@ endfunction
 
 " Timer callback to fill jupyter console buffer
 function! jupyter#UpdateEchom(timer) abort
-    Pythonx jupyter_vim.VIM.timer_echom()
+    Pythonx _jupyter_session.vim.timer_echom()
 endfunction

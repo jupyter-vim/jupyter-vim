@@ -353,6 +353,8 @@ $ jupyter qtconsole --version # 4.3.1
 CHANGELOG					*jupyter-vim-changelog*
 
 [v0.0?]
+* Refactor interface: one object <- one global
+	`:py3 print(_jupyter_session.client.check_connection())`
 * Kernel support: `Rust`
 
 [v0.01]
