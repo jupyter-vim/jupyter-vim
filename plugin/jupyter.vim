@@ -55,9 +55,9 @@ augroup JupyterVimInit
           \ get(s:language_dict, &filetype, 'none')
 
     execute 'autocmd FileType ' . s:language_string .
-          \ ' call jupyter#MakeStandardCommands()'
+          \ ' call jupyter#load#MakeStandardCommands()'
     execute 'autocmd FileType ' . s:language_string .
-          \ ' if g:jupyter_mapkeys | call jupyter#MapStandardKeys() | endif'
+          \ ' if g:jupyter_mapkeys | call jupyter#load#MapStandardKeys() | endif'
 augroup END
 
 "}}}----------------------------------------------------------------------------
