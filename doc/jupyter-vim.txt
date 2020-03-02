@@ -213,6 +213,8 @@ buffer, according to the mapping:
 | julia              | 'julia'         |
 | perl               | 'perl'          |
 | python             | 'python'        |
+| raku               | 'raku'          |
+| perl6              | 'raku'          |
 | ruby               | 'ruby'          |
 | rust               | 'rust'          |
 | <everything else>  | 'none'          |
@@ -355,7 +357,7 @@ CHANGELOG					*jupyter-vim-changelog*
 [v0.0?]
 * Refactor interface: one object <- one global
 	`:py3 print(_jupyter_session.client.check_connection())`
-* Kernel support: `Rust`
+* Kernel support: `Rust`, `Raku`
 
 [v0.01]
 * Kernel support: `Bash`, `Cpp`, `Java`, `Javascript`, `Perl`, `Ruby`

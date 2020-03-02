@@ -39,7 +39,9 @@ let s:language_dict = {
     \ 'javascript': 'javascript',
     \ 'julia': 'julia',
     \ 'perl': 'perl',
+    \ 'perl6': 'raku',
     \ 'python': 'python',
+    \ 'raku': 'raku',
     \ 'ruby': 'ruby',
     \ 'rust': 'rust',
 \ }

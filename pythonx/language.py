@@ -128,6 +128,17 @@ class Python(Language):
     hostname = 'import socket; _res = socket.gethostname()'
 
 
+class Raku(Language):
+    """Raku: script (used to be Perl6)"""
+    prompt_in = 'Ra [{:d}]: '
+    print_string = 'print("{}");'
+    run_file = '#% run {}'
+    cd = 'chdir("{}");'
+    pid = 'my $_res = $*PID;'
+    cwd = 'my $_res = $*CWD.Str;'
+    hostname = 'my $_res = $*KERNEL.hostname();'
+
+
 class Ruby(Language):
     """Ruby: script"""
     prompt_in = 'Rb [{:d}]: '
@@ -175,6 +186,7 @@ language_dict = {
     'julia': Julia,
     'perl': Perl,
     'python': Python,
+    'raku': Raku,
     'ruby': Ruby,
     'rust': Rust,
 }
