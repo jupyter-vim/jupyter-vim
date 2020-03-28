@@ -32,19 +32,27 @@ endfunction
 " See ~/.vim/bundle/jedi-vim/autoload/jedi.vim for initialization routine
 function! s:init_python() abort
     let s:init_outcome = 0
-    let init_lines = [
-          \ 'import sys; import os; import vim',
-          \ 'vim_path, _ = os.path.split(vim.eval("expand(''<sfile>:p:h'')"))',
-          \ 'vim_pythonx_path = os.path.join(vim_path, "pythonx")',
-          \ 'if vim_pythonx_path not in sys.path:',
-          \ '    sys.path.append(vim_pythonx_path)',
-          \ 'try:',
-          \ '    import jupyter_vim',
-          \ 'except Exception as exc:',
-          \ '    vim.command(''let s:init_outcome = "could not import jupyter_vim:'
-          \                    .'{0}: {1}"''.format(exc.__class__.__name__, exc))',
-          \ 'else:',
-          \ '    vim.command(''let s:init_outcome = 1'')']
+    let init_lines =<< EOF
+# Add path
+import sys; import os; import vim
+vim_path, _ = os.path.split(vim.eval("expand('<sfile>:p:h')"))
+vim_pythonx_path = os.path.join(vim_path, "pythonx")
+if vim_pythonx_path not in sys.path:
+    sys.path.append(vim_pythonx_path)
+
+# Import
+try:
+    from jupyter_vim import JupyterVimSession
+    _jupyter_session = JupyterVimSession()
+
+    # For direct calls
+    from message_parser import str_to_py, find_jupyter_kernels
+except Exception as exc:
+    vim.command('let s:init_outcome = "could not import jupyter_vim <- {0}: {1}"'
+                .format(exc.__class__.__name__, exc))
+else:
+    vim.command('let s:init_outcome = 1')
+EOF
 
     " Try running lines via python, which will set script variable
     try
@@ -81,23 +89,23 @@ function! jupyter#init_python() abort
     return s:_init_python
 endfunction
 
+
+call jupyter#init_python()
+
 "-----------------------------------------------------------------------------
 "        Vim -> Jupyter Public Functions:
 "-----------------------------------------------------------------------------
+
 function! jupyter#Connect(...) abort
-    " call jupyter#init_python()
     let l:kernel_file = a:0 > 0 ? a:1 : '*.json'
-    Pythonx jupyter_vim.connect_to_kernel(
-                \ jupyter_vim.vim2py_str(
-                \     vim.current.buffer.vars['jupyter_kernel_type']),
+    Pythonx _jupyter_session.connect_to_kernel(
+                \ str_to_py(vim.current.buffer.vars['jupyter_kernel_type']),
                 \ filename=vim.eval('l:kernel_file'))
 endfunction
 
 function! jupyter#CompleteConnect(ArgLead, CmdLine, CursorPos) abort
-    " Pre-Declare variable <- setted from python
-    let l:kernel_ids = []
     " Get kernel id from python
-    Pythonx jupyter_vim.find_jupyter_kernels()
+    let l:kernel_ids = Pyevalx('find_jupyter_kernels()')
     " Filter id matching user arg
     call filter(l:kernel_ids, '-1 != match(v:val, a:ArgLead)')
     " Return list
@@ -105,20 +113,21 @@ function! jupyter#CompleteConnect(ArgLead, CmdLine, CursorPos) abort
 endfunction
 
 function! jupyter#Disconnect(...) abort
-    Pythonx jupyter_vim.disconnect_from_kernel()
+    Pythonx _jupyter_session.disconnect_from_kernel()
 endfunction
 
 function! jupyter#JupyterCd(...) abort 
     " Behaves just like typical `cd`.
-    let l:dirname = a:0 ? a:1 : ''
-    if b:jupyter_kernel_type == 'python'
-        JupyterSendCode '%cd "'.escape(l:dirname, '"').'"'
-    elseif b:jupyter_kernel_type == 'julia'
-        JupyterSendCode 'cd("'.escape(l:dirname, '"').'")'
-    else
-        echoerr 'I don''t know how to do the `cd` command in Jupyter kernel'
-                \ . ' type "' . b:jupyter_kernel_type . '"'
-    endif
+    let l:dirname = a:0 ? a:1 : "$HOME"
+    " Helpers:
+    " " . -> vim cwd
+    if l:dirname ==# '.' | let l:dirname = getcwd() | endif
+    " " % -> %:p
+    if l:dirname ==# expand('%') | let l:dirname = '%:p:h' | endif
+    " Expand (to get %)
+    let l:dirname = expand(l:dirname)
+    let l:dirname = escape(l:dirname, '"')
+    Pythonx _jupyter_session.change_directory(vim.eval('l:dirname'))
 endfunction
 
 function! jupyter#RunFile(...) abort
@@ -128,31 +137,19 @@ function! jupyter#RunFile(...) abort
     Pythonx _jupyter_session.run_file(
                 \ flags=vim.eval('l:flags'),
                 \ filename=vim.eval('l:filename'))
-                    \ filename=vim.eval('l:filename'))
-    elseif b:jupyter_kernel_type == 'julia'
-        if l:flags != ''
-            echoerr 'RunFile in kernel type "julia" doesn''t support flags.'
-                \ . ' All arguments except the last (file location) will be'
-                \ . ' ignored.'
-        endif
-        JupyterSendCode 'include("""'.escape(l:filename, '"').'""")'
-    else
-        echoerr 'I don''t know how to do the `RunFile` command in Jupyter'
-            \ . ' kernel type "' . b:jupyter_kernel_type . '"'
-    endif
 endfunction
 
 function! jupyter#SendCell() abort
-    Pythonx jupyter_vim.run_cell()
+    Pythonx _jupyter_session.run_cell()
 endfunction
 
 function! jupyter#SendCode(code) abort
     " NOTE: 'run_command' gives more checks than just raw 'send'
-    Pythonx jupyter_vim.run_command(vim.eval('a:code'))
+    Pythonx _jupyter_session.run_command(vim.eval('a:code'))
 endfunction
 
 function! jupyter#SendRange() range abort
-    execute a:firstline . ',' . a:lastline . 'Pythonx jupyter_vim.send_range()'
+    execute a:firstline . ',' . a:lastline . 'Pythonx _jupyter_session.send_range()'
 endfunction
 
 function! jupyter#SendCount(count) abort
@@ -182,11 +179,12 @@ function! jupyter#TerminateKernel(kill, ...) abort
         let l:sig='SIGTERM'
     endif
     " Check signal here?
-    execute 'Pythonx jupyter_vim.signal_kernel(jupyter_vim.signal.'.l:sig.')'
+    execute 'Pythonx from signal import '. l:sig . '; '
+                \ '_jupyter_session.signal_kernel('.l:sig.')'
 endfunction
 
 function! jupyter#UpdateShell() abort
-    Pythonx jupyter_vim.update_console_msgs()
+    Pythonx _jupyter_session.update_console_msgs()
 endfunction
 
 
@@ -200,5 +198,7 @@ function! jupyter#PythonDbstop() abort
     normal! j
 endfunction
 
-
+" Timer callback to fill jupyter console buffer
+function! jupyter#UpdateEchom(timer) abort
+    Pythonx _jupyter_session.vim.timer_echom()
 endfunction
