@@ -5,13 +5,10 @@
 "
 "  Description: Set up autocmds and config variables for jupyter-vim plugin
 "
+"  Filetypes: bash, java, javascript, julia, perl, python, ruby
 "=============================================================================
 
-if exists("g:loaded_jupyter_vim") || !(has('pythonx') || has('python') || has('python3')) || &cp
-    finish
-endif
-
-if !jupyter#init_python()
+if exists('g:loaded_jupyter_vim') || !(has('pythonx') || has('python') || has('python3')) || &compatible
     finish
 endif
 
@@ -19,10 +16,11 @@ endif
 "        Configuration: {{{
 "-----------------------------------------------------------------------------
 let s:default_settings = {
-    \ 'shortmess': 0,
     \ 'auto_connect': 0,
+    \ 'cell_separators': "['##', '#%%', '# %%', '# <codecell>']",
     \ 'mapkeys': 1,
     \ 'monitor_console': 0,
+    \ 'timer_intervals': '[300, 600, 1000, 1500, 3000, 10000]',
     \ 'verbose': 0
 \ }
 
@@ -32,33 +30,46 @@ for [s:key, s:val] in items(s:default_settings)
     endif
 endfor
 
+" Dict: &ft -> kernel_name
+let s:language_dict = {
+    \ 'sh': 'bash',
+    \ 'c': 'cpp',
+    \ 'cpp': 'cpp',
+    \ 'java': 'java',
+    \ 'javascript': 'javascript',
+    \ 'julia': 'julia',
+    \ 'perl': 'perl',
+    \ 'perl6': 'raku',
+    \ 'python': 'python',
+    \ 'raku': 'raku',
+    \ 'ruby': 'ruby',
+    \ 'rust': 'rust',
+\ }
+
+let s:language_string = join(keys(s:language_dict), ',')
 
 
 augroup JupyterVimInit
     " By default, guess the kernel language based on the filetype. The user
     " can override this guess on a per-buffer basis.
     autocmd!
-    autocmd BufEnter * let b:jupyter_kernel_type = get({
-        \ 'python': 'python',
-        \ 'julia': 'julia',
-        \ }, &filetype, 'none')
+    autocmd FileType * let b:jupyter_kernel_type =
+          \ get(s:language_dict, &filetype, 'none')
 
-    autocmd FileType julia,python call jupyter#MakeStandardCommands()
-    autocmd FileType julia,python if g:jupyter_mapkeys |
-                \ call jupyter#MapStandardKeys() |
-                \ endif
+    execute 'autocmd FileType ' . s:language_string .
+          \ ' call jupyter#load#MakeStandardCommands()'
+    execute 'autocmd FileType ' . s:language_string .
+          \ ' if g:jupyter_mapkeys | call jupyter#load#MapStandardKeys() | endif'
 augroup END
 
 "}}}----------------------------------------------------------------------------
 "       Connect to Jupyter Kernel  {{{
 "-------------------------------------------------------------------------------
-" XXX SLOW AS $@#!... need to figure out how to fork the connection process so
-" vim still fires up quickly even if we forget to have a kernel running, or it
-" can't connect for some reason.
 if g:jupyter_auto_connect
     augroup JConnect
         autocmd!
-        autocmd FileType julia,python JupyterConnect
+        autocmd BufReadPost * if -1 != index(keys(s:language_dict), &ft) |
+              \ JupyterConnect *.json | endif
     augroup END
 endif
 
