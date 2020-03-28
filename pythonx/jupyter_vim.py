@@ -88,13 +88,14 @@ def warn_no_connection():
 
 # if module has not yet been imported, define global kernel manager, client and
 # kernel pid. Otherwise, just check that we're connected to a kernel.
-if all([x in globals() for x in ('kc', 'pid', 'send')]):
+if all([x in globals() for x in ('kc', 'pid', 'send', 'cfile')]):
     if not check_connection():
         warn_no_connection()
 else:
     kc = None
     pid = None
     send = None
+    cfile = None
 
 #------------------------------------------------------------------------------
 #        Utilities
@@ -136,19 +137,10 @@ class PythonToVimStr(unicode):
             s = self.encode('UTF-8')
         return '"{:s}"'.format(s.replace('\\', '\\\\').replace('"', r'\"'))
 
-def get_pid(kernel_type):
-    """Explicitly ask the jupyter kernel for its pid."""
-    vim_echom("kernel_type = {}".format(kernel_type))
-    the_pid = -1
-    if kernel_type == 'python':
-        code = 'import os; _pid = os.getpid()'
-    elif kernel_type == 'julia':
-        code = '_pid = getpid()'
-    else:
-        code = '_pid = -1'
-        vim_echom("I don't know how to get the pid for a Jupyter kernel of"
-                  " type \"{}\"".format(kernel_type))
-    msg_id = send(code, silent=True, user_expressions={'_pid': '_pid'})
+def get_res_from_code_string(code):
+    """Helper: Get variable _res from code string (setting _res)"""
+
+    msg_id = send(code, silent=True, user_expressions={'_res': '_res'})
 
     # wait to get message back from kernel
     try:
@@ -159,12 +151,75 @@ def get_pid(kernel_type):
 
     try:
         # Requires the fix for https://github.com/JuliaLang/IJulia.jl/issues/815
-        the_pid = int(reply['content']['user_expressions']
-                      ['_pid']['data']['text/plain'])
+        res = reply['content']['user_expressions']['_res']['data']['text/plain']
+
     except KeyError:
         vim_echom("Could not get PID information, kernel not ready?")
 
-    return the_pid
+    return res
+
+def unquote_string(string):
+    """Unquote some text/plain response from kernel"""
+    res = str(string)
+    for quote in ("'", '"'):
+        res = res.rstrip(quote).lstrip(quote)
+    return res
+
+def shorten_cfile():
+    """Get shortened cfile string"""
+    if cfile is None: return ""
+    return re.sub(r'.*kernel-(\d*).json.*', r'\1', cfile)
+
+def get_kernel_info(kernel_type):
+    """Explicitly ask the jupyter kernel for its pid
+    Returns: dict with 'kernel_type', 'pid', 'cwd', 'hostname'
+    """
+    # Check in
+    if kernel_type not in ('julia', 'python'):
+        vim_echom("I don't know how to get the pid for a Jupyter kernel of"
+                  " type \"{}\"".format(kernel_type))
+
+    # Set kernel type
+    res = {'kernel_type': kernel_type}
+
+    # Get full connection file
+    res['connection_file'] = cfile
+
+    # Get kernel id
+    res['id'] = shorten_cfile()
+
+    # Get pid
+    res['pid'] = -1
+    try:
+        if kernel_type == 'python':
+            code = 'import os; _res = os.getpid()'
+        elif kernel_type == 'julia':
+            code = '_res = getpid()'
+        res['pid'] = int(get_res_from_code_string(code))
+    except Exception: pass
+
+    # Get cwd
+    res['cwd'] = 'unknwown'
+    try:
+        if kernel_type == 'python':
+            code = 'import os; _res = os.getcwd()'
+        elif kernel_type == 'julia':
+            code = '_res = pwd()'
+        res['cwd'] = unquote_string(get_res_from_code_string(code))
+    except Exception: pass
+
+    # Get hostname
+    res['hostname'] = 'unknwown'
+    try:
+        if kernel_type == 'python':
+            code = 'import socket; _res = socket.gethostname()'
+        elif kernel_type == 'julia':
+            code = '_res = gethostname()'
+        res['hostname'] = unquote_string(get_res_from_code_string(code))
+    except Exception: pass
+
+    # Return
+    return res
 
 def is_cell_separator(line):
     """ Determine whether a given line is a cell separator """
@@ -179,14 +234,38 @@ def strip_color_escapes(s):
     """Remove ANSI color escape sequences from a string."""
     return strip.sub('', s)
 
+def find_jupyter_kernels():
+    """Find opened kernels
+    Returns: List of string (intifiable)
+    """
+    from jupyter_core.paths import jupyter_runtime_dir
+
+    # Get all kernel json files
+    jupyter_path = jupyter_runtime_dir()
+    runtime_files = []
+    for file_path in os.listdir(jupyter_path):
+        full_path = os.path.join(jupyter_path, file_path)
+        file_ext = os.path.splitext(file_path)[1]
+        if (os.path.isfile(full_path) and '.json' == file_ext):
+            runtime_files.append(file_path)
+
+    # Get all the kernel ids
+    kernel_ids = []
+    for runtime_file in runtime_files:
+        kernel_id, match_nb = re.subn(r'kernel-(\d*).json', r'\1', runtime_file)
+        kernel_ids.append(kernel_id)
+
+    # Set vim variable -> vim caller
+    vim.command('let l:kernel_ids=' + str(kernel_ids))
+
 #------------------------------------------------------------------------------
 #        Major Function Definitions:
 #------------------------------------------------------------------------------
-def connect_to_kernel(kernel_type):
+def connect_to_kernel(kernel_type, filename=''):
     """Create kernel manager from existing connection file."""
     from jupyter_client import KernelManager, find_connection_file
 
-    global kc, pid, send
+    global kc, pid, send, cfile
 
     # Test if connection is alive
     connected = check_connection()
@@ -195,10 +274,10 @@ def connect_to_kernel(kernel_type):
     while not connected and attempt < max_attempts:
         attempt += 1
         try:
-            cfile = find_connection_file()  # default filename='kernel-*.json'
+            cfile = find_connection_file(filename=filename)
         except IOError:
-            vim_echom("kernel connection attempt {:d} failed - no kernel file"\
-                      .format(attempt), style="Error")
+            vim_echom("kernel connection attempt {:d}/{:d} failed - no kernel file"\
+                      .format(attempt, max_attempts), style="Error")
             continue
 
         # Create the kernel manager and connect a client
@@ -225,19 +304,33 @@ def connect_to_kernel(kernel_type):
             connected = True
 
     if connected:
-        # Send command so that monitor knows vim is connected
-        # send('"_vim_client"', store_history=False)
-        pid = get_pid(kernel_type)  # Ask kernel for its PID
-        vim_echom('kernel connection successful! pid = {}'.format(pid),
-                  style='Question')
+        # Collect kernel info
+        kernel_info = get_kernel_info(kernel_type)
+        pid = kernel_info['pid']
+
+        # Send command so that user knows vim is connected
+        vim_echom('Connected: {}'.format(shorten_cfile()), style='Question')
+
+        # More info by default
+        is_short = int(vim.vars.get('jupyter_shortmess', 0))
+        if not is_short:
+            # Prettify output: appearance rules
+            from pprint import PrettyPrinter
+            pp = PrettyPrinter(indent=4, width=vim.eval('&columns'))
+            kernel_string = pp.pformat(kernel_info)[4:-1]
+
+            # Echo message
+            vim_echom('To: ', style='Question')
+            vim.command("echon \"{}\"".format(kernel_string.replace('\"', '\\\"')))
+
     else:
-        kc.stop_channels()
+        if None is not kc: kc.stop_channels()
         vim_echom('kernel connection attempt timed out', style='Error')
 
 def disconnect_from_kernel():
     """Disconnect kernel client."""
-    kc.stop_channels()
-    vim_echom("Client disconnected from kernel with pid = {}".format(pid))
+    if None is not kc: kc.stop_channels()
+    vim_echom("Disconnected: {}".format(shorten_cfile()), style='Directory')
 
 def update_console_msgs():
     """Grab pending messages and place them inside the vim console monitor."""

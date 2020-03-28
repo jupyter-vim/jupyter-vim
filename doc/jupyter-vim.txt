@@ -65,7 +65,7 @@ work in progress).
 --------------------------------------------------------------------------------
 COMMANDS 					*jupyter-vim-commands*
 
-:JupyterConnect 			    *jupyter-connect* *:JupyterConnect*
+:JupyterConnect [connection_file]	    *jupyter-connect* *:JupyterConnect*
 			Connect to an existing `jupyter kernel`. Kernel may be
 			any type (not just IPython). Connection attempt will
 			timeout after five seconds, and give a warning. Other
@@ -75,6 +75,11 @@ COMMANDS 					*jupyter-vim-commands*
                         This command assumes the language of the Jupyter kernel
                         is |b:jupyter_kernel_type|; errors may occur if the
                         kernel type is incorrect.
+
+			An optional [connection_file] can be given. It must
+			match the name or the id of the kernel connection
+			file given by `ipython kernel -f connection_file`,
+			by default it looks like `kernel-13423.json`.
 
 			Note that a `jupyter console` need not be running to
 			connect to a `jupyter kernel`, but the console is
