@@ -65,19 +65,19 @@ endfunction
 " Public initialization routine
 let s:_init_python = -1
 function! jupyter#init_python() abort
-    if s:_init_python == -1
-        let s:_init_python = 0
-        try
-            let s:_init_python = s:init_python()
-            let s:_init_python = 1
-        catch /^jupyter/
-            " Only catch errors from jupyter-vim itself here, so that for
-            " unexpected Python exceptions the traceback will be shown
-            echoerr 'Error: jupyter-vim failed to initialize Python: '
-                        \ . v:exception . ' (in ' . v:throwpoint . ')'
-            " throw v:exception
-        endtry
-    endif
+    " Check in
+    if s:_init_python != -1 | return s:_init_python | endif
+    let s:_init_python = 0
+    try
+        let s:_init_python = s:init_python()
+        let s:_init_python = 1
+    catch /^jupyter/
+        " Only catch errors from jupyter-vim itself here, so that for
+        " unexpected Python exceptions the traceback will be shown
+        echoerr 'Error: jupyter-vim failed to initialize Python: '
+                    \ . v:exception . ' (in ' . v:throwpoint . ')'
+        " throw v:exception
+    endtry
     return s:_init_python
 endfunction
 
@@ -124,10 +124,10 @@ endfunction
 function! jupyter#RunFile(...) abort
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
-    let l:filename = a:0 ? a:000[-1] : expand("%:p")
-    if b:jupyter_kernel_type == 'python'
-        Pythonx jupyter_vim.run_file_in_ipython(
-                    \ flags=vim.eval('l:flags'),
+    let l:filename = a:0 ? a:000[-1] : expand('%:p')
+    Pythonx _jupyter_session.run_file(
+                \ flags=vim.eval('l:flags'),
+                \ filename=vim.eval('l:filename'))
                     \ filename=vim.eval('l:filename'))
     elseif b:jupyter_kernel_type == 'julia'
         if l:flags != ''
@@ -193,9 +193,11 @@ endfunction
 "-----------------------------------------------------------------------------
 "        Auxiliary Functions:
 "-----------------------------------------------------------------------------
-function! jupyter#PythonDbstop()
+
+function! jupyter#PythonDbstop() abort
     " Set a debugging breakpoint for use with pdb
-    normal! Oimport pdb; pdb.set_trace()j
+    normal! Oimport pdb; pdb.set_trace()
+    normal! j
 endfunction
 
 
