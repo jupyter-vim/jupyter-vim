@@ -18,6 +18,17 @@ elseif has('python')
     command! -range -nargs=+ Pythonx <line1>,<line2>python <args>
 endif
 
+" Define Pyeval: python str -> vim variable
+function! Pyevalx(str) abort
+    if has('pythonx')
+        return pyxeval(a:str)
+    elseif has('python3')
+        return py3eval(a:str)
+    elseif has('python')
+        return pyeval(a:str)
+    endif
+endfunction
+
 " See ~/.vim/bundle/jedi-vim/autoload/jedi.vim for initialization routine
 function! s:init_python() abort
     let s:init_outcome = 0
