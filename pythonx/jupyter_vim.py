@@ -4,10 +4,29 @@
 #  Author: Paul Ivanov (http://pirsquared.org)
 #  Updated: [11/13/2017] Marijn van Vliet
 #  Updated: [02/14/2018, 12:31] Bernie Roesler
+#  Updated: [15/12/2019] Tinmarino
 #
 # Description:
+# Python code for ftplugin/python/jupyter.vim.
+##############################################################################
+
 """
-Python code for ftplugin/python/jupyter.vim.
+Jupyter-Vim interface, permit to send code to a jupyter kernel from a vim client
+
+Install:
+    You *must* install the jupyter package into the
+    Python that your vim is linked against. If you are seeing this message, this
+    usually means either:
+        (1) configuring vim to automatically load a virtualenv that has Jupyter
+            installed and whose Python interpreter is the same version that your
+            vim is compiled against
+        (2) installing Jupyter using the system Python that vim is using, or
+        (3) recompiling Vim against the Python where you already have Jupyter
+            installed.
+    This is only a requirement to allow Vim to speak with a Jupyter kernel using
+    Jupyter's own machinery. It does *not* mean that the Jupyter instance with
+    which you communicate via jupyter-vim needs to be running the same version of
+    Python.
 """
 #=============================================================================
 
@@ -39,9 +58,10 @@ Python.
 """
 
 try:
-    import jupyter
+    # pylint: disable=unused-import
+    import jupyter   # noqa
 except ImportError as e:
-    raise ImportError("Could not find kernel. " + _install_instructions, e)
+    raise ImportError("Could not find kernel. " + __doc__, e)
 
 try:
     import vim

@@ -1,10 +1,11 @@
-*jupyter-vim* Integrate your jupyter console process with vim!
+*jupyter-vim.txt* Integrate your jupyter console process with vim!
 
 A two-way integration between Vim and Jupyter [Qt]Console.
 
 Using this plugin, send lines or files for the Jupyter kernel to execute.
 Receive tracebacks for debugging.
 
+Page: <https://github.com/jupyter-vim/jupyter-vim>
 Author:  Bernie Roesler <https://github.com/broesler/jupyter-vim>
 Forked from: vim-ipython <https://github.com/wmvanvliet/vim-ipython>
 License: Distributed under the MIT license (see |jupyter-vim-license|)
@@ -81,16 +82,24 @@ COMMANDS 					*jupyter-vim-commands*
 			file given by `ipython kernel -f connection_file`,
 			by default it looks like `kernel-13423.json`.
 
+			To see connection information press |g<|
+
+			Note this command is running in an other thread
+
 			Note that a `jupyter console` need not be running to
 			connect to a `jupyter kernel`, but the console is
 			necessary to display any output from your python code!
 
 :JupyterCd [dir] 				*jupyter-cd* *:JupyterCd*
 			Change the working directory of the kernel to [dir].
-                        Functions just like the typical shell command. If no
-                        directory is given, [dir] is the "$HOME" directory. If
-                        [dir] is "-", :JupyterCd changes back to the previous
-                        working directory.
+                        Functions just like the typical shell command.
+			Some special path can be given:
+			  ""  -> $HOME directory.
+			  "-" -> Previous working directory (works in most
+			  shells)
+			  "%" -> Current file directory
+			After that, the path given will be expanded. See
+			|expand()|
 
 :JupyterRunFile [flags] [filename] 	    *jupyter-runfile* *:JupyterRunFile*
                         Run an entire file. The [flags] argument only affects
@@ -133,9 +142,8 @@ COMMANDS 					*jupyter-vim-commands*
 			not given, the current line is sent.
 
 :JupyterSendCell                	*jupyter-sendcell* *:JupyterSendCell*
-			Send the current code cell, as delineated by the strings
-                        "##", "#%%", "# %%", or "# <codecell>". Future updates
-                        include user-defined code cell delimiters.
+			Send the current code cell, as delineated by the lines
+			matching |g:jupyter_cell_separators|
 
 :PythonSetBreak 			*python-setbreak* *:PythonSetBreak*
                         Only makes sense to run when |b:jupyter_kernel_type| is
@@ -197,8 +205,18 @@ buffer, according to the mapping:
 +--------------------+-----------------+
 | Filetype           | Kernel language |
 +--------------------+-----------------+
-| python             | 'python'        |
+| sh                 | 'bash'          |
+| c                  | 'cpp'           |
+| cpp                | 'cpp'           |
+| java               | 'java'          |
+| javascript         | 'javascript'    |
 | julia              | 'julia'         |
+| perl               | 'perl'          |
+| python             | 'python'        |
+| raku               | 'raku'          |
+| perl6              | 'raku'          |
+| ruby               | 'ruby'          |
+| rust               | 'rust'          |
 | <everything else>  | 'none'          |
 +--------------------+-----------------+
 
@@ -223,6 +241,18 @@ code file whose filetype is associated with a kernel language (other than
 connection process, vim will be slow to start up if this option is set to 1. An
 asynchronous connection process is a work in progress.
 
+`g:jupyter_cell_separators`        		*g:jupyter_cell_separators*
+				  List of regex to separate jupyter cells
+Default: ['##', '#%%', '# %%', '# <codecell>']
+
+Define how jupyter-vim will find the current cell when running
+|:JupyterSendCell|.
+Example: `let g:jupyter_cell_separators = ['.*separator-placeholder']` will
+consider a cell every lines between two lines containing separator-placeholder
+string.
+The match starts at the beginning of line: hence the `.*` in the previous
+example
+
 `g:jupyter_mapkeys`   					*g:jupyter_mapkeys*
 Default: 1 					Map keys for python files
 
@@ -246,6 +276,7 @@ command line (see |:echomsg|). The `jupyter qtconsole` displays messages
 instantaneously, so echoing them in vim as well is redundant. It can be useful,
 however, for debugging kernel messaging issues, or if you just like visual
 confirmation in multiple places that your message has been sent.
+
 
 Note that the `jupyter console` (not `qt`), does `not` echo messages from other
 clients until <Enter> is pressed. I am working on a non-blocking or threaded
@@ -323,7 +354,23 @@ $ jupyter qtconsole --version # 4.3.1
 --------------------------------------------------------------------------------
 CHANGELOG					*jupyter-vim-changelog*
 
-[v0.0]
+[v0.0?]
+* Refactor interface: one object <- one global
+	`:py3 print(_jupyter_session.client.check_connection())`
+* Kernel support: `Bash`, `Cpp`, `Java`, `Javascript`, `Perl`, `Ruby`
+	`Rust`, `Raku`
+* Asynchronous `:JupyterConnect`
+* Refactor interface: one global to rule them all
+	`:py3 print(jupyter_vim.SI.client.check_connection())`
+* `:JupyterConnect` -> autocompletion
+* `:jupyterCd` -> echo cwd
+* Parse message more tolerantly and resiliently
+* Add github wiki
+
+[v0.00]
+* Kernel support: `Python`, `Julia`
+* Add Readme.md
+* Migration at: https://github.com/jupyter-vim/jupyter-vim
 
 --------------------------------------------------------------------------------
 CONTRIBUTING					*jupyter-vim-contributing*
