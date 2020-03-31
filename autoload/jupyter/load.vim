@@ -29,12 +29,15 @@ function! jupyter#load#MapStandardKeys() abort
     nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
 
     " Send the text to jupyter kernel
-    nnoremap <buffer> <silent> <localleader>e       :<C-u>set operatorfunc=<SID>opfunc_run_code<CR>g@
-    vnoremap <buffer> <silent> <localleader>e       :<C-u>call <SID>opfunc_run_code(visualmode())<CR>gv
+    nmap <buffer> <silent> <localleader>e        <Plug>JupyterRunTextObj<CR>
+    vmap <buffer> <silent> <localleader>e        <Plug>JupyterRunVisual<CR>
 
     nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
 endfunction
 
+" Create <Plug> for user mappings
+noremap <silent> <Plug>JupyterRunTextObj    :<C-u>set operatorfunc=<SID>opfunc_run_code<CR>g@
+noremap <silent> <Plug>JupyterRunVisual     :<C-u>call <SID>opfunc_run_code(visualmode())<CR>gv
 
 "-----------------------------------------------------------------------------
 "        Operator Function:
