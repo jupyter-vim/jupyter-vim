@@ -184,7 +184,8 @@ function! jupyter#TerminateKernel(kill, ...) abort
 endfunction
 
 function! jupyter#UpdateShell() abort
-    Pythonx _jupyter_session.update_console_msgs()
+    let g:jupyter_monitor_console = 1
+    Pythonx _jupyter_session.monitor.update_msgs()
 endfunction
 
 
