@@ -302,6 +302,13 @@ class Sync:
 # -----------------------------------------------------------------------------
 
 
+def is_integer(s):
+    """Check if string represent an interger"""
+    if s[0] in ('-', '+'):
+        return s[1:].isdigit()
+    return s.isdigit()
+
+
 def echom(arg, style="None", cmd='echom'):
     """Report string `arg` using vim's echomessage command.
 

@@ -185,7 +185,7 @@ endfunction
 
 function! jupyter#UpdateShell() abort
     let g:jupyter_monitor_console = 1
-    Pythonx _jupyter_session.monitor.update_msgs()
+    Pythonx _jupyter_session.update_monitor_msgs()
 endfunction
 
 
