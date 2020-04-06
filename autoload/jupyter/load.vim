@@ -2,7 +2,7 @@ function! jupyter#load#MakeStandardCommands() abort
     " Standard commands, called from each ftplugin so that we only map the
     " keys buffer-local for select filetypes.
     command! -buffer -nargs=* -complete=customlist,jupyter#CompleteConnect
-          \ JupyterConnect call jupyter#Connect(<f-args>)
+        \ JupyterConnect call jupyter#Connect(<f-args>)
     command! -buffer -nargs=0    JupyterDisconnect      call jupyter#Disconnect()
     command! -buffer -nargs=1    JupyterSendCode        call jupyter#SendCode(<args>)
     command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<count>)
@@ -10,9 +10,10 @@ function! jupyter#load#MakeStandardCommands() abort
     command! -buffer -nargs=0    JupyterSendCell        call jupyter#SendCell()
     command! -buffer -nargs=0    JupyterUpdateMonitor     call jupyter#UpdateMonitor()
     command! -buffer -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
-    command! -buffer -nargs=? -bang  JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
+    command! -buffer -nargs=? -bang -complete=customlist,jupyter#CompleteTerminateKernel
+        \ JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
     command! -buffer -nargs=* -complete=file
-                \ JupyterRunFile update | call jupyter#RunFile(<f-args>)
+        \ JupyterRunFile update | call jupyter#RunFile(<f-args>)
 endfunction
 
 

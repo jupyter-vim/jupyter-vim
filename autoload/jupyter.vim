@@ -48,7 +48,7 @@ try:
     _jupyter_session = JupyterVimSession()
 
     # For direct calls
-    from jupyter_util import str_to_py, find_jupyter_kernels
+    from jupyter_util import str_to_py, find_jupyter_kernels, find_signals
 except Exception as exc:
     vim.command('let s:init_outcome = "could not import jupyter_vim <- {0}: {1}"'
                 .format(exc.__class__.__name__, exc))
@@ -180,6 +180,15 @@ function! jupyter#TerminateKernel(kill, ...) abort
         let l:sig='SIGTERM'
     endif
     execute 'Pythonx _jupyter_session.signal_kernel("'.l:sig.'")'
+endfunction
+
+function! jupyter#CompleteTerminateKernel(ArgLead, CmdLine, CursorPos) abort
+    " Get signals from Python
+    let l:signals = Pyevalx('find_signals()')
+    " Filter signal with user arg
+    call filter(l:signals, '-1 != match(v:val, a:ArgLead)')
+    " Return list
+    return l:signals
 endfunction
 
 function! jupyter#UpdateMonitor() abort

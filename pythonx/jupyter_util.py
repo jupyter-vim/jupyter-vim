@@ -1,6 +1,7 @@
 from sys import version_info
 from os import listdir
 from os.path import isfile, join
+import signal
 import re
 
 import vim
@@ -124,6 +125,16 @@ def find_jupyter_kernels():
     # Return -> vim caller
     return kernel_ids
 
+
+def find_signals():
+    """Find avalaible signal string in OS
+    Called: <- vim completion method
+    Returns: List of string
+    """
+    signals = [v for v, k in signal.__dict__.items()
+               if v.startswith('SIG') and not v.startswith('SIG_')]
+    signals.sort()
+    return signals
 
 # -----------------------------------------------------------------------------
 #        Parsers
