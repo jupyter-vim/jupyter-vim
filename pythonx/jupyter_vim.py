@@ -180,54 +180,10 @@ class JupyterVimSession():
 
         # Try to connect
         for attempt in range(3):
-            if connected: 
+            if connected:
                 break
             # Check if thread want to return
-            if self.sync.check_stop(): 
-                return
-
-            # Find connection file
-            try:
-                self.client.find_cfile(self.client.kernel_info['cfile_user'])
-            except IOError:
-                self.vim.thread_echom(
-                    "kernel connection attempt {:d}/3 failed - no kernel file"
-                    .format(attempt), style="Error")
-                continue
-
-            # Connect
-            connected = self.client.create_kernel_manager()
-
-        # Early return if failed
-        if not connected:
-            self.client.disconnnect()
-            self.vim.thread_echom('kernel connection attempt timed out', style='Error')
-            return
-
-        # Pre-message the user
-        self.vim.thread_echom('Connected! ', style='Question')
-
-        # Collect and echom kernel info
-        self.vim.thread_echom_kernel_info(self.client.get_kernel_info(self.lang))
-
-    # -----------------------------------------------------------------------------
-    #        Thread Functions: vim function forbidden here:
-    #            could lead to segmentation fault
-    # -----------------------------------------------------------------------------
-    def thread_connect_to_kernel(self):
-        """Create kernel manager from existing connection file (Async)"""
-        if self.sync.check_stop():
-            return
-
-        # Check if connection is alive
-        connected = self.client.check_connection()
-
-        # Try to connect
-        for attempt in range(3):
-            if connected: 
-                break
-            # Check if thread want to return
-            if self.sync.check_stop(): 
+            if self.sync.check_stop():
                 return
 
             # Find connection file
