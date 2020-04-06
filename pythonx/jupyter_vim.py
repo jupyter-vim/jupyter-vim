@@ -46,6 +46,7 @@ from os import kill, remove
 from os.path import splitext
 from platform import system
 import functools
+import signal
 from signal import SIGTERM
 if system() != 'Windows':
     from signal import SIGKILL
@@ -111,13 +112,23 @@ class JupyterVimSession():
         This side steps the (non-functional) jupyter interrupt mechanisms.
         Only works on posix.
         """
+        # Clause: valid signal
+        if isinstance(sig, str):
+            try:
+                sig = getattr(signal, sig)
+            except Exception as e:
+                echom("Cannot send signal %s on this OS: %s" % (sig, e), style='Error')
+                return
+
         # Clause: valid pid
         pid = self.client.kernel_info['pid']
         if not is_integer(pid):
             echom("Cannot kill kernel: pid is not a number %s" % pid, style='Error')
+            return
         pid = int(pid)
         if pid < 1:
             echom("Cannot kill kernel: unknown pid retrieved %s" % pid, style='Error')
+            return
 
         # Kill process
         try:

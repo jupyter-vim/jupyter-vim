@@ -179,11 +179,7 @@ function! jupyter#TerminateKernel(kill, ...) abort
     else
         let l:sig='SIGTERM'
     endif
-    " TODO 
-    "   * Check signal here?
-    "   * move to python function?
-    execute 'Pythonx from signal import '. l:sig . '; '
-                \ '_jupyter_session.signal_kernel('.l:sig.')'
+    execute 'Pythonx _jupyter_session.signal_kernel("'.l:sig.'")'
 endfunction
 
 function! jupyter#UpdateMonitor() abort
