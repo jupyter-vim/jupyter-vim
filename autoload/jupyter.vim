@@ -183,7 +183,7 @@ function! jupyter#TerminateKernel(kill, ...) abort
                 \ '_jupyter_session.signal_kernel('.l:sig.')'
 endfunction
 
-function! jupyter#UpdateShell() abort
+function! jupyter#UpdateMonitor() abort
     let g:jupyter_monitor_console = 1
     Pythonx _jupyter_session.update_monitor_msgs()
 endfunction
@@ -203,3 +203,6 @@ endfunction
 function! jupyter#UpdateEchom(timer) abort
     Pythonx _jupyter_session.vim.timer_echom()
 endfunction
+
+"=============================================================================
+"=============================================================================
