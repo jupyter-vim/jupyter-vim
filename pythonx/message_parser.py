@@ -240,7 +240,7 @@ class JupyterMessenger:
     def send_code_and_get_reply(self, code):
         """Helper: Get variable _res from code string (setting _res)"""
         # Send message
-        msg_id = self.send(code, silent=False, user_expressions={'_res': '_res'})
+        msg_id = self.send(code, silent=True, user_expressions={'_res': '_res'})
 
         # Wait to get message back from kernel (1 sec)
         reply = self.get_reply_msg(msg_id)

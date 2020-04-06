@@ -211,8 +211,8 @@ class JupyterVimSession():
         self.vim.thread_echom_kernel_info(self.client.get_kernel_info(self.lang))
 
         # Print vim connected -> client
-        cmd_hi = self.lang.print_string.format(self.vim.string_hi())
-        self.client.send(cmd_hi)
+        # cmd_hi = self.lang.print_string.format(self.vim.string_hi())
+        # self.client.send(cmd_hi)
 
 
     # -----------------------------------------------------------------------------
