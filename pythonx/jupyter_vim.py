@@ -172,19 +172,23 @@ class JupyterVimSession():
     # -----------------------------------------------------------------------------
     def thread_connect_to_kernel(self):
         """Create kernel manager from existing connection file (Async)"""
-        if self.sync.check_stop(): return
+        if self.sync.check_stop():
+            return
 
         # Check if connection is alive
         connected = self.client.check_connection()
 
         # Try to connect
         for attempt in range(3):
-            if connected: break
+            if connected: 
+                break
             # Check if thread want to return
-            if self.sync.check_stop(): return
+            if self.sync.check_stop(): 
+                return
 
             # Find connection file
-            try: self.client.find_cfile(self.client.kernel_info['cfile_user'])
+            try:
+                self.client.find_cfile(self.client.kernel_info['cfile_user'])
             except IOError:
                 self.vim.thread_echom(
                     "kernel connection attempt {:d}/3 failed - no kernel file"
