@@ -211,6 +211,9 @@ class JupyterMessenger:
 
         return cmd_id
 
+    # TODO can we get kernel info directly from the kernel without having to
+    # send code to it remotely? This function echos 3 lines to the jupyter
+    # console upon connection that should be hidden from the user.
     def get_kernel_info(self, language):
         """Explicitly ask the jupyter kernel for its pid
         Thread: <- cfile
@@ -300,7 +303,7 @@ class Sync:
 # -----------------------------------------------------------------------------
 #        Helpers
 # -----------------------------------------------------------------------------
-
+# TODO move these to separate `jupyter_util.py` for clearer imports
 
 def is_integer(s):
     """Check if string represent an interger"""
