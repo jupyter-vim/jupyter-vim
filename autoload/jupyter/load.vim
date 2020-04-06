@@ -29,8 +29,8 @@ function! jupyter#load#MapStandardKeys() abort
     nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
 
     " Send the text to jupyter kernel
-    nmap <buffer> <silent> <localleader>e        <Plug>JupyterRunTextObj<CR>
-    vmap <buffer> <silent> <localleader>e        <Plug>JupyterRunVisual<CR>
+    nmap <buffer> <silent> <localleader>e        <Plug>JupyterRunTextObj
+    vmap <buffer> <silent> <localleader>e        <Plug>JupyterRunVisual
 
     nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
 endfunction
