@@ -7,7 +7,7 @@ from time import sleep
 import vim
 
 # Local
-from message_parser import parse_messages, prettify_execute_intput, \
+from jupyter_util import parse_messages, prettify_execute_intput, \
     unquote_string, str_to_vim, echom
 
 try:

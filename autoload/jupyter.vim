@@ -48,7 +48,7 @@ try:
     _jupyter_session = JupyterVimSession()
 
     # For direct calls
-    from message_parser import str_to_py, find_jupyter_kernels
+    from jupyter_util import str_to_py, find_jupyter_kernels
 except Exception as exc:
     vim.command('let s:init_outcome = "could not import jupyter_vim <- {0}: {1}"'
                 .format(exc.__class__.__name__, exc))

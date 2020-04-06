@@ -52,8 +52,8 @@ if system() != 'Windows':
 
 # Local
 from monitor_console import Monitor, monitor_decorator
-from message_parser import VimMessenger, JupyterMessenger, Sync, \
-    str_to_py, echom, is_integer
+from message_parser import VimMessenger, JupyterMessenger, Sync
+from jupyter_util import str_to_py, echom, is_integer
 from language import get_language
 
 
