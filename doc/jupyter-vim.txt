@@ -361,6 +361,7 @@ CHANGELOG					*jupyter-vim-changelog*
 
 [v0.01]
 * Kernel support: `Bash`, `Cpp`, `Java`, `Javascript`, `Perl`, `Ruby`
+	`Rust`, `Raku`
 * Asynchronous `:JupyterConnect`
 * Refactor interface: one global to rule them all
 	`:py3 print(jupyter_vim.SI.client.check_connection())`

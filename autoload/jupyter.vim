@@ -34,7 +34,9 @@ function! s:init_python() abort
     let s:init_outcome = 0
     let init_lines =<< EOF
 # Add path
-import sys; import os; import vim
+import os
+import sys
+import vim
 vim_path, _ = os.path.split(vim.eval("expand('<sfile>:p:h')"))
 vim_pythonx_path = os.path.join(vim_path, "pythonx")
 if vim_pythonx_path not in sys.path:
@@ -61,10 +63,8 @@ EOF
         throw printf('[jupyter-vim] s:init_python: failed to run Python for initialization: %s.', v:exception)
     endtry
 
-    if s:init_outcome is 0
-        throw '[jupyter-vim] s:init_python: failed to run Python for initialization.'
-    elseif s:init_outcome isnot 1
-        throw printf('[jupyter-vim] s:init_python: %s.', s:init_outcome)
+    if s:init_outcome isnot 1
+        throw printf('[jupyter-vim] s:init_python: s:init_outcome = %s.', s:init_outcome)
     endif
 
     return 1
@@ -89,7 +89,8 @@ function! jupyter#init_python() abort
     return s:_init_python
 endfunction
 
-
+" Do not initialize python until this autoload script is called for
+" a compatible filetype (usually via jupyter#Connect).
 call jupyter#init_python()
 
 "-----------------------------------------------------------------------------
@@ -178,13 +179,16 @@ function! jupyter#TerminateKernel(kill, ...) abort
     else
         let l:sig='SIGTERM'
     endif
-    " Check signal here?
+    " TODO 
+    "   * Check signal here?
+    "   * move to python function?
     execute 'Pythonx from signal import '. l:sig . '; '
                 \ '_jupyter_session.signal_kernel('.l:sig.')'
 endfunction
 
-function! jupyter#UpdateShell() abort
-    Pythonx _jupyter_session.update_console_msgs()
+function! jupyter#UpdateMonitor() abort
+    let g:jupyter_monitor_console = 1
+    Pythonx _jupyter_session.update_monitor_msgs()
 endfunction
 
 
@@ -202,3 +206,6 @@ endfunction
 function! jupyter#UpdateEchom(timer) abort
     Pythonx _jupyter_session.vim.timer_echom()
 endfunction
+
+"=============================================================================
+"=============================================================================

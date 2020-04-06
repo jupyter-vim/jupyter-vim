@@ -8,7 +8,7 @@ function! jupyter#load#MakeStandardCommands() abort
     command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<count>)
     command! -buffer -range -bar JupyterSendRange       <line1>,<line2>call jupyter#SendRange()
     command! -buffer -nargs=0    JupyterSendCell        call jupyter#SendCell()
-    command! -buffer -nargs=0    JupyterUpdateShell     call jupyter#UpdateShell()
+    command! -buffer -nargs=0    JupyterUpdateMonitor     call jupyter#UpdateMonitor()
     command! -buffer -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
     command! -buffer -nargs=? -bang  JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
     command! -buffer -nargs=* -complete=file
@@ -29,17 +29,19 @@ function! jupyter#load#MapStandardKeys() abort
     nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
 
     " Send the text to jupyter kernel
-    nnoremap <buffer> <silent> <localleader>e       :<C-u>set operatorfunc=<SID>opfunc_run_code<CR>g@
-    vnoremap <buffer> <silent> <localleader>e       :<C-u>call <SID>opfunc_run_code(visualmode())<CR>gv
+    nmap <buffer> <silent> <localleader>e        <Plug>JupyterRunTextObj
+    vmap <buffer> <silent> <localleader>e        <Plug>JupyterRunVisual
 
     nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
 endfunction
 
+" Create <Plug> for user mappings
+noremap <silent> <Plug>JupyterRunTextObj    :<C-u>set operatorfunc=<SID>opfunc_run_code<CR>g@
+noremap <silent> <Plug>JupyterRunVisual     :<C-u>call <SID>opfunc_run_code(visualmode())<CR>gv
 
 "-----------------------------------------------------------------------------
 "        Operator Function:
 "-----------------------------------------------------------------------------
-
 
 " Factory: callback(text) -> operator_function
 function! s:get_opfunc(callback) abort

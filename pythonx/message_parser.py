@@ -3,6 +3,8 @@ Jupyter <-> Vim
 String Utility functions:
     1/ Helper (unquote_string)
     2/ Formater / Parser (parse_messages)
+
+See: <http://jupyter-client.readthedocs.io/en/stable/api/client.html>
 """
 
 # Standard
@@ -120,9 +122,7 @@ class JupyterMessenger:
         self.sync = sync
 
     def create_kernel_manager(self):
-        """Create the kernel manager and connect a client
-        See: <http://jupyter-client.readthedocs.io/en/stable/api/client.html>
-        """
+        """Create the kernel manager and connect a client"""
         # Get client
         kernel_manager = KernelManager(connection_file=self.cfile)
         # # The json may be badly encoding especially if autoconnecting
@@ -240,7 +240,7 @@ class JupyterMessenger:
     def send_code_and_get_reply(self, code):
         """Helper: Get variable _res from code string (setting _res)"""
         # Send message
-        msg_id = self.send(code, silent=False, user_expressions={'_res': '_res'})
+        msg_id = self.send(code, silent=True, user_expressions={'_res': '_res'})
 
         # Wait to get message back from kernel (1 sec)
         reply = self.get_reply_msg(msg_id)
@@ -260,7 +260,7 @@ class JupyterMessenger:
 
 
 class Sync:
-    """Sync primitive"""
+    """Synchronization (not so) primitives, for a safe thread support"""
     def __init__(self):
         # Thread running
         self.thread = None
@@ -300,6 +300,13 @@ class Sync:
 # -----------------------------------------------------------------------------
 #        Helpers
 # -----------------------------------------------------------------------------
+
+
+def is_integer(s):
+    """Check if string represent an interger"""
+    if s[0] in ('-', '+'):
+        return s[1:].isdigit()
+    return s.isdigit()
 
 
 def echom(arg, style="None", cmd='echom'):
@@ -446,7 +453,7 @@ def parse_iopub_for_reply(msgs, line_number):
 
         # 4 text
         res = content.get('data', {}).get('text/plain', -1)
-        res = res or content.get('text', '')  # Jupyter bash style ...
+        res = res if res != -1 else content.get('text', -1)  # Jupyter bash style ...
         break
     return res
 
@@ -481,10 +488,10 @@ def parse_messages(section_info, msgs):
             line_number = msg['content'].get('execution_count', default_count)
             # Set prompt
             if msg['content'].get('name', 'stdout') == 'stderr':
-                prompt = 'SdE[{:d}]: '.format(line_number)
+                prompt = 'Err[{:d}]: '.format(line_number)
                 dots = (' ' * (len(prompt.rstrip()) - 4)) + '...x '
             else:
-                prompt = 'SdO[{:d}]: '.format(line_number)
+                prompt = 'Out[{:d}]: '.format(line_number)
                 dots = (' ' * (len(prompt.rstrip()) - 4)) + '...< '
             s = prompt
             # Add continuation line, if necessary

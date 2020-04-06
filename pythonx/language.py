@@ -131,7 +131,7 @@ class Python(Language):
 class Raku(Language):
     """Raku: script (used to be Perl6)"""
     prompt_in = 'Ra [{:d}]: '
-    print_string = 'print("{}");'
+    print_string = 'say("{}");'
     run_file = '#% run {}'
     cd = 'chdir("{}");'
     pid = 'my $_res = $*PID;'
