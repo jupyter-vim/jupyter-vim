@@ -297,5 +297,5 @@ class Sync:
         """Stop last / Create new / Start thread"""
         if args is None: args = []
         self.stop_thread()
-        self.thread = Thread(target=target, args=args)
+        self.thread = Thread(target=target, args=args, daemon=True)
         self.thread.start()
