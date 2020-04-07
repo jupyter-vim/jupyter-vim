@@ -19,7 +19,7 @@ import vim
 
 # Local
 from jupyter_util import echom, unquote_string, shorten_filename, \
-    parse_iopub_for_reply
+    parse_iopub_for_reply, vim_var
 
 try:
     from queue import Queue, Empty
@@ -36,7 +36,7 @@ class VimMessenger:
         # Message queue: for async echom
         self.message_queue = Queue()
         # Pid of current vim section
-        self.pid = vim.eval('getpid()')
+        self.pid = vim_var('getpid()', -1)
 
         # Define members python <- vim
         self.set_cell_separators()
@@ -57,14 +57,26 @@ class VimMessenger:
         """Set cell separators list<regex> from vim globals to python object
         Once to avoid mutliple call at parsing file
         """
-        self.cell_separators = vim.eval('g:jupyter_cell_separators')
+        self.cell_separators = vim_var('g:jupyter_cell_separators', '')
         self.cell_separators = list(map(unquote_string, self.cell_separators))
 
     @staticmethod
     def get_timer_intervals():
         """Return list<int> timers in ms user defined"""
-        timer_list = vim.eval('g:jupyter_timer_intervals')
+        timer_list = vim_var('g:jupyter_timer_intervals', [0.1, 0.5, 1, 3])
         return list(map(int, timer_list))
+
+    @staticmethod
+    def get_meta_messages():
+        """Return list<str>: user defined list of "meta" messages
+        > bef, pre, post, aft = VIM.get_meta_messages
+        """
+        return [
+            vim_var('g:jupyter_exec_before', ''),
+            vim_var('g:jupyter_exec_pre', ''),
+            vim_var('g:jupyter_exex_post', ''),
+            vim_var('g:jupyter_exec_after', '')
+        ]
 
     def is_cell_separator(self, line):
         """ Determine whether a given line is a cell separator """
@@ -121,6 +133,8 @@ class JupyterMessenger:
         self.cfile = ''
         # Sync object
         self.sync = sync
+        # Meta messages
+        self.meta_messages = VimMessenger.get_meta_messages()
 
     def create_kernel_manager(self):
         """Create the kernel manager and connect a client"""
@@ -147,6 +161,10 @@ class JupyterMessenger:
         if self.km_client is None: return
         self.km_client.stop_channels()
         self.km_client = None
+
+    def update_meta_messages(self):
+        """Sync: reread vim meta vars"""
+        self.meta_messages = VimMessenger.get_meta_messages()
 
     def check_connection(self):
         """Check that we have a client connected to the kernel."""
@@ -200,15 +218,30 @@ class JupyterMessenger:
         self.cfile = find_connection_file(filename=user_cfile)
         return self.cfile
 
-    def send(self, msg, **kwargs):
+    def send(self, msg, ismeta=False, **kwargs):
         """Send a message to the kernel client
+        Async: crossroad <- run_command
         Global: -> cmd, cmd_id
         """
         if not self.check_connection_or_warn(): return -1
 
+        # Pre
+        if not ismeta:
+            bef, pre, post, aft = self.meta_messages
+            # Send before
+            self.send(bef, ismeta=True)
+            # Craft new message
+            msg = pre + msg + post
+
         # Include dedent of msg so we don't get odd indentation errors.
         cmd = dedent(msg)
+
+        # Actually send execute_request
         cmd_id = self.km_client.execute(cmd, **kwargs)
+
+        # Post
+        if not ismeta:
+            self.send(aft, ismeta=True)
 
         return cmd_id
 
@@ -242,9 +275,11 @@ class JupyterMessenger:
         return self.kernel_info
 
     def send_code_and_get_reply(self, code):
-        """Helper: Get variable _res from code string (setting _res)"""
+        """Helper: Get variable _res from code string (setting _res)
+        Only used by get_kernel_info (internal) => send with ismeta
+        """
         # Send message
-        msg_id = self.send(code, silent=True, user_expressions={'_res': '_res'})
+        msg_id = self.send(code, ismeta=True, silent=True, user_expressions={'_res': '_res'})
 
         # Wait to get message back from kernel (1 sec)
         reply = self.get_reply_msg(msg_id)

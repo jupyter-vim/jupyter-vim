@@ -257,7 +257,10 @@ class JupyterVimSession():
     @if_connected
     @monitor_decorator
     def run_command(self, cmd):
-        """Send a single command to the kernel"""
+        """Send a single command to the kernel
+        Sync: crossroad -> client.send
+        """
+        self.client.update_meta_messages()
         msg_id = self.client.send(cmd)
         return (cmd, msg_id)
 
@@ -275,7 +278,7 @@ class JupyterVimSession():
             params = flags or str_to_py(vim.current.buffer.vars['ipython_run_flags'])
         cmd = '{run_cmd} {params} "{filename}"'.format(
             run_cmd=run_cmd, params=params, filename=filename)
-        msg_id = self.client.send(cmd)
+        msg_id = self.run_command(cmd)
         return (cmd, msg_id)
 
 
@@ -285,7 +288,7 @@ class JupyterVimSession():
         """Send a range of lines from the current vim buffer to the kernel."""
         rang = vim.current.range
         lines = "\n".join(vim.current.buffer[rang.start:rang.end+1])
-        msg_id = self.client.send(lines)
+        msg_id = self.run_command(lines)
         prompt = "range {:d}-{:d} ".format(rang.start+1, rang.end+1)
         return (prompt, msg_id)
 
@@ -328,6 +331,6 @@ class JupyterVimSession():
 
         # Execute cell
         lines = "\n".join(cur_buf[upper_bound:lower_bound+1])
-        msg_id = self.client.send(lines)
+        msg_id = self.run_command(lines)
         prompt = "execute lines {:d}-{:d} ".format(upper_bound+1, lower_bound+1)
         return (prompt, msg_id)

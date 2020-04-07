@@ -241,6 +241,14 @@ code file whose filetype is associated with a kernel language (other than
 connection process, vim will be slow to start up if this option is set to 1. An
 asynchronous connection process is a work in progress.
 
+`g:jupyter_exec_*`     		*g:jupyter_exec_before* *g:jupyter_exec_pre*
+				  *g:jupyter_exec_post* *g:jupyter_exec_after*
+Default: ''
+
+Example: `let g:jupyter_exec_before = 'clear-screen'`
+These variables if exist, will send another execute_request before, after each
+user message or be preprended, appended to each message.
+
 `g:jupyter_cell_separators`        		*g:jupyter_cell_separators*
 				  List of regex to separate jupyter cells
 Default: ['##', '#%%', '# %%', '# <codecell>']
@@ -355,6 +363,7 @@ $ jupyter qtconsole --version # 4.3.1
 CHANGELOG					*jupyter-vim-changelog*
 
 [v0.0?]
+* Add `g:jupyter_exec_before` and its 3 brothers
 * Refactor interface: one object <- one global
 	`:py3 print(_jupyter_session.client.check_connection())`
 * Kernel support: `Rust`, `Raku`

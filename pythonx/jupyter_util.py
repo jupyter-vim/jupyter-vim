@@ -29,6 +29,14 @@ def echom(arg, style="None", cmd='echom'):
         print("-- {}".format(arg))
 
 
+def vim_var(name, default):
+    """Try to get vim (name) otherwise (default)"""
+    res = default
+    try: res = vim.eval(name)
+    except: pass
+    return res
+
+
 def str_to_py(var):
     """Convert: Vim -> Py"""
     is_py3 = version_info[0] >= 3
