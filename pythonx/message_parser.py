@@ -72,10 +72,10 @@ class VimMessenger:
         > bef, pre, post, aft = VIM.get_meta_messages
         """
         return [
-            vim_var('g:jupyter_exec_before', ''),
-            vim_var('g:jupyter_exec_pre', ''),
-            vim_var('g:jupyter_exex_post', ''),
-            vim_var('g:jupyter_exec_after', '')
+            vim_var('b:jupyter_exec_before', ''),
+            vim_var('b:jupyter_exec_pre', ''),
+            vim_var('b:jupyter_exex_post', ''),
+            vim_var('b:jupyter_exec_after', '')
         ]
 
     def is_cell_separator(self, line):
