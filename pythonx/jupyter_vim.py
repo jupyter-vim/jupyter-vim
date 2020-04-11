@@ -42,20 +42,17 @@ except ImportError as e:
     raise ImportError('vim module only available within vim!', e)
 
 # Standard
+import functools
 from os import kill, remove
 from os.path import splitext
 from platform import system
-import functools
 import signal
-from signal import SIGTERM
-if system() != 'Windows':
-    from signal import SIGKILL
 
 # Local
-from monitor_console import Monitor, monitor_decorator
-from message_parser import VimMessenger, JupyterMessenger, Sync
 from jupyter_util import str_to_py, echom, is_integer
 from language import get_language
+from message_parser import VimMessenger, JupyterMessenger, Sync
+from monitor_console import Monitor, monitor_decorator
 
 
 class JupyterVimSession():
@@ -67,19 +64,17 @@ class JupyterVimSession():
         self.monitor = Monitor(self)
         self.lang = get_language('')
 
-
     def if_connected(fct):
         """Decorator, fail if not connected"""
         # pylint: disable=no-self-argument, not-callable, no-member
         @functools.wraps(fct)
         def wrapper(self, *args, **kwargs):
             if not self.client.check_connection_or_warn():
-                echom("(Pythonx _jupyter_session.%s() needs a connected client)"
-                      % fct.__name__, style='Error')
+                echom(f"Pythonx _jupyter_session.{fct.__name__}() needs a connected client",
+                      style='Error')
                 return None
             return fct(self, *args, **kwargs)
         return wrapper
-
 
     def connect_to_kernel(self, kernel_type, filename=''):
         """:JupyterConnect"""
@@ -97,16 +92,14 @@ class JupyterVimSession():
                        ', "jupyter#UpdateEchom")')
             vim.command(vim_cmd)
 
-
     @if_connected
     def disconnect_from_kernel(self):
         """:JupyterDisconnect kernel client (Sync)"""
         self.client.disconnnect()
         echom("Disconnected: {}".format(self.client.kernel_info['id']), style='Directory')
 
-
     @if_connected
-    def signal_kernel(self, sig=SIGTERM):
+    def signal_kernel(self, sig=signal.SIGTERM):
         """:JupyterTerminateKernel
         Use kill command to send a signal to the remote kernel.
         This side steps the (non-functional) jupyter interrupt mechanisms.
@@ -117,17 +110,17 @@ class JupyterVimSession():
             try:
                 sig = getattr(signal, sig)
             except Exception as e:
-                echom("Cannot send signal %s on this OS: %s" % (sig, e), style='Error')
+                echom(f"Cannot send signal {sig} on this OS: {e}", style='Error')
                 return
 
         # Clause: valid pid
         pid = self.client.kernel_info['pid']
         if not is_integer(pid):
-            echom("Cannot kill kernel: pid is not a number %s" % pid, style='Error')
+            echom(f"Cannot kill kernel: pid is not a number {pid}", style='Error')
             return
         pid = int(pid)
         if pid < 1:
-            echom("Cannot kill kernel: unknown pid retrieved %s" % pid, style='Error')
+            echom(f"Cannot kill kernel: unknown pid retrieved {pid}", style='Error')
             return
 
         # Kill process
@@ -145,14 +138,14 @@ class JupyterVimSession():
             raise err
 
         # Delete connection file
-        sig_list = [SIGTERM]
-        if system() != 'Windows': sig_list.append(SIGKILL)
+        sig_list = [signal.SIGTERM]
+        if system() != 'Windows':
+            sig_list.append(signal.SIGKILL)
         if sig in sig_list:
             try:
                 remove(self.client.cfile)
             except OSError:
                 pass
-
 
     @if_connected
     def run_file(self, flags='', filename=''):
@@ -175,7 +168,6 @@ class JupyterVimSession():
 
         # Run it
         return self.run_command(cmd_run)
-
 
     # -----------------------------------------------------------------------------
     #        Thread Functions: vim function forbidden here:
@@ -225,7 +217,6 @@ class JupyterVimSession():
         # cmd_hi = self.lang.print_string.format(self.vim.string_hi())
         # self.client.send(cmd_hi)
 
-
     # -----------------------------------------------------------------------------
     #        Communicate with Kernel
     # -----------------------------------------------------------------------------
@@ -234,12 +225,10 @@ class JupyterVimSession():
         """Update monitor buffer if present"""
         self.monitor.update_msgs()
 
-
     @if_connected
     @monitor_decorator
     def change_directory(self, directory):
-        """CD: Change current working directory in kernel."""
-        # Cd
+        """cd: Change current working directory in kernel."""
         msg = self.lang.cd.format(directory)
         msg_id = self.client.send(msg)
 
@@ -248,11 +237,11 @@ class JupyterVimSession():
             cwd = self.client.send_code_and_get_reply(self.lang.cwd)
             echom('CWD: ', style='Question')
             vim.command("echon \"{}\"".format(cwd))
-        except Exception: pass
+        except Exception:
+            pass
 
         # Return to decorators
         return (msg, msg_id)
-
 
     @if_connected
     @monitor_decorator
@@ -263,7 +252,6 @@ class JupyterVimSession():
         self.client.update_meta_messages()
         msg_id = self.client.send(cmd)
         return (cmd, msg_id)
-
 
     @if_connected
     @monitor_decorator
@@ -281,7 +269,6 @@ class JupyterVimSession():
         msg_id = self.run_command(cmd)
         return (cmd, msg_id)
 
-
     @if_connected
     @monitor_decorator
     def send_range(self):
@@ -291,7 +278,6 @@ class JupyterVimSession():
         msg_id = self.run_command(lines)
         prompt = "range {:d}-{:d} ".format(rang.start+1, rang.end+1)
         return (prompt, msg_id)
-
 
     @if_connected
     @monitor_decorator

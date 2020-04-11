@@ -1,8 +1,8 @@
 """
 Jupyter <-> Vim
 String Utility functions:
-    1/ Helper (unquote_string)
-    2/ Formater / Parser (parse_messages)
+    1. Helper (unquote_string)
+    2. Formater / Parser (parse_messages)
 
 See: <http://jupyter-client.readthedocs.io/en/stable/api/client.html>
 """
@@ -88,7 +88,8 @@ class VimMessenger:
     def timer_echom(self):
         """Call echom sync: all messages in queue"""
         # Check in
-        if self.message_queue.empty(): return
+        if self.message_queue.empty():
+            return
 
         # Show user the force
         while not self.message_queue.empty():
@@ -140,8 +141,10 @@ class JupyterMessenger:
         # Get client
         kernel_manager = KernelManager(connection_file=self.cfile)
         # # The json may be badly encoding especially if autoconnecting
-        try: kernel_manager.load_connection_file()
-        except Exception: return False
+        try:
+            kernel_manager.load_connection_file()
+        except Exception:
+            return False
         self.km_client = kernel_manager.client()
 
         # Open channel
@@ -157,7 +160,8 @@ class JupyterMessenger:
 
     def disconnnect(self):
         """Disconnect (silently from kernel): close channels"""
-        if self.km_client is None: return
+        if self.km_client is None:
+            return
         self.km_client.stop_channels()
         self.km_client = None
 
@@ -171,18 +175,20 @@ class JupyterMessenger:
 
     def check_connection_or_warn(self):
         """Echo warning: if not connected"""
-        if self.check_connection(): return True
+        if self.check_connection():
+            return True
         echom('WARNING: Not connected to Jupyter!'
               '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
         return False
 
     def get_pending_msgs(self):
         """Get pending message pool"""
-        msgs = []
+        msgs = list()
         try:
             self.sync.msg_lock.acquire()
             msgs = self.km_client.iopub_channel.get_msgs()
-        except (Empty, TypeError, KeyError, IndexError, ValueError): pass
+        except (Empty, TypeError, KeyError, IndexError, ValueError):
+            pass
         finally:
             self.sync.msg_lock.release()
         return msgs
@@ -194,21 +200,24 @@ class JupyterMessenger:
         # TODO handle 'is_complete' requests?
         # <http://jupyter-client.readthedocs.io/en/stable/messaging.html#code-completeness>
         # Declare default
-        reply = {}
+        reply = dict()
         for _ in range(3):
             # Check
-            if self.sync.stop: return {}
+            if self.sync.stop:
+                return dict()
 
             # Get
             self.sync.msg_lock.acquire()
             try:
                 reply = self.km_client.get_shell_msg(block=True, timeout=1) or {}
-            except (Empty, TypeError, KeyError, IndexError, ValueError): pass
+            except (Empty, TypeError, KeyError, IndexError, ValueError):
+                pass
             finally:
                 self.sync.msg_lock.release()
 
             # Stop
-            if reply.get('parent_header', {}).get('msg_id', -1) == msg_id: break
+            if reply.get('parent_header', {}).get('msg_id', -1) == msg_id:
+                break
 
         return reply
 
@@ -222,13 +231,15 @@ class JupyterMessenger:
         Async: crossroad <- run_command
         Global: -> cmd, cmd_id
         """
-        if not self.check_connection_or_warn(): return -1
+        if not self.check_connection_or_warn():
+            return -1
 
         # Pre
         if not ismeta:
             bef, pre, post, aft = self.meta_messages
-            # Send before
-            self.send(bef, ismeta=True)
+            # Send before unless it is blank
+            if bef:
+                self.send(bef, ismeta=True)
             # Craft new message
             msg = pre + msg + post
 
@@ -238,8 +249,8 @@ class JupyterMessenger:
         # Actually send execute_request
         cmd_id = self.km_client.execute(cmd, **kwargs)
 
-        # Post
-        if not ismeta:
+        # send after unless it is blank
+        if not ismeta and aft:
             self.send(aft, ismeta=True)
 
         return cmd_id
@@ -312,24 +323,30 @@ class Sync:
     def check_stop(self):
         """Check and reset stop value"""
         last = self.stop
-        if self.stop: self.stop = False
+        if self.stop:
+            self.stop = False
         return last
 
     def stop_thread(self):
         """Stop current thread"""
-        if self.thread is None: return
-        if not self.thread.isAlive(): self.thread = None; return
+        if self.thread is None:
+            return
+        if not self.thread.isAlive():
+            self.thread = None
+            return
 
         # Wait 1 sec max
         self.stop = True
         for _ in range(100):
-            if not self.stop: sleep(0.010)
+            if not self.stop:
+                sleep(0.010)
         self.thread = None
         return
 
     def start_thread(self, target=None, args=None):
         """Stop last / Create new / Start thread"""
-        if args is None: args = []
+        if args is None:
+            args = list()
         self.stop_thread()
         self.thread = Thread(target=target, args=args, daemon=True)
         self.thread.start()

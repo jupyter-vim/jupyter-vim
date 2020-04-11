@@ -6,8 +6,10 @@ import re
 
 import vim
 
+
 def is_integer(s):
     """Check if string represent an interger"""
+    s = str(s)
     if s[0] in ('-', '+'):
         return s[1:].isdigit()
     return s.isdigit()
@@ -31,10 +33,10 @@ def echom(arg, style="None", cmd='echom'):
 
 def vim_var(name, default):
     """Try to get vim (name) otherwise (default)"""
-    res = default
-    try: res = vim.eval(name)
-    except: pass
-    return res
+    try: 
+        return vim.eval(name)
+    except: 
+        return default
 
 
 def str_to_py(var):
@@ -104,9 +106,10 @@ def shorten_filename(runtime_file):
 
 def hex_sort(stg):
     """Sort hex strings"""
-    try: res = int('0x' + stg, 16)
-    except ValueError: res = 0
-    return res
+    try:
+        return int('0x' + stg, 16)
+    except ValueError:
+        return 0
 
 
 def find_jupyter_kernels():

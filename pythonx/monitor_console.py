@@ -32,14 +32,16 @@ class Monitor:
         """Decorator to monitor messages"""
         def wrapper(*args, **kwargs):
             # Check in
-            if not self.si.client.check_connection_or_warn(): return
+            if not self.si.client.check_connection_or_warn():
+                return
 
             # Call
             fct(*args, **kwargs)
 
             # Clause
             self.si.vim.set_monitor_bools()
-            if not self.si.vim.verbose and not self.si.vim.monitor_console: return
+            if not self.si.vim.verbose and not self.si.vim.monitor_console:
+                return
 
             # Launch update threads
             self.update_msgs()
@@ -78,12 +80,14 @@ class Monitor:
     def thread_fetch_msgs(self, intervals):
         """Update message that timer will append to console message
         """
-        io_cache = []
+        io_cache = list()
         for sleep_ms in intervals:
             # Sleep ms
-            if self.si.sync.check_stop(): return
+            if self.si.sync.check_stop():
+                return
             sleep(sleep_ms / 1000)
-            if self.si.sync.check_stop(): return
+            if self.si.sync.check_stop():
+                return
 
             # Get messages
             msgs = self.si.client.get_pending_msgs()
@@ -112,8 +116,10 @@ class Monitor:
     def timer_write_console_msgs(self):
         """Write kernel <-> vim messages to console buffer"""
         # Check in
-        if self.si.sync.line_queue.empty(): return
-        if not self.si.vim.monitor_console and not self.si.vim.verbose: return
+        if self.si.sync.line_queue.empty():
+            return
+        if not self.si.vim.monitor_console and not self.si.vim.verbose:
+            return
 
         # Get buffer (same indexes as vim)
         if self.si.vim.monitor_console:
