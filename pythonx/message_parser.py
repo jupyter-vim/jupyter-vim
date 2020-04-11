@@ -125,22 +125,17 @@ class JupyterMessenger:
     Alias client
     """
     def __init__(self, sync):
-        # KernelManager client
-        self.km_client = None
-        # Kernel information
-        self.kernel_info = {}
-        # Connection file
-        self.cfile = ''
-        # Sync object
-        self.sync = sync
-        # Meta messages
+        self.km_client = None  # KernelManager client
+        self.kernel_info = {}  # Kernel information
+        self.cfile = ''        # Connection file
+        self.sync = sync       # Sync object
         self.meta_messages = VimMessenger.get_meta_messages()
 
     def create_kernel_manager(self):
         """Create the kernel manager and connect a client"""
         # Get client
         kernel_manager = KernelManager(connection_file=self.cfile)
-        # # The json may be badly encoding especially if autoconnecting
+        # The json may be badly encoding especially if autoconnecting
         try:
             kernel_manager.load_connection_file()
         except Exception:
@@ -250,9 +245,6 @@ class JupyterMessenger:
 
         return cmd_id
 
-    # TODO can we get kernel info directly from the kernel without having to
-    # send code to it remotely? This function echos 3 lines to the jupyter
-    # console upon connection that should be hidden from the user.
     def get_kernel_info(self, language):
         """Explicitly ask the jupyter kernel for its pid
         Thread: <- cfile

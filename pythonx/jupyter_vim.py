@@ -184,7 +184,10 @@ class JupyterVimSession():
         connected = self.client.check_connection()
 
         # Try to connect
-        for attempt in range(3):
+        MAX_ATTEMPTS = 3
+        for attempt in range(MAX_ATTEMPTS):
+            # NOTE if user tries to :JConnect <new_pid>, this check will ignore
+            # the requested new pid.
             if connected:
                 break
             # Check if thread want to return
@@ -196,7 +199,7 @@ class JupyterVimSession():
                 self.client.cfile = find_connection_file(filename=self.client.kernel_info['cfile_user'])
             except IOError:
                 self.vim.thread_echom(
-                    "kernel connection attempt {:d}/3 failed - no kernel file"
+                    "kernel connection attempt {:d}/{MAX_ATTEMPTS} failed - no kernel file"
                     .format(attempt), style="Error")
                 continue
 

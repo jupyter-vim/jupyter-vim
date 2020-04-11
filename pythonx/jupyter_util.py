@@ -13,7 +13,7 @@ from jupyter_core.paths import jupyter_runtime_dir
 
 
 def is_integer(s):
-    """Check if string represent an interger"""
+    """Check if string represent an integer"""
     s = str(s)
     if s[0] in ('-', '+'):
         return s[1:].isdigit()
@@ -36,11 +36,11 @@ def echom(arg, style="None", cmd='echom'):
         print("-- {}".format(arg))
 
 
-def vim_var(name, default):
-    """Try to get vim (name) otherwise (default)"""
+def vim_var(name, default=None):
+    """Try to get vim `name` otherwise `default`."""
     try: 
         return vim.eval(name)
-    except: 
+    except vim.error: 
         return default
 
 
@@ -126,5 +126,4 @@ def find_signals():
     """
     signals = [v for v, k in signal.__dict__.items()
                if v.startswith('SIG') and not v.startswith('SIG_')]
-    signals.sort()
-    return signals
+    return sorted(signals)
