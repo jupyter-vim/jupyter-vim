@@ -48,6 +48,8 @@ from os.path import splitext
 from platform import system
 import signal
 
+from jupyter_client import find_connection_file
+
 # Local
 from jupyter_util import str_to_py, echom, is_integer
 from language import get_language
@@ -191,7 +193,7 @@ class JupyterVimSession():
 
             # Find connection file
             try:
-                self.client.find_cfile(self.client.kernel_info['cfile_user'])
+                self.client.cfile = find_connection_file(filename=self.client.kernel_info['cfile_user'])
             except IOError:
                 self.vim.thread_echom(
                     "kernel connection attempt {:d}/3 failed - no kernel file"

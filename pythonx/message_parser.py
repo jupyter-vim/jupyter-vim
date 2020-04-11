@@ -14,7 +14,7 @@ from threading import Thread, Lock
 from time import sleep
 
 # Py module
-from jupyter_client import KernelManager, find_connection_file
+from jupyter_client import KernelManager
 import vim
 
 # Local
@@ -220,11 +220,6 @@ class JupyterMessenger:
                 break
 
         return reply
-
-    def find_cfile(self, user_cfile):
-        """Find connection file from argument"""
-        self.cfile = find_connection_file(filename=user_cfile)
-        return self.cfile
 
     def send(self, msg, ismeta=False, **kwargs):
         """Send a message to the kernel client
