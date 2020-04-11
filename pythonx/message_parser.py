@@ -315,7 +315,7 @@ class JupyterMessenger():
         # Actually send execute_request
         cmd_id = self.km_client.execute(cmd, **kwargs)
 
-        # send after unless it is blank
+        # Send after unless it is blank
         if not ismeta and aft:
             self.send(aft, ismeta=True)
 
