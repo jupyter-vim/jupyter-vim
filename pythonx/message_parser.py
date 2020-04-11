@@ -1,8 +1,5 @@
 """
 Jupyter <-> Vim
-String Utility functions:
-    1. Helper (unquote_string)
-    2. Formater / Parser (parse_messages)
 
 See: <http://jupyter-client.readthedocs.io/en/stable/api/client.html>
 """
@@ -57,13 +54,13 @@ class VimMessenger:
         Once to avoid mutliple call at parsing file
         """
         self.cell_separators = vim_var('g:jupyter_cell_separators', '')
-        self.cell_separators = list(map(unquote_string, self.cell_separators))
+        self.cell_separators = [unquote_string(x) for x in self.cell_separators]
 
     @staticmethod
     def get_timer_intervals():
         """Return list<int> timers in ms user defined"""
         timer_list = vim_var('g:jupyter_timer_intervals', [0.1, 0.5, 1, 3])
-        return list(map(int, timer_list))
+        return [int(x) for x in timer_list]
 
     @staticmethod
     def get_meta_messages():

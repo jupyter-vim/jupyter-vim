@@ -215,7 +215,7 @@ def parse_messages(section_info, msgs):
                 section_info.monitor.set_cmd_count(line_number)
 
         elif msg_type in ('error', 'pyerr'):
-            s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
+            s = "\n".join((strip_color_escapes(x) for x in msg['content']['traceback']))
 
         elif msg_type == 'input_request':
             section_info.vim.thread_echom('python input not supported in vim.', style='Error')
