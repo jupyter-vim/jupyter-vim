@@ -2,38 +2,38 @@ function! jupyter#load#MakeStandardCommands() abort
     " Standard commands, called from each ftplugin so that we only map the
     " keys buffer-local for select filetypes.
     command! -buffer -nargs=* -complete=customlist,jupyter#CompleteConnect
-        \ JupyterConnect call jupyter#Connect(<f-args>)
-    command! -buffer -nargs=0    JupyterDisconnect      call jupyter#Disconnect()
-    command! -buffer -nargs=1    JupyterSendCode        call jupyter#SendCode(<args>)
-    command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<count>)
-    command! -buffer -range -bar JupyterSendRange       <line1>,<line2>call jupyter#SendRange()
-    command! -buffer -nargs=0    JupyterSendCell        call jupyter#SendCell()
-    command! -buffer -nargs=0    JupyterUpdateMonitor     call jupyter#UpdateMonitor()
-    command! -buffer -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
+        \ JConnect call jupyter#Connect(<f-args>)
+    command! -buffer -nargs=0    JDisconnect      call jupyter#Disconnect()
+    command! -buffer -nargs=1    JSendCode        call jupyter#SendCode(<args>)
+    command! -buffer -count      JSendCount       call jupyter#SendCount(<count>)
+    command! -buffer -range -bar JSendRange       <line1>,<line2>call jupyter#SendRange()
+    command! -buffer -nargs=0    JSendCell        call jupyter#SendCell()
+    command! -buffer -nargs=0    JUpdateMonitor   call jupyter#UpdateMonitor()
+    command! -buffer -nargs=? -complete=dir  JCd  call jupyter#JupyterCd(<f-args>)
     command! -buffer -nargs=? -bang -complete=customlist,jupyter#CompleteTerminateKernel
         \ JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
     command! -buffer -nargs=* -complete=file
-        \ JupyterRunFile update | call jupyter#RunFile(<f-args>)
+        \ JRunFile update | call jupyter#RunFile(<f-args>)
 endfunction
 
 
 function! jupyter#load#MapStandardKeys() abort
     " Standard keymaps, called from each ftplugin so that we only map the keys
     " buffer-local for select filetypes.
-    nnoremap <buffer> <silent> <localleader>R       :JupyterRunFile<CR>
+    nnoremap <buffer> <silent> <localleader>R    :JRunFile<CR>
 
     " Change to directory of current file
-    nnoremap <buffer> <silent> <localleader>d       :JupyterCd %:p:h<CR>
+    nnoremap <buffer> <silent> <localleader>d    :JCd %:p:h<CR>
 
     " Send just the current line
-    nnoremap <buffer> <silent> <localleader>X       :JupyterSendCell<CR>
-    nnoremap <buffer> <silent> <localleader>E       :JupyterSendRange<CR>
+    nnoremap <buffer> <silent> <localleader>X    :JSendCell<CR>
+    nnoremap <buffer> <silent> <localleader>E    :JSendRange<CR>
 
     " Send the text to jupyter kernel
     nmap <buffer> <silent> <localleader>e        <Plug>JupyterRunTextObj
     vmap <buffer> <silent> <localleader>e        <Plug>JupyterRunVisual
 
-    nnoremap <buffer> <silent> <localleader>U       :JupyterUpdateShell<CR>
+    nnoremap <buffer> <silent> <localleader>U    :JUpdateShell<CR>
 endfunction
 
 " Create <Plug> for user mappings
