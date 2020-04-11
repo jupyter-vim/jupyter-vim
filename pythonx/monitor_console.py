@@ -7,8 +7,8 @@ from time import sleep
 import vim
 
 # Local
-from jupyter_util import parse_messages, prettify_execute_intput, \
-    unquote_string, str_to_vim, echom
+from jupyter_util import echom, prettify_execute_intput, str_to_vim, \
+                         strip_color_escapes, unquote_string
 
 try:
     from queue import Empty
@@ -144,3 +144,82 @@ def monitor_decorator(fct):
     def wrapper(self, *args, **kwargs):
         self.monitor.monitorable(fct)(self, *args, **kwargs)
     return wrapper
+
+
+def parse_messages(section_info, msgs):
+    """Message handler for Jupyter protocol (Async)
+
+    Takes all messages on the I/O Public channel, including stdout, stderr,
+    etc.
+    Returns: a list of the formatted strings of their content.
+
+    See also: <http://jupyter-client.readthedocs.io/en/stable/messaging.html>
+    """
+    # pylint: disable=too-many-branches
+    # TODO section_info is not perfectly async
+    # TODO remove complexity
+    res = list()
+    for msg in msgs:
+        s = ''
+        default_count = section_info.monitor.cmd_count
+        if 'msg_type' not in msg['header']:
+            continue
+        msg_type = msg['header']['msg_type']
+
+        if msg_type == 'status':
+            # I don't care status (idle or busy)
+            continue
+
+        if msg_type == 'stream':
+            # Get data
+            text = strip_color_escapes(msg['content']['text'])
+            line_number = msg['content'].get('execution_count', default_count)
+            # Set prompt
+            if msg['content'].get('name', 'stdout') == 'stderr':
+                prompt = 'Err[{:d}]: '.format(line_number)
+                dots = (' ' * (len(prompt.rstrip()) - 4)) + '...x '
+            else:
+                prompt = 'Out[{:d}]: '.format(line_number)
+                dots = (' ' * (len(prompt.rstrip()) - 4)) + '...< '
+            s = prompt
+            # Add continuation line, if necessary
+            s += text.rstrip().replace('\n', '\n' + dots)
+            # Set cmd_count: if it changed
+            if line_number != default_count:
+                section_info.monitor.set_cmd_count(line_number)
+
+        elif msg_type == 'display_data':
+            s += msg['content']['data']['text/plain']
+
+        elif msg_type in ('execute_input', 'pyin'):
+            line_number = msg['content'].get('execution_count', default_count)
+            cmd = msg['content']['code']
+            s = prettify_execute_intput(line_number, cmd, section_info.lang.prompt_in)
+            # Set cmd_count: if it changed
+            if line_number != default_count:
+                section_info.monitor.set_cmd_count(line_number)
+
+        elif msg_type in ('execute_result', 'pyout'):
+            # Get the output
+            line_number = msg['content'].get('execution_count', default_count)
+            s = section_info.lang.prompt_out.format(line_number)
+            s += msg['content']['data']['text/plain']
+            # Set cmd_count: if it changed
+            if line_number != default_count:
+                section_info.monitor.set_cmd_count(line_number)
+
+        elif msg_type in ('error', 'pyerr'):
+            s = "\n".join(map(strip_color_escapes, msg['content']['traceback']))
+
+        elif msg_type == 'input_request':
+            section_info.vim.thread_echom('python input not supported in vim.', style='Error')
+            continue  # unsure what to do here... maybe just return False?
+
+        else:
+            section_info.vim.thread_echom("Message type {} unrecognized!".format(msg_type))
+            continue
+
+        # List all messages
+        res.append(s)
+
+    return res

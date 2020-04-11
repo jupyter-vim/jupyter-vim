@@ -18,8 +18,7 @@ from jupyter_client import KernelManager, find_connection_file
 import vim
 
 # Local
-from jupyter_util import echom, unquote_string, shorten_filename, \
-    parse_iopub_for_reply, vim_var
+from jupyter_util import echom, unquote_string, shorten_filename, vim_var
 
 try:
     from queue import Queue, Empty
@@ -334,3 +333,38 @@ class Sync:
         self.stop_thread()
         self.thread = Thread(target=target, args=args, daemon=True)
         self.thread.start()
+
+
+# -----------------------------------------------------------------------------
+#        Parsers
+# -----------------------------------------------------------------------------
+def parse_iopub_for_reply(msgs, line_number):
+    """Get kernel response from message pool (Async)
+
+    Param: line_number: the message number of the corresponding code Use: some
+    kernel (iperl) do not discriminate when clien ask user_expressions. But
+    still they give a printable output
+    """
+    res = -1
+
+    # Parse all execute
+    for msg in msgs:
+        # Get the result of execution
+        content = msg.get('content', False)
+        if not content:
+            continue
+
+        ec = int(content.get('execution_count', 0))
+        if not ec:
+            continue
+        if line_number not in (-1, ec):
+            continue
+
+        msg_type = msg.get('header', {}).get('msg_type', '')
+        if msg_type not in ('execute_result', 'stream'):
+            continue
+
+        res = content.get('data', {}).get('text/plain', -1)
+        res = res if res != -1 else content.get('text', -1)
+        break
+    return res
