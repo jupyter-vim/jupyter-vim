@@ -48,7 +48,7 @@ try:
     _jupyter_session = JupyterVimSession()
 
     # For direct calls
-    from jupyter_util import str_to_py, find_jupyter_kernels, find_signals
+    from jupyter_util import str_to_py, find_jupyter_kernel_ids, find_signals
 except Exception as exc:
     vim.command('let s:init_outcome = "could not import jupyter_vim <- {0}: {1}"'
                 .format(exc.__class__.__name__, exc))
@@ -106,7 +106,7 @@ endfunction
 
 function! jupyter#CompleteConnect(ArgLead, CmdLine, CursorPos) abort
     " Get kernel id from python
-    let l:kernel_ids = Pyevalx('find_jupyter_kernels()')
+    let l:kernel_ids = Pyevalx('find_jupyter_kernel_ids()')
     " Filter id matching user arg
     call filter(l:kernel_ids, '-1 != match(v:val, a:ArgLead)')
     " Return list

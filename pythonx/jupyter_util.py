@@ -1,10 +1,15 @@
-from sys import version_info
-from os import listdir
-from os.path import isfile, join
-import signal
+"""
+Utility functions for use with jupyter_vim module.
+"""
+import os
+from pathlib import Path
 import re
+import signal
+from sys import version_info
 
 import vim
+
+from jupyter_core.paths import jupyter_runtime_dir
 
 
 def is_integer(s):
@@ -98,43 +103,20 @@ def prettify_execute_intput(line_number, cmd, prompt_in):
     return prompt + cmd.rstrip().replace('\n', '\n' + dots)
 
 
-def shorten_filename(runtime_file):
-    """Shorten connection filename kernel-24536.json -> 24536"""
-    r_cfile = r'.*kernel-([^\-]*).*\.json'
-    return re.sub(r_cfile, r'\1', runtime_file)
+def match_kernel_id(fpath):
+    """Get kernel id from filename: 'kernel-24536.json' -> '24536'"""
+    m = re.search(r'kernel-(.+)\.json', str(fpath))
+    return m[1] if m else None
 
 
-def hex_sort(stg):
-    """Sort hex strings"""
-    try:
-        return int('0x' + stg, 16)
-    except ValueError:
-        return 0
-
-
-def find_jupyter_kernels():
+def find_jupyter_kernel_ids():
     """Find opened kernels
     Called: <- vim completion method
     Returns: List of string
     """
-    # Get jupyter runtime root dir
-    from jupyter_core.paths import jupyter_runtime_dir
-    jupyter_path = jupyter_runtime_dir()
-
-    # Get all kernel json files
-    runtime_files = [fpath for fpath in listdir(jupyter_path)
-                     if isfile(join(jupyter_path, fpath))
-                     and re.match(r'.*\.json', fpath)]
-
-    # Get all the kernel ids
-    kernel_ids = [shorten_filename(fpath) for fpath in runtime_files
-                  if not fpath.startswith('nbserver')]
-
-    # Sort
-    kernel_ids.sort(key=hex_sort, reverse=True)
-
-    # Return -> vim caller
-    return kernel_ids
+    # TODO Get type of kernel (python, julia, etc.)
+    runtime_files = Path(jupyter_runtime_dir()).glob('kernel*.json')
+    return [match_kernel_id(fpath) for fpath in runtime_files]
 
 
 def find_signals():

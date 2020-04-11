@@ -18,7 +18,7 @@ from jupyter_client import KernelManager
 import vim
 
 # Local
-from jupyter_util import echom, unquote_string, shorten_filename, vim_var
+from jupyter_util import echom, unquote_string, match_kernel_id, vim_var
 
 try:
     from queue import Queue, Empty
@@ -269,7 +269,7 @@ class JupyterMessenger:
         # Fill kernel_info
         self.kernel_info.update({
             'connection_file': self.cfile,
-            'id': shorten_filename(self.cfile),  # Id of cfile (reduced)
+            'id': match_kernel_id(self.cfile),  # int id of cfile
             # Get from kernel info
             'pid': self.send_code_and_get_reply(language.pid),  # PID of kernel
             'cwd': self.send_code_and_get_reply(language.cwd),
