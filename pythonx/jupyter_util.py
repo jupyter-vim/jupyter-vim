@@ -64,12 +64,12 @@ def get_vim(name, default=None):
         return default
 
 
-def str_to_py(var):
-    """Encode Python object `var` as python string.
+def str_to_py(obj):
+    """Encode Python object `obj` as python string.
 
     Parameters
     ----------
-    var : :obj:
+    obj : :obj:
         Python object to be encoded (typically a str or int).
 
     Returns
@@ -79,20 +79,20 @@ def str_to_py(var):
     """
     is_py3 = version_info[0] >= 3
     encoding = vim.eval('&encoding') or 'utf-8'
-    if is_py3 and isinstance(var, bytes):
-        var = str(var, encoding)
-    elif not is_py3 and isinstance(var, str):
+    if is_py3 and isinstance(obj, bytes):
+        obj = str(obj, encoding)
+    elif not is_py3 and isinstance(obj, str):
         # pylint: disable=undefined-variable
-        var = unicode(var, encoding)  # noqa: E0602
-    return var
+        obj = unicode(obj, encoding)  # noqa: E0602
+    return obj
 
 
-def str_to_vim(var):
-    """Encode Python object `var` as vim string.
+def str_to_vim(obj):
+    """Encode Python object `obj` as vim string.
 
     Parameters
     ----------
-    var : :obj:
+    obj : :obj:
         Object to be encoded.
 
     Returns
