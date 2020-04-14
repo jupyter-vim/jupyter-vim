@@ -11,7 +11,7 @@ function! jupyter#load#MakeStandardCommands() abort
     command! -buffer -nargs=0    JUpdateMonitor   call jupyter#UpdateMonitor()
     command! -buffer -nargs=? -complete=dir  JCd  call jupyter#JupyterCd(<f-args>)
     command! -buffer -nargs=? -bang -complete=customlist,jupyter#CompleteTerminateKernel
-        \ JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
+        \ JTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
     command! -buffer -nargs=* -complete=file
         \ JRunFile update | call jupyter#RunFile(<f-args>)
 endfunction

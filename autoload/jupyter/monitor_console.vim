@@ -40,14 +40,14 @@ function! jupyter#monitor_console#OpenJupyterTerm() abort
     syn match JupyterPromptStdErr2 /^ *\.\.\.x /
     syn match JupyterMagic /^\]: \zs%\w\+/
 
-    hi JupyterPromptIn   ctermfg=Green
-    hi JupyterPromptOut  ctermfg=Red
-    hi JupyterPromptOut2 ctermfg=Grey
-    hi JupyterPromptStdOut  ctermfg=Blue
-    hi JupyterPromptStdOut2 ctermfg=Cyan
-    hi JupyterPromptStdErr  ctermfg=Red
-    hi JupyterPromptStdErr2 ctermfg=DarkRed
-    hi JupyterMagic      ctermfg=Magenta
+    hi JupyterPromptIn          ctermfg=Green
+    hi JupyterPromptOut         ctermfg=Red
+    hi JupyterPromptOut2        ctermfg=Grey
+    hi JupyterPromptStdOut      ctermfg=Blue
+    hi JupyterPromptStdOut2     ctermfg=Cyan
+    hi JupyterPromptStdErr      ctermfg=Red
+    hi JupyterPromptStdErr2     ctermfg=DarkRed
+    hi JupyterMagic             ctermfg=Magenta
 
     " Restore cursor at current window
     call win_gotoid(win_id)

@@ -209,7 +209,7 @@ endfunction
 
 " Timer callback to fill jupyter console buffer
 function! jupyter#UpdateEchom(timer) abort
-    Pythonx _jupyter_session.vim.timer_echom()
+    Pythonx _jupyter_session.vim_client.timer_echom()
 endfunction
 
 "=============================================================================

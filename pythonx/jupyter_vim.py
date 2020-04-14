@@ -57,21 +57,43 @@ from message_parser import VimMessenger, JupyterMessenger, Sync
 from monitor_console import Monitor, monitor_decorator
 
 
+# TODO
+#   * Rename `Monitor` -> 'JupyterMonitor`
+#   * Rename `Sync` -> 'JupyterSync`
+#   * docstrings!!
 class JupyterVimSession():
-    """Info relative to the jupyter <-> vim current section"""
+    """Object containing jupyter <-> vim session info.
+
+    This object is created in lieu of individual functions so that a single vim
+    session can connect to multiple Jupyter kernels at once. Each connection
+    gets a new JupyterVimSession object.
+
+    Attributes
+    ----------
+    sync : :obj:`Sync`
+        Object to support asynchronous operations.
+    kernel_client : :obj:`JupyterMessenger`
+        Object to handle primitive messaging between vim and the jupyter kernel.
+    vim_client : :obj:`VimMessenger`
+        Object to handle messaging between python and vim.
+    monitor : :obj:`Monitor`
+        Jupyter kernel monitor buffer and message line.
+    lang : :obj:`Language`
+        User-defined Language object corresponding to desired kernel type.
+    """
     def __init__(self):
         self.sync = Sync()
-        self.client = JupyterMessenger(self.sync)
-        self.vim = VimMessenger(self.sync)
+        self.kernel_client = JupyterMessenger(self.sync)
+        self.vim_client = VimMessenger(self.sync)
         self.monitor = Monitor(self)
         self.lang = get_language('')
 
     def if_connected(fct):
-        """Decorator, fail if not connected"""
+        """Decorator, fail if not connected."""
         # pylint: disable=no-self-argument, not-callable, no-member
         @functools.wraps(fct)
         def wrapper(self, *args, **kwargs):
-            if not self.client.check_connection_or_warn():
+            if not self.kernel_client.check_connection_or_warn():
                 echom(f"Pythonx _jupyter_session.{fct.__name__}() needs a connected client",
                       style='Error')
                 return None
@@ -79,33 +101,53 @@ class JupyterVimSession():
         return wrapper
 
     def connect_to_kernel(self, kernel_type, filename=''):
-        """:JupyterConnect"""
-        # Set what can
-        self.client.kernel_info['kernel_type'] = kernel_type
-        self.client.kernel_info['cfile_user'] = filename
+        """Establish a connection with the specified kernel type.
+
+        .. note:: vim command `:JupyterConnect` 
+
+        Parameters
+        ----------
+        kernel_type : str
+            Type of kernel, i.e. `python3` with which to connect.
+        filename : str, optional, default=''
+            Specific kernel connection filename, i.e.
+                ``$(jupyter --runtime)/kernel-123.json``
+        """
+        self.kernel_client.kernel_info['kernel_type'] = kernel_type
+        self.kernel_client.kernel_info['cfile_user'] = filename
         self.lang = get_language(kernel_type)
 
         # Create thread
         self.sync.start_thread(target=self.thread_connect_to_kernel)
 
         # Launch timers: update echom
-        for sleep_ms in self.vim.get_timer_intervals():
+        for sleep_ms in self.vim_client.get_timer_intervals():
             vim_cmd = ('let timer = timer_start(' + str(sleep_ms) +
                        ', "jupyter#UpdateEchom")')
             vim.command(vim_cmd)
 
     @if_connected
     def disconnect_from_kernel(self):
-        """:JupyterDisconnect kernel client (Sync)"""
-        self.client.disconnnect()
-        echom("Disconnected: {}".format(self.client.kernel_info['id']), style='Directory')
+        """Disconnect from the kernel client (Sync).
+
+        .. note:: vim command `:JupyterDisconnect`.
+        """
+        self.kernel_client.disconnnect()
+        echom(f"Disconnected: {self.kernel_client.kernel_info['id']}", style='Directory')
 
     @if_connected
     def signal_kernel(self, sig=signal.SIGTERM):
-        """:JupyterTerminateKernel
-        Use kill command to send a signal to the remote kernel.
-        This side steps the (non-functional) jupyter interrupt mechanisms.
+        """Send a signal to the remote kernel via the kill command.
+
+        This command side steps the non-functional jupyter interrupt.
         Only works on posix.
+
+        .. note:: vim command `:JupyterTerminateKernel`
+
+        Parameters
+        ----------
+        sig : :obj:`signal`, optional, default=signal.SIGTERM
+            Signal to send to the kernel.
         """
         # Clause: valid signal
         if isinstance(sig, str):
@@ -116,7 +158,7 @@ class JupyterVimSession():
                 return
 
         # Clause: valid pid
-        pid = self.client.kernel_info['pid']
+        pid = self.kernel_client.kernel_info['pid']
         if not is_integer(pid):
             echom(f"Cannot kill kernel: pid is not a number {pid}", style='Error')
             return
@@ -145,24 +187,34 @@ class JupyterVimSession():
             sig_list.append(signal.SIGKILL)
         if sig in sig_list:
             try:
-                remove(self.client.cfile)
+                remove(self.kernel_client.cfile)
             except OSError:
                 pass
 
     @if_connected
     def run_file(self, flags='', filename=''):
-        """:JupyterRunFile"""
+        """Run an entire file in the kernel.
+
+        .. note:: vim command `:JupyterRunFile`.
+
+        Parameters
+        ----------
+        flags : str, optional, default=''
+            Flags to pass with language-specific `run` command.
+        filename : str, optional, default=''
+            Specific filename to run.
+        """
         # Special cpython cases
-        if self.client.kernel_info['kernel_type'] == 'python':
+        if self.kernel_client.kernel_info['kernel_type'] == 'python':
             return self.run_file_in_ipython(flags=flags, filename=filename)
 
         # Message warning to user
         if flags != '':
             echom('RunFile in other kernel than "python" doesn\'t support flags.'
-                  ' All arguments except the last (file location) will be ignored.',
+                  ' All arguments except the file location will be ignored.',
                   style='Error')
 
-        # Get command and slurp file if not implemented
+        # Get command and read file if not implemented
         cmd_run = self.lang.run_file.format(filename)
         if cmd_run == '-1':
             with open(filename, 'r') as file_run:
@@ -176,12 +228,12 @@ class JupyterVimSession():
     #            could lead to segmentation fault
     # -----------------------------------------------------------------------------
     def thread_connect_to_kernel(self):
-        """Create kernel manager from existing connection file (Async)"""
+        """Create kernel manager from existing connection file (Async)."""
         if self.sync.check_stop():
             return
 
         # Check if connection is alive
-        connected = self.client.check_connection()
+        connected = self.kernel_client.check_connection()
 
         # Try to connect
         MAX_ATTEMPTS = 3
@@ -196,31 +248,32 @@ class JupyterVimSession():
 
             # Find connection file
             try:
-                self.client.cfile = find_connection_file(filename=self.client.kernel_info['cfile_user'])
+                self.kernel_client.cfile = find_connection_file(filename=self.kernel_client.kernel_info['cfile_user'])
             except IOError:
-                self.vim.thread_echom(
+                self.vim_client.thread_echom(
                     "kernel connection attempt {:d}/{MAX_ATTEMPTS} failed - no kernel file"
                     .format(attempt), style="Error")
                 continue
 
             # Connect
-            connected = self.client.create_kernel_manager()
+            connected = self.kernel_client.create_kernel_manager()
 
         # Early return if failed
         if not connected:
-            self.client.disconnnect()
-            self.vim.thread_echom('kernel connection attempt timed out', style='Error')
+            self.kernel_client.disconnnect()
+            self.vim_client.thread_echom('kernel connection attempt timed out', style='Error')
             return
 
         # Pre-message the user
-        self.vim.thread_echom('Connected! ', style='Question')
+        self.vim_client.thread_echom('Connected! ', style='Question')
 
         # Collect and echom kernel info
-        self.vim.thread_echom_kernel_info(self.client.get_kernel_info(self.lang))
+        self.vim_client.thread_echom_kernel_info(self.kernel_client.get_kernel_info(self.lang))
 
+        # TODO only if verbose
         # Print vim connected -> client
-        # cmd_hi = self.lang.print_string.format(self.vim.string_hi())
-        # self.client.send(cmd_hi)
+        # cmd_hi = self.lang.print_string.format(self.vim_client.string_hi())
+        # self.kernel_client.send(cmd_hi)
 
     # -----------------------------------------------------------------------------
     #        Communicate with Kernel
@@ -233,13 +286,21 @@ class JupyterVimSession():
     @if_connected
     @monitor_decorator
     def change_directory(self, directory):
-        """cd: Change current working directory in kernel."""
+        """Change current working directory in kernel.
+
+        .. note:: vim command `:JCd`.
+
+        Parameters
+        ----------
+        directory : str
+            Directory into which to change.
+        """
         msg = self.lang.cd.format(directory)
-        msg_id = self.client.send(msg)
+        msg_id = self.kernel_client.send(msg)
 
         # Print cwd
         try:
-            cwd = self.client.send_code_and_get_reply(self.lang.cwd)
+            cwd = self.kernel_client.send_code_and_get_reply(self.lang.cwd)
             echom('CWD: ', style='Question')
             vim.command("echon \"{}\"".format(cwd))
         except Exception:
@@ -251,17 +312,33 @@ class JupyterVimSession():
     @if_connected
     @monitor_decorator
     def run_command(self, cmd):
-        """Send a single command to the kernel
-        Sync: crossroad -> client.send
+        """Send a single command to the kernel.
+
+        .. note:: vim command `:JSendCode`.
+
+        Parameters
+        ----------
+        cmd : str
+            Lines of code to send to the kernel.
         """
-        self.client.update_meta_messages()
-        msg_id = self.client.send(cmd)
+        self.kernel_client.update_meta_messages()
+        msg_id = self.kernel_client.send(cmd)
         return (cmd, msg_id)
 
     @if_connected
     @monitor_decorator
     def run_file_in_ipython(self, flags='', filename=''):
-        """Run a given python file using ipython's %run magic."""
+        """Run a given python file using ipython's %run magic.
+
+        .. note:: vim command `:JRunFile`.
+
+        Parameters
+        ----------
+        flags : str, optional, default=''
+            Flags to pass with language-specific `run` command.
+        filename : str, optional, default=''
+            Specific filename to run.
+        """
         ext = splitext(filename)[-1][1:]
         if ext in ('pxd', 'pxi', 'pyx', 'pyxbld'):
             run_cmd = '%run_cython'
@@ -277,7 +354,10 @@ class JupyterVimSession():
     @if_connected
     @monitor_decorator
     def send_range(self):
-        """Send a range of lines from the current vim buffer to the kernel."""
+        """Send a range of lines from the current vim buffer to the kernel.
+
+        .. note:: vim command `:JSendRange`.
+        """
         rang = vim.current.range
         lines = "\n".join(vim.current.buffer[rang.start:rang.end+1])
         msg_id = self.run_command(lines)
@@ -287,30 +367,34 @@ class JupyterVimSession():
     @if_connected
     @monitor_decorator
     def run_cell(self):
-        """Run all the code between two cell separators"""
+        """Run all the code between two cell separators.
+
+        .. note:: vim command `:JSendCell`.
+        """
+        rang = vim.current.range
         # Get line and buffer and cellseparators
         cur_buf = vim.current.buffer
         cur_line = vim.current.window.cursor[0] - 1
-        self.vim.set_cell_separators()
+        self.vim_client.set_cell_separators()
 
         # Search upwards for cell separator
         upper_bound = cur_line
-        while upper_bound > 0 and not self.vim.is_cell_separator(cur_buf[upper_bound]):
+        while upper_bound > 0 and not self.vim_client.is_cell_separator(cur_buf[upper_bound]):
             upper_bound -= 1
 
         # Skip past the first cell separator if it exists
-        if self.vim.is_cell_separator(cur_buf[upper_bound]):
+        if self.vim_client.is_cell_separator(cur_buf[upper_bound]):
             upper_bound += 1
 
         # Search downwards for cell separator
         lower_bound = min(upper_bound+1, len(cur_buf)-1)
 
         while lower_bound < len(cur_buf)-1 and \
-                not self.vim.is_cell_separator(cur_buf[lower_bound]):
+                not self.vim_client.is_cell_separator(cur_buf[lower_bound]):
             lower_bound += 1
 
         # Move before the last cell separator if it exists
-        if self.vim.is_cell_separator(cur_buf[lower_bound]):
+        if self.vim_client.is_cell_separator(cur_buf[lower_bound]):
             lower_bound -= 1
 
         # Make sure bounds are within buffer limits

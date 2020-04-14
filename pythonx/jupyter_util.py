@@ -13,61 +13,102 @@ from jupyter_core.paths import jupyter_runtime_dir
 
 
 def is_integer(s):
-    """Check if string represent an integer"""
+    """Check if string represents an integer."""
     s = str(s)
     if s[0] in ('-', '+'):
         return s[1:].isdigit()
     return s.isdigit()
 
 
-def echom(arg, style="None", cmd='echom'):
-    """Report string `arg` using vim's echomessage command.
+def echom(arg, style='None'):
+    """Report `arg` using vim's :echomessage command.
 
-    Keyword args:
-    style -- the vim highlighting style to use
+    Parameters
+    ----------
+    arg : str
+        message to print
+    style : str, optional, default='None'
+        vim highlighting style of message
     """
     try:
-        vim.command("echohl {}".format(style))
+        vim.command(f"echohl {style}")
         messages = arg.split('\n')
         for msg in messages:
-            vim.command(cmd + " \"{}\"".format(msg.replace('\"', '\\\"')))
+            vim.command("echom \"{}\"".format(msg.replace('\"', '\\\"')))
         vim.command("echohl None")
     except vim.error:
-        print("-- {}".format(arg))
+        print(f"-- {arg}")
 
 
-def vim_var(name, default=None):
-    """Try to get vim `name` otherwise `default`."""
+def get_vim(name, default=None):
+    """Try to get vim `name` otherwise `default`.
+
+    .. note:: The built-in `vim.vars['name']` dictionary only contains `g:` and
+        `v:` variables, not `b:`, `l:`, or `s:` variables.
+
+    Parameters
+    ----------
+    name : str
+        Name of vim variable to evaluate.
+    default : :obj:, optional, default=None
+        Value to return if vim variable `name` does not exist.
+
+    Returns
+    -------
+    str
+        The value of the vim variable, or `default`.
+    """
     try: 
         return vim.eval(name)
     except vim.error: 
         return default
 
 
-def str_to_py(var):
-    """Convert: Vim -> Py"""
+def str_to_py(obj):
+    """Encode Python object `obj` as python string.
+
+    Parameters
+    ----------
+    obj : :obj:
+        Python object to be encoded (typically a str or int).
+
+    Returns
+    -------
+    str
+        An encoded python string.
+    """
     is_py3 = version_info[0] >= 3
     encoding = vim.eval('&encoding') or 'utf-8'
-    if is_py3 and isinstance(var, bytes):
-        var = str(var, encoding)
-    elif not is_py3 and isinstance(var, str):
+    if is_py3 and isinstance(obj, bytes):
+        obj = str(obj, encoding)
+    elif not is_py3 and isinstance(obj, str):
         # pylint: disable=undefined-variable
-        var = unicode(var, encoding)  # noqa: E0602
-    return var
+        obj = unicode(obj, encoding)  # noqa: E0602
+    return obj
 
 
 def str_to_vim(obj):
-    """Convert: Py -> Vim
-    Independant of vim's version
+    """Encode Python object `obj` as vim string.
+
+    Parameters
+    ----------
+    obj : :obj:
+        Object to be encoded.
+
+    Returns
+    -------
+    str
+        Double-quoted string.
     """
     # Encode
-    if version_info[0] < 3:
-        # pylint: disable=undefined-variable
-        obj = unicode(obj, 'utf-8')  # noqa: E0602
-    else:
+    is_py3 = version_info[0] >= 3
+    if is_py3:
         if not isinstance(obj, bytes):
             obj = obj.encode()
         obj = str(obj, 'utf-8')
+    else:
+        # pylint: disable=undefined-variable
+        obj = unicode(obj, 'utf-8')  # noqa: E0602
 
     # Vim cannot deal with zero bytes:
     obj = obj.replace('\0', '\\0')
@@ -75,18 +116,19 @@ def str_to_vim(obj):
     # Escape
     obj.replace('\\', '\\\\').replace('"', r'\"')
 
-    return '"{:s}"'.format(obj)
+    # Return double-quoted string
+    return f'"{obj:s}"'
 
 
-def unquote_string(string):
-    """Unquote some text/plain response from kernel"""
-    if isinstance(string, bytes):
-        string = string.decode()
-    if not isinstance(string, str):
-        string = str(string)
+def unquote_string(s):
+    """Remove single and double quotes from beginning and end of `s`."""
+    if isinstance(s, bytes):
+        s = s.decode()
+    if not isinstance(s, str):
+        s = str(s)
     for quote in ("'", '"'):
-        string = string.rstrip(quote).lstrip(quote)
-    return string
+        s = s.rstrip(quote).lstrip(quote)
+    return s
 
 
 def strip_color_escapes(s):
@@ -96,7 +138,22 @@ def strip_color_escapes(s):
 
 
 def prettify_execute_intput(line_number, cmd, prompt_in):
-    """Also used with my own input (as iperl does not send it back)"""
+    """Add additional formatting around a multiline command.
+
+    Parameters
+    ----------
+    line_number : int or str
+        Starting line number of input command.
+    cmd : str
+        The command to be executed.
+    prompt_in : str
+        The leader prompt string.
+
+    Returns
+    -------
+    str
+        Input command with additional formatting.
+    """
     prompt = prompt_in.format(line_number)
     # Add continuation line, if necessary
     dots = (' ' * (len(prompt.rstrip()) - 4)) + '...: '
@@ -104,15 +161,31 @@ def prettify_execute_intput(line_number, cmd, prompt_in):
 
 
 def match_kernel_id(fpath):
-    """Get kernel id from filename: 'kernel-24536.json' -> '24536'"""
+    """Get kernel id from file path: 'kernel-24536.json' -> '24536'.
+
+    Parameters
+    ----------
+    fpath : :obj:`pathlib.Path` or str
+        Filename (or full path) from which to find kernel id.
+
+    Returns
+    -------
+    str
+        Kernel id as a string.
+    """
     m = re.search(r'kernel-(.+)\.json', str(fpath))
     return m[1] if m else None
 
 
 def find_jupyter_kernel_ids():
-    """Find opened kernels
-    Called: <- vim completion method
-    Returns: List of string
+    """Find opened kernel json files.
+
+    .. note:: called by vim command completion.
+
+    Returns
+    -------
+    list(str)
+        List of strings of kernel ids.
     """
     # TODO Get type of kernel (python, julia, etc.)
     runtime_files = Path(jupyter_runtime_dir()).glob('kernel*.json')
@@ -120,9 +193,14 @@ def find_jupyter_kernel_ids():
 
 
 def find_signals():
-    """Find avalaible signal string in OS
-    Called: <- vim completion method
-    Returns: List of string
+    """Find avalaible signal string in OS.
+
+    .. note:: called by vim command completion.
+
+    Returns
+    -------
+    list(str)
+        List of strings of signal names, i.e. SIGTERM.
     """
     signals = [v for v, k in signal.__dict__.items()
                if v.startswith('SIG') and not v.startswith('SIG_')]
