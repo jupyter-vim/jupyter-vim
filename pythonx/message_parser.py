@@ -15,7 +15,7 @@ from jupyter_client import KernelManager
 import vim
 
 # Local
-from jupyter_util import echom, unquote_string, match_kernel_id, vim_var
+from jupyter_util import echom, unquote_string, match_kernel_id, get_vim
 
 try:
     from queue import Queue, Empty
@@ -26,53 +26,47 @@ except ImportError:
 from language import list_languages
 
 
-class VimMessenger:
+class VimMessenger():
     """Handle message to/from Vim"""
     def __init__(self, sync):
-        # Message queue: for async echom
-        self.message_queue = Queue()
-        # Pid of current vim section
-        self.pid = vim_var('getpid()', -1)
+        self.sync = sync
+        self.message_queue = Queue()        # for async echom
+        self.pid = get_vim('getpid()', -1)  # pid of current vim session
 
         # Define members python <- vim
-        self.set_cell_separators()
         self.set_monitor_bools()
-
-        # Sync object
-        self.sync = sync
+        self.set_cell_separators()
 
     def set_monitor_bools(self):
         """Set boolean defining if jupyter-vim.py must monitor it messages"""
-        # Verbose: receive message id from sending function
-        # and report back to vim with output.
-        self.verbose = bool(int(vim.vars.get('jupyter_verbose', 0)))
+        # Verbose: receive message id from sending function and report back to
+        #   vim with output.
         # Monitor: the kernel replies, as well as messages from other clients.
+        self.verbose = bool(int(vim.vars.get('jupyter_verbose', 0)))
         self.monitor_console = bool(int(vim.vars.get('jupyter_monitor_console', 0)))
 
     def set_cell_separators(self):
         """Set cell separators list<regex> from vim globals to python object
-        Once to avoid mutliple call at parsing file
+        Once to avoid mutliple call at parsing file.
         """
-        self.cell_separators = vim_var('g:jupyter_cell_separators', '')
+        # NOTE this function is called from jupyter_vim.run_cell
+        self.cell_separators = get_vim('g:jupyter_cell_separators', '')
         self.cell_separators = [unquote_string(x) for x in self.cell_separators]
 
     @staticmethod
     def get_timer_intervals():
         """Return list<int> timers in ms user defined"""
-        timer_list = vim_var('g:jupyter_timer_intervals', [0.1, 0.5, 1, 3])
+        timer_list = get_vim('g:jupyter_timer_intervals', [0.1, 0.5, 1, 3])
         return [int(x) for x in timer_list]
 
     @staticmethod
     def get_meta_messages():
-        """Return list<str>: user defined list of "meta" messages
-        > bef, pre, post, aft = VIM.get_meta_messages
-        """
-        return [
-            vim_var('b:jupyter_exec_before', ''),
-            vim_var('b:jupyter_exec_pre', ''),
-            vim_var('b:jupyter_exex_post', ''),
-            vim_var('b:jupyter_exec_after', '')
-        ]
+        """Return list<str>: user defined list of meta messages."""
+        return (get_vim('b:jupyter_exec_before', ''),
+                get_vim('b:jupyter_exec_pre', ''),
+                get_vim('b:jupyter_exex_post', ''),
+                get_vim('b:jupyter_exec_after', '')
+                )
 
     def is_cell_separator(self, line):
         """ Determine whether a given line is a cell separator """
@@ -109,7 +103,7 @@ class VimMessenger:
         for key in kernel_info:
             kernel_string += "\n    " + str(key) + ': ' + str(kernel_info[key])
 
-        # # Echo message
+        # Echo message
         self.thread_echom('To:', style='Question')
         self.thread_echom(kernel_string)
 
@@ -117,7 +111,7 @@ class VimMessenger:
         self.thread_echom('Connected: {}'.format(kernel_info['id']), style='Question')
 
 
-class JupyterMessenger:
+class JupyterMessenger():
     """Handle primitive messages to / from jupyter kernel
     Alias client
     """
@@ -292,7 +286,7 @@ class JupyterMessenger:
         return unquote_string(res)
 
 
-class Sync:
+class Sync():
     """Synchronization (not so) primitives, for a safe thread support"""
     def __init__(self):
         # Thread running
