@@ -1,0 +1,31 @@
+# Vader first test to test:
+# 1. Travis 
+# 2. Vader
+# 3. Jupyter vim trigger
+
+# 1,2 Travis and Vader
+Given python (Python):
+  print("hi from vim")
+  for i in range(3):
+    print(i)
+
+Execute (File Test.py):
+  Log 'Testing Vader itself and Travis'
+  file test.py
+  AssertEqual &ft, 'python'
+
+Expect (Same Python):
+  print("hi from vim")
+  for i in range(3):
+    print(i)
+
+# 3 Jupyter vim trigger
+Given python (Python):
+  print("hi from vim")
+
+Execute (File Test.py):
+  Log 'Testing Vader itself and Travis'
+  file test.py
+
+Expect (Same Python):
+  print("hi from vim")
