@@ -1,15 +1,15 @@
 """
 Utility functions for use with jupyter_vim module.
 """
-import os
+
 from pathlib import Path
 import re
 import signal
 from sys import version_info
 
-import vim
-
 from jupyter_core.paths import jupyter_runtime_dir
+
+import vim
 
 
 def is_integer(s):
@@ -58,9 +58,9 @@ def get_vim(name, default=None):
     str
         The value of the vim variable, or `default`.
     """
-    try: 
+    try:
         return vim.eval(name)
-    except vim.error: 
+    except vim.error:
         return default
 
 

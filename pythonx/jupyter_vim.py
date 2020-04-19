@@ -103,7 +103,7 @@ class JupyterVimSession():
     def connect_to_kernel(self, kernel_type, filename=''):
         """Establish a connection with the specified kernel type.
 
-        .. note:: vim command `:JupyterConnect` 
+        .. note:: vim command `:JupyterConnect`
 
         Parameters
         ----------
@@ -248,7 +248,8 @@ class JupyterVimSession():
 
             # Find connection file
             try:
-                self.kernel_client.cfile = find_connection_file(filename=self.kernel_client.kernel_info['cfile_user'])
+                self.kernel_client.cfile = find_connection_file(
+                    filename=self.kernel_client.kernel_info['cfile_user'])
             except IOError:
                 self.vim_client.thread_echom(
                     "kernel connection attempt {:d}/{:d} failed - no kernel file"
@@ -371,7 +372,6 @@ class JupyterVimSession():
 
         .. note:: vim command `:JSendCell`.
         """
-        rang = vim.current.range
         # Get line and buffer and cellseparators
         cur_buf = vim.current.buffer
         cur_line = vim.current.window.cursor[0] - 1

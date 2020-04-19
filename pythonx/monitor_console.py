@@ -90,9 +90,9 @@ class Monitor():
 
             # Insert code line Check not already here (check with substr 'Py [')
             if (self.cmd is not None
-                and len(io_new) != 0
-                and not any(self.si.lang.prompt_in[:4] in msg
-                            for msg in io_new + io_cache)):
+                    and len(io_new) != 0
+                    and not any(self.si.lang.prompt_in[:4] in msg
+                                for msg in io_new + io_cache)):
                 # Get cmd number from id
                 try:
                     reply = self.si.kernel_client.get_reply_msg(self.cmd_id)
@@ -212,7 +212,8 @@ def parse_messages(session_info, msgs):
             s = "\n".join((strip_color_escapes(x) for x in msg['content']['traceback']))
 
         elif msg_type == 'input_request':
-            session_info.vim_client.thread_echom('python input not supported in vim.', style='Error')
+            session_info.vim_client.thread_echom(
+                'python input not supported in vim.', style='Error')
             continue  # unsure what to do here... maybe just return False?
 
         else:
