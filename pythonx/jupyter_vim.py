@@ -34,12 +34,13 @@ try:
     # pylint: disable=unused-import
     import jupyter   # noqa
 except ImportError as e:
-    raise ImportError("Could not find kernel. " + __doc__, e)
+    raise ImportError("Could not import jupyter.\n(The original ImportError: {})\n{}"
+                      .format(e, __doc__))
 
 try:
     import vim
 except ImportError as e:
-    raise ImportError('vim module only available within vim!', e)
+    raise ImportError('vim module only available within vim! The original ImportError: ' + str(e))
 
 # Standard
 import functools
@@ -251,8 +252,8 @@ class JupyterVimSession():
                 self.kernel_client.cfile = find_connection_file(filename=self.kernel_client.kernel_info['cfile_user'])
             except IOError:
                 self.vim_client.thread_echom(
-                    "kernel connection attempt {:d}/{MAX_ATTEMPTS} failed - no kernel file"
-                    .format(attempt), style="Error")
+                    "kernel connection attempt {:d}/{:d} failed - no kernel file"
+                    .format(attempt, MAX_ATTEMPTS), style="Error")
                 continue
 
             # Connect
