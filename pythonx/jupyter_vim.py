@@ -251,8 +251,8 @@ class JupyterVimSession():
                 self.kernel_client.cfile = find_connection_file(filename=self.kernel_client.kernel_info['cfile_user'])
             except IOError:
                 self.vim_client.thread_echom(
-                    "kernel connection attempt {:d}/{MAX_ATTEMPTS} failed - no kernel file"
-                    .format(attempt), style="Error")
+                    "kernel connection attempt {:d}/{:d} failed - no kernel file"
+                    .format(attempt, MAX_ATTEMPTS), style="Error")
                 continue
 
             # Connect
