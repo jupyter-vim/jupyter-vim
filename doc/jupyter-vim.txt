@@ -90,6 +90,9 @@ COMMANDS 					*jupyter-vim-commands*
 			connect to a `jupyter kernel`, but the console is
 			necessary to display any output from your python code!
 
+:JDiconnect			         *jupyter-disconnect* *:JDiconnect*
+			Diconnect from the currently connected kernel.
+
 :JCd [dir] 				*jupyter-cd* *:JCd*
 			Change the working directory of the kernel to [dir].
                         Functions just like the typical shell command.
@@ -174,6 +177,14 @@ COMMANDS 					*jupyter-vim-commands*
 			pseudo console in as a useful debugging tool for the
 			message handler, because we can easily print additional
 			output from the client/kernel messaging protocol.
+
+JUpdateMonitor 		      *jupyter-updatemonitor* *:JUpdateMonitor*
+			Update the monitor buffer. See |g:jupyter_monitor_console|.
+
+JTerminateKernel [signal]        *jupyter-terminatekernel* *:JTerminateKernel*
+			Send [signal] to the connected kernel. [signal] is by
+			default SIGTERM (15). It can be a python signal
+			constant or an integer.
 
 --------------------------------------------------------------------------------
 MAPPINGS					*jupyter-vim-mappings*
