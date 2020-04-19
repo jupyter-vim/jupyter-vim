@@ -1,0 +1,90 @@
+# Jupyter commands
+# TODO:
+# - Check output
+# - Create a 04_monitor_console with:
+#   - :JUpdateMonitor
+#   - :JUpdateShell
+
+# Begin Basic
+Given python (Python):
+  print("hi from vim")
+  for i in range(3):
+    print(i)
+
+# Spawn kernel
+Execute (Spawn jupyter):
+  Log "Spawn Jupyter kernel"
+  call system("jupyter-kernel &")
+
+# :JConnect [connection_file]
+Execute (JConnect):
+  JConnect
+
+# :JCd [dir]
+Execute (JCd):
+  JCd
+# :JRunFile [flags] [filename]
+Execute (JRunFile):
+  JRunFile %
+
+# :JSendCode {code}
+Execute (JSendCode):
+  JSendCode 'print("hi from ex")'
+
+# End Basic
+Expect (Same Python):
+  print("hi from vim")
+  for i in range(3):
+    print(i)
+
+# Begin Cell
+Given python (Python with cells):
+  print("Top")
+  ## Cell 1
+  print("1.1")
+  print("1.2")
+  ## Cell 2
+  print("2.1")
+  print("2.2")
+  ## End
+  print("Bottom")
+
+Execute (JConnect):
+  JConnect
+
+# :[count]JSendCount
+Do (JSendCount):
+  gg
+  :3JSendCount\<CR>
+
+# :[range]JSendRange
+Do (JSendRange):
+  gg
+  :3,4JSendRange\<CR>
+
+# :JSendCell
+Do (JSendCell):
+  ggjj
+  :JSendCell\<CR>
+
+# End Cell
+Expect (Python with cells):
+  print("Top")
+  ## Cell 1
+  print("1.1")
+  print("1.2")
+  ## Cell 2
+  print("2.1")
+  print("2.2")
+  ## End
+  print("Bottom")
+
+#:JDisconnect
+Execute (JDisconnect):
+  JDisconnect
+Execute (JConnect -> Reconnect):
+  JConnect
+
+#:JTerminateKernel
+Execute (JTerminateKernel):
+  JTerminateKernel
