@@ -50,8 +50,8 @@ try:
     # For direct calls
     from jupyter_util import str_to_py, find_jupyter_kernel_ids, find_signals
 except Exception as exc:
-    vim.command('let s:init_outcome = "could not import jupyter_vim <- {0}: {1}"'
-                .format(exc.__class__.__name__, exc))
+    vim.bindeval('s:')['init_outcome'] = ("could not import jupyter_vim <- {0}: {1}"
+                                          .format(exc.__class__.__name__, exc))
 else:
     vim.command('let s:init_outcome = 1')
 EOF
@@ -60,11 +60,11 @@ EOF
     try
         execute 'Pythonx exec('''.escape(join(init_lines, '\n'), "'").''')'
     catch
-        throw printf('[jupyter-vim] s:init_python: failed to run Python for initialization: %s.', v:exception)
+        throw printf('[jupyter-vim] s:init_python: failed to run Python for initialization: %s', v:exception)
     endtry
 
     if s:init_outcome isnot 1
-        throw printf('[jupyter-vim] s:init_python: s:init_outcome = %s.', s:init_outcome)
+        throw printf('[jupyter-vim] s:init_python: s:init_outcome = %s', s:init_outcome)
     endif
 
     return 1
@@ -79,11 +79,17 @@ function! jupyter#init_python() abort
     try
         let s:_init_python = s:init_python()
         let s:_init_python = 1
-    catch /^jupyter/
+    catch /^\[jupyter-vim\]/
         " Only catch errors from jupyter-vim itself here, so that for
         " unexpected Python exceptions the traceback will be shown
-        echoerr 'Error: jupyter-vim failed to initialize Python: '
-                    \ . v:exception . ' (in ' . v:throwpoint . ')'
+        echohl Error
+        echomsg 'Error: jupyter-vim failed to initialize Python: '
+        echohl WarningMsg
+        for line in split(v:exception, "\n")
+            echomsg '  ' . line
+        endfor
+        echomsg '(in ' . v:throwpoint . ')'
+        echohl None
         " throw v:exception
     endtry
     return s:_init_python

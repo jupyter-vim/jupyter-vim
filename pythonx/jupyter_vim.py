@@ -34,12 +34,13 @@ try:
     # pylint: disable=unused-import
     import jupyter   # noqa
 except ImportError as e:
-    raise ImportError("Could not find kernel. " + __doc__, e)
+    raise ImportError("Could not import jupyter.\n(The original ImportError: {})\n{}"
+                      .format(e, __doc__))
 
 try:
     import vim
 except ImportError as e:
-    raise ImportError('vim module only available within vim!', e)
+    raise ImportError('vim module only available within vim! The original ImportError: ' + str(e))
 
 # Standard
 import functools
