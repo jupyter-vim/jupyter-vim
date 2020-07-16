@@ -225,7 +225,7 @@ def is_cell_separator(line):
     """ Determine whether a given line is a cell separator """
     # TODO allow users to define their own cell separators
     cell_sep = ('##', '#%%', '# %%', '# <codecell>')
-    return line.startswith(cell_sep)
+    return line.strip().startswith(cell_sep)
 
 # from <http://serverfault.com/questions/71285/\
 # in-centos-4-4-how-can-i-strip-escape-sequences-from-a-text-file>
