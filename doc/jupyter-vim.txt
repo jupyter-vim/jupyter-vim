@@ -253,8 +253,8 @@ clients until <Enter> is pressed. I am working on a non-blocking or threaded
 channel version of this client to eliminate this issue. Until then, stick with
 `jupyter qtconsole`!
 
-`g:jupyter_cell_markers`   					*g:jupyter_cell_markers*
-Default: ['#{{{','#}}}'] 					Define cell delimiters
+`g:jupyter_cell_markers`   			*g:jupyter_cell_markers*
+Default: ['#{{{','#}}}'] 			Define cell delimiters
 
 It allows users to define their own cell markers as a list. For example,
 
