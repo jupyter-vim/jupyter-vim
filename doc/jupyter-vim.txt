@@ -134,8 +134,8 @@ COMMANDS 					*jupyter-vim-commands*
 
 :JupyterSendCell                	*jupyter-sendcell* *:JupyterSendCell*
 			Send the current code cell, as delineated by the strings
-                        "##", "#%%", "# %%", or "# <codecell>". Future updates
-                        include user-defined code cell delimiters.
+            "##", "#%%", "# %%", or "# <codecell>". User-defined code cell delimiters
+            can also be set with |g:jupyter_cell_markers|.
 
 :PythonSetBreak 			*python-setbreak* *:PythonSetBreak*
                         Only makes sense to run when |b:jupyter_kernel_type| is
@@ -252,6 +252,14 @@ clients until <Enter> is pressed. I am working on a non-blocking or threaded
 channel version of this client to eliminate this issue. Until then, stick with
 `jupyter qtconsole`!
 
+`g:jupyter_cell_markers`   					*g:jupyter_cell_markers*
+Default: ['#{{{','#}}}'] 					Define cell delimiters
+
+It allows users to define their own cell markers as a list. For example,
+
+    `let g:jupyter_cell_markers = ['#{{{','#}}}']`
+
+sets the cell markers same as the default |foldmarkers| used by vim.
 
 --------------------------------------------------------------------------------
 JUPYTER-VIM VS. VIM-IPYTHON 			*jupyter-vim-vs-vim-ipython*
