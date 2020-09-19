@@ -47,6 +47,10 @@ augroup JupyterVimInit
     autocmd FileType julia,python if g:jupyter_mapkeys |
                 \ call jupyter#MapStandardKeys() |
                 \ endif
+
+    autocmd FileType julia,python if g:jupyter_magic |
+                \ call jupyter#MakeMagicCommands() |
+                \ endif
 augroup END
 
 "}}}----------------------------------------------------------------------------

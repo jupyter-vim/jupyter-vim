@@ -223,6 +223,53 @@ function! s:opfunc(type)
 endfunction
 
 "-----------------------------------------------------------------------------
+"        Magic Functions:
+"-----------------------------------------------------------------------------
+function! jupyter#Clear()
+    " Allow Matplotlib inline
+    JupyterSendCode 'clear'
+	call jupyter#NewLine()
+endfunction
+
+function! jupyter#MatplotInline()
+    " Allow Matplotlib inline
+    JupyterSendCode '%matplotlib inline'
+endfunction
+
+function! jupyter#NewLine()
+    " Send a new line [needs to be used after jupyter#Clear()]
+    JupyterSendCode ' '
+endfunction
+
+function! jupyter#Reset()
+    " Force a reset
+    JupyterSendCode '%reset -f'
+endfunction
+
+function! jupyter#SendVariable()
+    " Print the variable that is on the current line
+	normal! 0"0yiw
+	let variable_send = @0
+    JupyterSendCode ''.escape(variable_send, '"').''
+endfunction
+
+function! jupyter#Whos()
+    " Prints all interactive variables
+    JupyterSendCode '%whos'
+endfunction
+
+function! jupyter#MakeMagicCommands()
+    " Below variable needs to be set if you want to use it
+	" let g:jupyter_magic = 1
+    command! -buffer -nargs=0    JupyterClear           call jupyter#Clear()
+    command! -buffer -nargs=0    JupyterMatplot         call jupyter#MatplotInline()
+    command! -buffer -nargs=0    JupyterNewLine         call jupyter#NewLine()
+    command! -buffer -nargs=0    JupyterReset           call jupyter#Reset()
+    command! -buffer -nargs=0    JupyterSendVariable    call jupyter#SendVariable()
+    command! -buffer -nargs=0    JupyterWhos            call jupyter#Whos()
+endfunction
+
+"-----------------------------------------------------------------------------
 "        Auxiliary Functions:
 "-----------------------------------------------------------------------------
 function! jupyter#PythonDbstop()
