@@ -221,10 +221,8 @@ def get_kernel_info(kernel_type):
     # Return
     return res
 
-def is_cell_separator(line):
+def is_cell_separator(line, cell_sep):
     """ Determine whether a given line is a cell separator """
-    # TODO allow users to define their own cell separators
-    cell_sep = ('##', '#%%', '# %%', '# <codecell>')
     return line.strip().startswith(cell_sep)
 
 # from <http://serverfault.com/questions/71285/\
@@ -500,28 +498,37 @@ def send_range():
 @with_verbose
 def run_cell():
     """Run all the code between two cell separators"""
+    cell_markers = vim.vars.get('jupyter_cell_markers')
+    if cell_markers != None:
+        cell_begin_markers = (cell_markers[0], '##', '#%%', '# %%', '# <codecell>')
+        cell_end_markers = (cell_markers[1], '##', '#%%', '# %%', '# <codecell>')
+    else:
+        cell_begin_markers = ('##', '#%%', '# %%', '# <codecell>')
+        cell_end_markers = ('##', '#%%', '# %%', '# <codecell>')
+
     cur_buf = vim.current.buffer
     (cur_line, cur_col) = vim.current.window.cursor
     cur_line -= 1
 
     # Search upwards for cell separator
     upper_bound = cur_line
-    while upper_bound > 0 and not is_cell_separator(cur_buf[upper_bound]):
+
+    while upper_bound > 0 and not is_cell_separator(cur_buf[upper_bound],cell_begin_markers):
         upper_bound -= 1
 
     # Skip past the first cell separator if it exists
-    if is_cell_separator(cur_buf[upper_bound]):
+    if is_cell_separator(cur_buf[upper_bound],cell_begin_markers):
         upper_bound += 1
 
     # Search downwards for cell separator
     lower_bound = min(upper_bound+1, len(cur_buf)-1)
 
     while lower_bound < len(cur_buf)-1 and \
-            not is_cell_separator(cur_buf[lower_bound]):
+            not is_cell_separator(cur_buf[lower_bound],cell_end_markers):
         lower_bound += 1
 
     # Move before the last cell separator if it exists
-    if is_cell_separator(cur_buf[lower_bound]):
+    if is_cell_separator(cur_buf[lower_bound],cell_end_markers):
         lower_bound -= 1
 
     # Make sure bounds are within buffer limits

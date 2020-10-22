@@ -32,7 +32,9 @@ for [s:key, s:val] in items(s:default_settings)
     endif
 endfor
 
-
+if !exists('g:jupyter_cell_markers')
+    let g:jupyter_cell_markers=['#{{{', '#}}}']
+endif
 
 augroup JupyterVimInit
     " By default, guess the kernel language based on the filetype. The user
