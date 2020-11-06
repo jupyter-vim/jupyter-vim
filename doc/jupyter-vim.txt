@@ -411,4 +411,4 @@ I owe significant thanks to the original developer of this plugin: Paul Ivanov
 <https://github.com/wmvanvliet>. It is far easier to update something that
 already works well than to forge a new path from scratch.
 
-vim:tw=78:ts=8:noet:ft=text:norl:
+vim:tw=78:ts=8:noet:ft=help:norl:

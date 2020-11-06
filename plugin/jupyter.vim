@@ -69,7 +69,7 @@ if g:jupyter_auto_connect
     augroup JConnect
         autocmd!
         autocmd BufReadPost * if -1 != index(keys(s:language_dict), &ft) |
-              \ JupyterConnect *.json | endif
+              \ JConnect *.json | endif
     augroup END
 endif
 
