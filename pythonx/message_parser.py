@@ -96,7 +96,7 @@ class VimMessenger():
 
     def is_cell_separator(self, line):
         """Return True if given `line` is a cell separator."""
-        return any([bool(re.match(separation, line)) 
+        return any([bool(re.match(separation, line.strip()))
                     for separation in self.cell_separators])
 
     def thread_echom(self, arg, **args):
@@ -132,7 +132,7 @@ class VimMessenger():
             Information about the kernel to print in vim messages.
         """
         kernel_string = '\n    '.join([str(key) + ': ' + str(kernel_info[key])
-                                        for key in kernel_info])
+                                       for key in kernel_info])
 
         # Send command so that user knows vim is connected at bottom, more readable
         self.thread_echom('Connected: {}'.format(kernel_info['id']), style='Question')
@@ -152,7 +152,7 @@ class JupyterMessenger():
         See: <http://jupyter-client.readthedocs.io/en/stable/api/client.html>
     kernel_info : dict
         Information about the kernel itself.
-        dict with keys: 
+        dict with keys:
             'kernel_type' : str, the type of kernel, i.e. `python`.
             'pid' : int, the pid of the kernel process.
             'cwd' : str, the current working directory of the kernel.
@@ -229,10 +229,9 @@ class JupyterMessenger():
         """
         if self.check_connection():
             return True
-        else:
-            echom('WARNING: Not connected to Jupyter!'
-                '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
-            return False
+        echom('WARNING: Not connected to Jupyter!'
+              '\nRun :JupyterConnect to find the kernel', style='WarningMsg')
+        return False
 
     def get_pending_msgs(self):
         """Get pending message pool.
