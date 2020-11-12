@@ -2,8 +2,8 @@
 # TODO:
 # - Check output
 # - Create a 04_monitor_console with:
-#   - :JUpdateMonitor
-#   - :JUpdateShell
+#   - :JupyterUpdateMonitor
+#   - :JupyterUpdateShell
 
 # Begin Basic
 Given python (Python):
@@ -16,20 +16,20 @@ Execute (Spawn jupyter):
   Log "Spawn Jupyter kernel"
   call system("jupyter-kernel &")
 
-# :JConnect [connection_file]
-Execute (JConnect):
-  JConnect
+# :JupyterConnect [connection_file]
+Execute (JupyterConnect):
+  JupyterConnect
 
-# :JCd [dir]
-Execute (JCd):
-  JCd
-# :JRunFile [flags] [filename]
-Execute (JRunFile):
-  JRunFile %
+# :JupyterCd [dir]
+Execute (JupyterCd):
+  JupyterCd
+# :JupyterRunFile [flags] [filename]
+Execute (JupyterRunFile):
+  JupyterRunFile %
 
-# :JSendCode {code}
-Execute (JSendCode):
-  JSendCode 'print("hi from ex")'
+# :JupyterSendCode {code}
+Execute (JupyterSendCode):
+  JupyterSendCode 'print("hi from ex")'
 
 # End Basic
 Expect (Same Python):
@@ -49,23 +49,23 @@ Given python (Python with cells):
   ## End
   print("Bottom")
 
-Execute (JConnect):
-  JConnect
+Execute (JupyterConnect):
+  JupyterConnect
 
-# :[count]JSendCount
-Do (JSendCount):
+# :[count]JupyterSendCount
+Do (JupyterSendCount):
   gg
-  :3JSendCount\<CR>
+  :3JupyterSendCount\<CR>
 
-# :[range]JSendRange
-Do (JSendRange):
+# :[range]JupyterSendRange
+Do (JupyterSendRange):
   gg
-  :3,4JSendRange\<CR>
+  :3,4JupyterSendRange\<CR>
 
-# :JSendCell
-Do (JSendCell):
+# :JupyterSendCell
+Do (JupyterSendCell):
   ggjj
-  :JSendCell\<CR>
+  :JupyterSendCell\<CR>
 
 # End Cell
 Expect (Python with cells):
@@ -79,12 +79,12 @@ Expect (Python with cells):
   ## End
   print("Bottom")
 
-#:JDisconnect
-Execute (JDisconnect):
-  JDisconnect
-Execute (JConnect -> Reconnect):
-  JConnect
+#:JupyterDisconnect
+Execute (JupyterDisconnect):
+  JupyterDisconnect
+Execute (JupyterConnect -> Reconnect):
+  JupyterConnect
 
-#:JTerminateKernel
-Execute (JTerminateKernel):
-  JTerminateKernel
+#:JupyterTerminateKernel
+Execute (JupyterTerminateKernel):
+  JupyterTerminateKernel

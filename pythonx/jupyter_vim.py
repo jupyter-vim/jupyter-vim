@@ -239,7 +239,7 @@ class JupyterVimSession():
         # Try to connect
         MAX_ATTEMPTS = 3
         for attempt in range(MAX_ATTEMPTS):
-            # NOTE if user tries to :JConnect <new_pid>, this check will ignore
+            # NOTE if user tries to :JupyterConnect <new_pid>, this check will ignore
             # the requested new pid.
             if connected:
                 break
@@ -290,7 +290,7 @@ class JupyterVimSession():
     def change_directory(self, directory):
         """Change current working directory in kernel.
 
-        .. note:: vim command `:JCd`.
+        .. note:: vim command `:JupyterCd`.
 
         Parameters
         ----------
@@ -316,7 +316,7 @@ class JupyterVimSession():
     def run_command(self, cmd):
         """Send a single command to the kernel.
 
-        .. note:: vim command `:JSendCode`.
+        .. note:: vim command `:JupyterSendCode`.
 
         Parameters
         ----------
@@ -332,7 +332,7 @@ class JupyterVimSession():
     def run_file_in_ipython(self, flags='', filename=''):
         """Run a given python file using ipython's %run magic.
 
-        .. note:: vim command `:JRunFile`.
+        .. note:: vim command `:JupyterRunFile`.
 
         Parameters
         ----------
@@ -358,7 +358,7 @@ class JupyterVimSession():
     def send_range(self):
         """Send a range of lines from the current vim buffer to the kernel.
 
-        .. note:: vim command `:JSendRange`.
+        .. note:: vim command `:JupyterSendRange`.
         """
         rang = vim.current.range
         lines = "\n".join(vim.current.buffer[rang.start:rang.end+1])
@@ -371,7 +371,7 @@ class JupyterVimSession():
     def run_cell(self):
         """Run all the code between two cell separators.
 
-        .. note:: vim command `:JSendCell`.
+        .. note:: vim command `:JupyterSendCell`.
         """
         # Get line and buffer and cellseparators
         cur_buf = vim.current.buffer

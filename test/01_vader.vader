@@ -44,7 +44,7 @@ Execute (Is Jupyter Loaded):
   AssertEqual g:loaded_jupyter_vim, 1
   AssertEqual &ft, 'python'
   AssertEqual b:jupyter_kernel_type, 'python'
-  AssertEqual exists(':JConnect'), 2
+  AssertEqual exists(':JupyterConnect'), 2
 
 Expect (Same Python):
   print("hi from vim")

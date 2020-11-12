@@ -66,10 +66,10 @@ augroup END
 "       Connect to Jupyter Kernel  {{{
 "-------------------------------------------------------------------------------
 if g:jupyter_auto_connect
-    augroup JConnect
+    augroup JupyterConnect
         autocmd!
         autocmd BufReadPost * if -1 != index(keys(s:language_dict), &ft) |
-              \ JConnect *.json | endif
+              \ JupyterConnect *.json | endif
     augroup END
 endif
 
