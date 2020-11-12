@@ -1,0 +1,50 @@
+# Vader first test to test:
+# 1. Travis 
+# 2. Vader
+# 3. Jupyter vim trigger
+
+#######################
+# 1,2 Travis and Vader
+Given python (Python):
+  print("hi from vim")
+  for i in range(3):
+    print(i)
+
+# Debug for travis
+Execute (Log):
+  Log "Runtime Path"
+  Log &rtp
+  Log "PWD"
+  Log system("pwd")
+  Log "LS"
+  Log system("ls")
+
+Execute (File Test.py):
+  Log 'Testing Vader itself and Travis'
+# TODO remove
+  :call jupyter#load#MakeStandardCommands()
+  file test.py
+  AssertEqual &ft, 'python'
+
+Execute (Python version > 3.6):
+  AssertEqual py3eval('sys.version_info >= (3, 6)'), 1
+
+Expect (Same Python):
+  print("hi from vim")
+  for i in range(3):
+    print(i)
+
+#######################
+# 3 Jupyter vim loading (See https://github.com/jupyter-vim/jupyter-vim/wiki)
+Given python (Python):
+  print("hi from vim")
+
+Execute (Is Jupyter Loaded):
+  Log 'Testing Jupyter-Vim and bindings'
+  AssertEqual g:loaded_jupyter_vim, 1
+  AssertEqual &ft, 'python'
+  AssertEqual b:jupyter_kernel_type, 'python'
+  AssertEqual exists(':JupyterConnect'), 2
+
+Expect (Same Python):
+  print("hi from vim")

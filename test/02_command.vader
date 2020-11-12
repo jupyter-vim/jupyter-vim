@@ -1,0 +1,90 @@
+# Jupyter commands
+# TODO:
+# - Check output
+# - Create a 04_monitor_console with:
+#   - :JupyterUpdateMonitor
+#   - :JupyterUpdateShell
+
+# Begin Basic
+Given python (Python):
+  print("hi from vim")
+  for i in range(3):
+    print(i)
+
+# Spawn kernel
+Execute (Spawn jupyter):
+  Log "Spawn Jupyter kernel"
+  call system("jupyter-kernel &")
+
+# :JupyterConnect [connection_file]
+Execute (JupyterConnect):
+  JupyterConnect
+
+# :JupyterCd [dir]
+Execute (JupyterCd):
+  JupyterCd
+# :JupyterRunFile [flags] [filename]
+Execute (JupyterRunFile):
+  JupyterRunFile %
+
+# :JupyterSendCode {code}
+Execute (JupyterSendCode):
+  JupyterSendCode 'print("hi from ex")'
+
+# End Basic
+Expect (Same Python):
+  print("hi from vim")
+  for i in range(3):
+    print(i)
+
+# Begin Cell
+Given python (Python with cells):
+  print("Top")
+  ## Cell 1
+  print("1.1")
+  print("1.2")
+  ## Cell 2
+  print("2.1")
+  print("2.2")
+  ## End
+  print("Bottom")
+
+Execute (JupyterConnect):
+  JupyterConnect
+
+# :[count]JupyterSendCount
+Do (JupyterSendCount):
+  gg
+  :3JupyterSendCount\<CR>
+
+# :[range]JupyterSendRange
+Do (JupyterSendRange):
+  gg
+  :3,4JupyterSendRange\<CR>
+
+# :JupyterSendCell
+Do (JupyterSendCell):
+  ggjj
+  :JupyterSendCell\<CR>
+
+# End Cell
+Expect (Python with cells):
+  print("Top")
+  ## Cell 1
+  print("1.1")
+  print("1.2")
+  ## Cell 2
+  print("2.1")
+  print("2.2")
+  ## End
+  print("Bottom")
+
+#:JupyterDisconnect
+Execute (JupyterDisconnect):
+  JupyterDisconnect
+Execute (JupyterConnect -> Reconnect):
+  JupyterConnect
+
+#:JupyterTerminateKernel
+Execute (JupyterTerminateKernel):
+  JupyterTerminateKernel

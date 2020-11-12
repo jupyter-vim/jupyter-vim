@@ -1,6 +1,6 @@
 # Jupyter-Vim
 
-A two-way integration between Vim and Jupyter. Develop code on a Jupyter notebook without leaving the terminal. Send lines from Vim to a jupyter qtconsole or a Jupyterlab console. Have a MATLAB-like "cell-mode".
+A two-way integration between Vim and Jupyter. Develop code on a Jupyter notebooke without leaving the terminal. Send lines from Vim to a jupyter qtconsole. Have a MATLAB-like "cell-mode".
 
 Currently Python and Julia kernels are supported, and more languages are on the way.
 
@@ -67,11 +67,6 @@ $ sudo apt install jupyter jupyter-core
 Alternatively, you can use `pip`:
 ```bash
 $ sudo pip install jupyter
-```
-### Install Jupyterlab
-You can alternatively use the built in console from Jupyterlab.
-```bash
-$ sudo pip install jupyterlab
 ```
 
 ### Dynamic mode
@@ -164,14 +159,6 @@ For console:
 c.ZMQTerminalInteractiveShell.include_other_output = True
 ```
 
-For Jupyterlab console:
-Jupyterlab can be configured within its advanced settings editor -> Code console
-```python
-"showAllKernelActivity": true
-```
-
-
-
 ## Usage
 
 To begin a session:
@@ -179,7 +166,6 @@ To begin a session:
 $ jupyter qtconsole &  # open a jupyter console window
 $ vim <your_script>.py
 ```
-The Jupyterlab console can be opened within its Launcher.
 
 In vim: `:JupyterConnect`
 

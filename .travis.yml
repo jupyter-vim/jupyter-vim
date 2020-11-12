@@ -1,0 +1,54 @@
+# Testing Versions:
+#   python3.7 (It is hardcoded everywhere) (>= 3.6 for format strings)
+#   vim latest
+
+language: generic
+python: 3.7
+cache:
+  directories:
+    - $HOME/.rvm
+    - $HOME/.vvm
+
+before_install:
+  # Remove travis junk (2013)
+  - sudo apt-get remove --purge vim vim-runtime vim-gnome vim-tiny vim-gui-common
+  - sudo rm -rf /usr/local/share/vim /usr/bin/vim
+  # Update
+  - sudo add-apt-repository ppa:deadsnakes/ppa -y
+  - sudo apt-get update -y
+  - sudo apt-get install python3.7-dev
+  # Install Pip
+  - sudo apt-get install -y python3-setuptools
+  - sudo apt-get install -y python3-pip
+  # Install Jupyter
+  - python3.7 -m pip install wheel
+  - python3.7 -m pip install jupyter
+  - python3.7 -m pip install jupyter-console
+  # Install Vim
+  - git clone --depth 1 https://github.com/vim/vim
+  - cd vim
+  - export PATH=/usr/bin:$PATH
+  - ./configure $C_OPTS
+            --with-features=huge
+            --prefix=/usr/local
+            --enable-python3interp=dynamic
+            --with-python3-command=python3.7
+            --with-python3-config-dir=$(python3.7-config --configdir)
+            --with-compiledby="JupyterVim"
+  - make
+  - sudo make install
+  - cd -
+  - pwd
+
+before_script: |
+  git clone https://github.com/junegunn/vader.vim.git
+
+script: |
+  vim -Nu <(cat << VIMRC
+  filetype off
+  set rtp+=vader.vim
+  set rtp+=.
+  set rtp+=after
+  filetype plugin indent on
+  syntax enable
+  VIMRC) -c 'Vader! test/*' > /dev/null
