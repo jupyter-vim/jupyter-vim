@@ -499,9 +499,9 @@ def send_range():
 def run_cell():
     """Run all the code between two cell separators"""
     cell_markers = vim.vars.get('jupyter_cell_markers')
-    if cell_markers is not None:
-        cell_begin_markers = (vim2py_str(cell_markers[0]), '##', '#%%', '# %%', '# <codecell>')
-        cell_end_markers = (vim2py_str(cell_markers[1]), '##', '#%%', '# %%', '# <codecell>')
+    if cell_markers != None:
+        cell_begin_markers = (cell_markers[0], '##', '#%%', '# %%', '# <codecell>')
+        cell_end_markers = (cell_markers[1], '##', '#%%', '# %%', '# <codecell>')
     else:
         cell_begin_markers = ('##', '#%%', '# %%', '# <codecell>')
         cell_end_markers = ('##', '#%%', '# %%', '# <codecell>')
