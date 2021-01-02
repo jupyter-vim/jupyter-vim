@@ -417,7 +417,7 @@ class Sync():
         """Stop current thread."""
         if self.thread is None:
             return
-        if not self.thread.isAlive():
+        if not self.thread.is_alive():
             self.thread = None
             return
 
