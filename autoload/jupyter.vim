@@ -32,29 +32,26 @@ endfunction
 " See ~/.vim/bundle/jedi-vim/autoload/jedi.vim for initialization routine
 function! s:init_python() abort
     let s:init_outcome = 0
-    let init_lines =<< EOF
-# Add path
-import os
-import sys
-import vim
-vim_path, _ = os.path.split(vim.eval("expand('<sfile>:p:h')"))
-vim_pythonx_path = os.path.join(vim_path, "pythonx")
-if vim_pythonx_path not in sys.path:
-    sys.path.append(vim_pythonx_path)
-
-# Import
-try:
-    from jupyter_vim import JupyterVimSession
-    _jupyter_session = JupyterVimSession()
-
-    # For direct calls
-    from jupyter_util import str_to_py, find_jupyter_kernel_ids, find_signals
-except Exception as exc:
-    vim.bindeval('s:')['init_outcome'] = ("could not import jupyter_vim <- {0}: {1}"
-                                          .format(exc.__class__.__name__, exc))
-else:
-    vim.command('let s:init_outcome = 1')
-EOF
+    let init_lines = [
+          \ '# Add path',
+          \ 'import os; import sys; import vim',
+          \ 'vim_path, _ = os.path.split(vim.eval("expand(''<sfile>:p:h'')"))',
+          \ 'vim_pythonx_path = os.path.join(vim_path, "pythonx")',
+          \ 'if vim_pythonx_path not in sys.path:',
+          \ '    sys.path.append(vim_pythonx_path)',
+          \ '',
+          \ '# Import',
+          \ 'try:',
+          \ '    from jupyter_vim import JupyterVimSession',
+          \ '    _jupyter_session = JupyterVimSession()',
+          \
+          \ '    # For direct calls',
+          \ '    from jupyter_util import str_to_py, find_jupyter_kernel_ids, find_signals',
+          \ 'except Exception as exc:',
+          \ '    vim.bindeval("s:")["init_outcome"] = ("could not import jupyter_vim <- {0}: {1}".format(exc.__class__.__name__, exc))',
+          \ 'else:',
+          \ '    vim.command("let s:init_outcome = 1")'
+          \ ]
 
     " Try running lines via python, which will set script variable
     try
