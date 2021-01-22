@@ -128,6 +128,17 @@ class Python(Language):
     hostname = 'import socket; _res = socket.gethostname()'
 
 
+class R(Language):
+    """R: script"""
+    prompt_in = 'R [{:d}]: '
+    print_string = 'print("{}")'
+    run_file = 'source("{}")'
+    cd = 'setwd("{}")'
+    pid = 'Sys.getpid()'
+    cwd = 'getwd()'
+    hostname = 'Sys.info()[["nodename"]]'
+
+
 class Raku(Language):
     """Raku: script (used to be Perl6)"""
     prompt_in = 'Ra [{:d}]: '
@@ -189,6 +200,7 @@ language_dict = {
     'raku': Raku,
     'ruby': Ruby,
     'rust': Rust,
+    'r': R,
 }
 
 
