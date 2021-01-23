@@ -44,6 +44,7 @@ let s:language_dict = {
     \ 'raku': 'raku',
     \ 'ruby': 'ruby',
     \ 'rust': 'rust',
+    \ 'r': 'ir',
 \ }
 
 let s:language_string = join(keys(s:language_dict), ',')
