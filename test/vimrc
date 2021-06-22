@@ -6,10 +6,6 @@ set rtp+=after
 filetype plugin indent on
 syntax enable
 
-" Tin special hack (vim compiled for 3.8)
-" TODO get .travis work
-set pythonthreedll=/usr/lib/python3.9/config-3.9-x86_64-linux-gnu/libpython3.9.so
-
 " Import package to test
 packadd vader
 packadd jupyter
