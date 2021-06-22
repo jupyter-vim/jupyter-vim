@@ -30,8 +30,10 @@ env:
   - VIM_VERSION=vim_8.1.0519
 
 
-script: |
-  - if [[ "$VIM_VERSION" == vint ]]; then vint -s . && vint -s test/vimrc;
-    elif [[ "$VIM_VERSION" == pylint ]]; then shopt -s extglob; pylint  **/*.py;
-    docker run -it --rm -v $PWD/:/testplugin jupyter-vim "/vim-build/bin/$VIM_VERSION" -i NONE -N -u /testplugin/test/vimrc -Es '+Vader! /testplugin/test/*.vader'
+script:
+  - run_docker=(docker run -it --rm -v $PWD/:/testplugin jupyter-vim)
+  - if [[ "$VIM_VERSION" == vint ]]; then "${run_docker[@]}" bash -c "vint -s /testplugin && vint -s /testplugin/test/vimrc";
+    elif [[ "$VIM_VERSION" == pylint ]]; then "${run_docker[@]}" bash -c "shopt -s extglob; pylint /testplugin/**/*.py";
+    else "${run_docker[@]}" jupyter-vim "/vim-build/bin/$VIM_VERSION" -i NONE -N -u /testplugin/test/vimrc -Es '+Vader! /testplugin/test/*.vader';
+    fi
 
