@@ -100,6 +100,7 @@ def str_to_vim(obj):
     str
         Double-quoted string.
     """
+    # pylint: disable=undefined-variable  # unicode
     # Encode
     is_py3 = version_info[0] >= 3
     if is_py3:
@@ -107,7 +108,6 @@ def str_to_vim(obj):
             obj = obj.encode()
         obj = str(obj, 'utf-8')
     else:
-        # pylint: disable=undefined-variable
         obj = unicode(obj, 'utf-8')  # noqa: E0602
 
     # Vim cannot deal with zero bytes:

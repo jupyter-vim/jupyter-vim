@@ -1,14 +1,8 @@
-" Standard noncompatible
-set nocompatible
-set rtp+=vader.vim
-set rtp+=.
-set rtp+=after
+" Import package to test
+set runtimepath+=/vader
+set runtimepath+=/testplugin
 filetype plugin indent on
 syntax enable
-
-" Import package to test
-packadd vader
-packadd jupyter
 
 " Reset variable
 for [s:key, s:val] in items(g:jupyter_default_settings)
