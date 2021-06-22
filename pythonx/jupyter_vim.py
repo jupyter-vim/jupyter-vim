@@ -266,11 +266,11 @@ class JupyterVimSession():
             self.vim_client.thread_echom('kernel connection attempt timed out', style='Error')
             return
 
-        # Pre-message the user
-        self.vim_client.thread_echom('Connected! ', style='Question')
-
         # Collect and echom kernel info
         self.vim_client.thread_echom_kernel_info(self.kernel_client.get_kernel_info(self.lang))
+
+        # Inform everything ok, at last
+        self.vim_client.thread_echom('Connected! ', style='Question')
 
         # TODO only if verbose
         # Print vim connected -> client
