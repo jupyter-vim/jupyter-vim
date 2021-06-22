@@ -96,8 +96,10 @@ class VimMessenger():
 
     def is_cell_separator(self, line):
         """Return True if given `line` is a cell separator."""
-        return any([bool(re.match(separation, line.strip()))
-                    for separation in self.cell_separators])
+        for separation in self.cell_separators:
+            if re.match(separation, line.strip()):
+                return True
+        return False
 
     def thread_echom(self, arg, **args):
         """Wrap echo async: put message to be echoed in a queue."""
