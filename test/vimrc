@@ -4,8 +4,9 @@ set runtimepath+=/testplugin
 filetype plugin indent on
 syntax enable
 
-" Reset variable
-for [s:key, s:val] in items(g:jupyter_default_settings)
-    let value = s:val
-    execute 'let g:jupyter_' . s:key . ' = value'
-endfor
+function VaderResetVariable()
+  for [s:key, s:val] in items(g:jupyter_default_settings)
+      let value = s:val
+      execute 'let g:jupyter_' . s:key . ' = value'
+  endfor
+endfunction

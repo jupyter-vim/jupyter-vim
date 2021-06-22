@@ -4,44 +4,33 @@
 
 language: generic
 python: 3.7
+
+
 cache:
+  # Enable cache folder
+  bundler: true
   directories:
-    - $HOME/.rvm
-    - $HOME/.vvm
+    - $HOME/docker_images
+
+before_cache:
+  # Save tagged docker images. Info at https://github.com/travis-ci/travis-ci/issues/5358#issuecomment-248915326
+  - >
+    mkdir -p $HOME/docker_images && docker images -a --filter='dangling=false' --format '{{.Repository}}:{{.Tag}} {{.ID}}'
+    | xargs -n 2 -t sh -c 'test -e $HOME/docker_images/$1.tar.gz || docker save $0 | gzip -2 > $HOME/docker_images/$1.tar.gz'
 
 before_install:
-  # Remove travis junk (2013)
-  - sudo apt-get remove --purge vim vim-runtime vim-gnome vim-tiny vim-gui-common
-  - sudo rm -rf /usr/local/share/vim /usr/bin/vim
-  # Update
-  - sudo add-apt-repository ppa:deadsnakes/ppa -y
-  - sudo apt-get update -y
-  - sudo apt-get install python3.7-dev
-  # Install Pip
-  - sudo apt-get install -y python3-setuptools
-  - sudo apt-get install -y python3-pip
-  # Install Jupyter
-  - python3.7 -m pip install wheel
-  - python3.7 -m pip install jupyter
-  - python3.7 -m pip install jupyter-console
-  # Install Vim
-  - git clone --depth 1 https://github.com/vim/vim
-  - cd vim
-  - export PATH=/usr/bin:$PATH
-  - ./configure $C_OPTS
-            --with-features=huge
-            --prefix=/usr/local
-            --enable-python3interp=dynamic
-            --with-python3-command=python3.7
-            --with-python3-config-dir=$(python3.7-config --configdir)
-            --with-compiledby="JupyterVim"
-  - make
-  - sudo make install
-  - cd -
-  - pwd
+  # Install docker
+  - n_image=$(ls -1 $HOME/docker_images/*.tar.gz | wc -l)
+  - if (( $n_image )); then ls $HOME/docker_images/*.tar.gz | xargs -I {file} sh -c "zcat {file} | docker load";
+    else docker build --tag jupyter-vim .;
+    fi
 
-before_script: |
-  git clone https://github.com/junegunn/vader.vim.git
+env:
+  - VIM_VERSION=vint
+  - VIM_VERSION=pylint
+
 
 script: |
-  vim -Nu ./test/vimrc -c 'Vader! test/*'
+  - if [[ "$VIM_VERSION" == vint ]]; then vint -s . && vint -s test/vimrc;
+    elif [[ "$VIM_VERSION" == pylint ]]; then shopt -s extglob; pylint  **/*.py;
+    else docker run -a stderr -e "VADER_OUTPUT_FILE=/dev/stderr" vim -Nu ./test/vimrc -c 'Vader! test/*'
