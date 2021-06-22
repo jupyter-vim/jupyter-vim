@@ -12,18 +12,16 @@ from time import sleep
 
 # Py module
 from jupyter_client import KernelManager
-import vim
-
 # Local
 from jupyter_util import echom, unquote_string, match_kernel_id, get_vim
-
 try:
     from queue import Queue, Empty
 except ImportError:
     from Queue import Queue, Empty
-
-# Local
 from language import list_languages
+
+# Process local
+import vim
 
 
 class VimMessenger():

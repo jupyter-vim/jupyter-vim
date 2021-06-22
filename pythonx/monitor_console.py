@@ -4,16 +4,17 @@ Feature to get a buffer with jupyter output
 
 # Standard
 from time import sleep
-import vim
 
 # Local
 from jupyter_util import echom, prettify_execute_intput, str_to_vim, \
                          strip_color_escapes, unquote_string
-
 try:
     from queue import Empty
 except ImportError:
     from Queue import Empty
+
+# Process local
+import vim
 
 
 class Monitor():
