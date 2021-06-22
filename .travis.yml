@@ -3,7 +3,6 @@
 #   vim latest
 
 language: generic
-python: 3.7
 
 
 cache:
@@ -28,9 +27,11 @@ before_install:
 env:
   - VIM_VERSION=vint
   - VIM_VERSION=pylint
+  - VIM_VERSION=vim_8.1.0519
 
 
 script: |
   - if [[ "$VIM_VERSION" == vint ]]; then vint -s . && vint -s test/vimrc;
     elif [[ "$VIM_VERSION" == pylint ]]; then shopt -s extglob; pylint  **/*.py;
-    else docker run -a stderr -e "VADER_OUTPUT_FILE=/dev/stderr" vim -Nu ./test/vimrc -c 'Vader! test/*'
+    docker run -it --rm -v $PWD/:/testplugin jupyter-vim "/vim-build/bin/$VIM_VERSION" -i NONE -N -u /testplugin/test/vimrc -Es '+Vader! /testplugin/test/*.vader'
+
