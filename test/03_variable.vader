@@ -1,0 +1,60 @@
+# Jupyter variable
+# See #60
+
+# Begin Basic
+Given python (Python):
+  print('init-1')         # 1
+  print('init-2')         # 2
+  ## Cell default         # 3
+  print('default')        # 4
+  print('1')              # 5
+  print('2')              # 6
+  ## End of cell          # 7
+
+  # Far is titi           # 9
+  print('t_i_t_i')        # 10
+  print('1')              # 11
+  print('2')              # 12
+  # End of titi           # 13
+  
+  print('In the middle')  # 15
+  
+  #toto                   # 17
+  print('toto')           # 18
+  #toto                   # 19
+  print('toto-end')       # 20
+  ## Not afecting toto    # 21
+  print('toto-1')         # 22
+  print('toto-2')         # 23
+
+# Configure
+Execute (Configure and play):
+  let g:jupyter_cell_separators = ['##', '#toto', '.*titi']
+
+## Spawn kernel
+Execute (Spawn jupyter):
+  Log "Spawn Jupyter kernel"
+  call system("jupyter-kernel &")
+
+# :JupyterConnect [connection_file]
+Execute (JupyterConnect):
+  JupyterConnect
+
+Execute (SendCells):
+  call cursor(1,1) | JupyterSendCell " init-1\ninit-2
+  call cursor(4,1) | JupyterSendCell " default
+  call cursor(8,1) | JupyterSendCell " <void>
+  call cursor(10,1) | JupyterSendCell " t_i_t_i
+  call cursor(15,1) | JupyterSendCell " in the middle
+  call cursor(18,1) | JupyterSendCell " toto
+  call cursor(20,1) | JupyterSendCell " toto-end ...
+
+##:JupyterDisconnect
+Execute (JupyterDisconnect):
+  JupyterDisconnect
+Execute (JupyterConnect -> Reconnect):
+  JupyterConnect
+
+#:JupyterTerminateKernel
+Execute (JupyterTerminateKernel):
+  silent JupyterTerminateKernel

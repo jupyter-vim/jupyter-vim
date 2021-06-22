@@ -23,6 +23,7 @@ Execute (JupyterConnect):
 # :JupyterCd [dir]
 Execute (JupyterCd):
   JupyterCd
+
 # :JupyterRunFile [flags] [filename]
 Execute (JupyterRunFile):
   JupyterRunFile %
