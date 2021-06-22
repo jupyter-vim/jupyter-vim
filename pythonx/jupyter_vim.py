@@ -33,14 +33,15 @@ Install:
 try:
     # pylint: disable=unused-import
     import jupyter   # noqa
-except ImportError as e:
+except ImportError as e_import:
     raise ImportError("Could not import jupyter.\n(The original ImportError: {})\n{}"
-                      .format(e, __doc__)) from e
+                      .format(e_import, __doc__)) from e_import
 
 try:
     import vim
-except ImportError as e:
-    raise ImportError('vim module only available within vim! The original ImportError: ' + str(e)) from e
+except ImportError as e_import:
+    raise ImportError('vim module only available within vim! The original ImportError: ' \
+            + str(e_import)) from e_import
 
 # Standard
 import functools
@@ -154,8 +155,8 @@ class JupyterVimSession():
         if isinstance(sig, str):
             try:
                 sig = getattr(signal, sig)
-            except Exception as e:
-                echom(f"Cannot send signal {sig} on this OS: {e}", style='Error')
+            except (AttributeError, NameError) as err:
+                echom(f"Cannot send signal {sig} on this OS: {err}", style='Error')
                 return
 
         # Clause: valid pid
@@ -237,8 +238,8 @@ class JupyterVimSession():
         connected = self.kernel_client.check_connection()
 
         # Try to connect
-        MAX_ATTEMPTS = 3
-        for attempt in range(MAX_ATTEMPTS):
+        max_attempts = 3
+        for attempt in range(max_attempts):
             # NOTE if user tries to :JupyterConnect <new_pid>, this check will ignore
             # the requested new pid.
             if connected:
@@ -254,7 +255,7 @@ class JupyterVimSession():
             except IOError:
                 self.vim_client.thread_echom(
                     "kernel connection attempt {:d}/{:d} failed - no kernel file"
-                    .format(attempt, MAX_ATTEMPTS), style="Error")
+                    .format(attempt, max_attempts), style="Error")
                 continue
 
             # Connect
@@ -305,6 +306,7 @@ class JupyterVimSession():
             cwd = self.kernel_client.send_code_and_get_reply(self.lang.cwd)
             echom('CWD: ', style='Question')
             vim.command("echon \"{}\"".format(cwd))
+        # pylint: disable=broad-except  # Catching too general exception Exception
         except Exception:
             pass
 

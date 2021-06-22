@@ -22,4 +22,11 @@ The docker image aims to provide:
 2. Jupyter (with libzmq well installed)
 
 
+## Pylint
+
+Ignoring:
+* W0511: if "TODO" in code
+* E0401: cannot import vim (because must be in vim and not in pylint)
+
+
 More in .travis.yml

@@ -186,6 +186,7 @@ class JupyterMessenger():
         # The json may be badly encoding especially if autoconnecting
         try:
             kernel_manager.load_connection_file()
+        # pylint: disable=broad-except
         except Exception:
             return False
         self.km_client = kernel_manager.client()
@@ -477,10 +478,10 @@ def parse_iopub_for_reply(msgs, line_number):
         if not content:
             continue
 
-        ec = int(content.get('execution_count', 0))
-        if not ec:
+        i_count = int(content.get('execution_count', 0))
+        if not i_count:
             continue
-        if line_number not in (-1, ec):
+        if line_number not in (-1, i_count):
             continue
 
         msg_type = msg.get('header', {}).get('msg_type', '')

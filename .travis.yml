@@ -33,7 +33,7 @@ env:
 script:
   - run_docker=(docker run -it --rm -v $PWD/:/testplugin jupyter-vim)
   - if [[ "$VIM_VERSION" == vint ]]; then "${run_docker[@]}" bash -c "vint -s /testplugin && vint -s /testplugin/test/vimrc";
-    elif [[ "$VIM_VERSION" == pylint ]]; then "${run_docker[@]}" bash -c "shopt -s extglob; pylint /testplugin/**/*.py";
-    else "${run_docker[@]}" jupyter-vim "/vim-build/bin/$VIM_VERSION" -i NONE -N -u /testplugin/test/vimrc -Es '+Vader! /testplugin/test/*.vader';
+    elif [[ "$VIM_VERSION" == pylint ]]; then "${run_docker[@]}" bash -c "shopt -s extglob; pylint --disable=E0401,W0511 /testplugin/**/*.py";
+    else "${run_docker[@]}" "/vim-build/bin/$VIM_VERSION" -i NONE -N -u /testplugin/test/vimrc -Es '+Vader! /testplugin/test/*.vader';
     fi
 
