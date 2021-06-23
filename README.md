@@ -198,6 +198,14 @@ nnoremap <buffer> <silent> <localleader>b :PythonSetBreak<CR>
 
 Set `let g:jupyter_mapkeys = 0` in your `.vimrc` to prevent the default keybindings from being made.
 
+## Related plugin
+
+* [vim-repl](https://github.com/sillybun/vim-repl): Instead of connecting to, embed the REPL in vim
+* [vimpyter](https://github.com/szymonmaszke/vimpyter): Integration with jupyter, even the notebook
+* [vim-ipython-cell](https://github.com/hanschen/vim-ipython-cell): send cell to jupyter via slime, requires terminal multiplexing instead of zeromq to communicate (higer level)
+* [jupytext.vim](https://github.com/goerz/jupytext.vim): Convert notebook files to vim buffers
+
+
 ## Info
 
 Once we fell in love with Vim, we couldn't bear having to jump back and forth
