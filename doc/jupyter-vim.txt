@@ -375,6 +375,8 @@ $ jupyter qtconsole --version # 4.3.1
 CHANGELOG					*jupyter-vim-changelog*
 
 [v0.0?]
+* Feature: Do not ignore Indented when using JupyterSendCell (Issue #47)
+* Restore support for custom cell with g:jupyter_cell_separators
 * Refactor command names `:J*` -> `:Jupyter*`. Retrocompatibility.
 * Refactor command names `:Jupyter*` -> `:J*`. Nobody likes typing.
 * Add `b:jupyter_exec_before` and its 3 brothers

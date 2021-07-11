@@ -122,7 +122,7 @@ endfunction
 
 function! jupyter#JupyterCd(...) abort 
     " Behaves just like typical `cd`.
-    let l:dirname = a:0 ? a:1 : "$HOME"
+    let l:dirname = a:0 ? a:1 : '$HOME'
     " Helpers:
     " " . -> vim cwd
     if l:dirname ==# '.' | let l:dirname = getcwd() | endif

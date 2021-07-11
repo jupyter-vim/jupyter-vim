@@ -15,18 +15,19 @@ endif
 "-----------------------------------------------------------------------------
 "        Configuration: {{{
 "-----------------------------------------------------------------------------
-let s:default_settings = {
+let g:jupyter_default_settings = {
     \ 'auto_connect': 0,
-    \ 'cell_separators': "['##', '#%%', '# %%', '# <codecell>']",
+    \ 'cell_separators': ['##', '#%%', '# %%', '# <codecell>'],
     \ 'mapkeys': 1,
     \ 'monitor_console': 0,
-    \ 'timer_intervals': '[300, 600, 1000, 1500, 3000, 10000]',
+    \ 'timer_intervals': [300, 600, 1000, 1500, 3000, 10000],
     \ 'verbose': 0
 \ }
 
-for [s:key, s:val] in items(s:default_settings)
+for [s:key, s:val] in items(g:jupyter_default_settings)
     if !exists('g:jupyter_' . s:key)
-        execute 'let g:jupyter_' . s:key . ' = ' . s:val
+        let value = s:val
+        execute 'let g:jupyter_' . s:key . ' = value'
     endif
 endfor
 

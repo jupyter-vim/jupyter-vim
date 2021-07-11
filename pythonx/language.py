@@ -5,13 +5,14 @@ To add a language, please fill all the field.
 If it is hard, just put '-1', it will never complain.
 See cpp's way to run a file (defer work to python)
 """
+# pylint: disable=too-few-public-methods
 
 # Export only: see at end
 __all__ = ['list_languages', 'get_language']
 
 
 class Language:
-    """Language Base"""
+    """ Language Base """
     prompt_in = 'In [{:d}]: '
     prompt_out = 'Out[{:d}]: '
     print_string = 'print("{}")'
@@ -23,7 +24,7 @@ class Language:
 
 
 class Bash(Language):
-    """Bourne Again Shell"""
+    """ Bourne Again Shell """
     prompt_in = 'Sh [{:d}]: '
     print_string = 'echo -e "{}"'
     run_file = 'source "{}"'
@@ -34,7 +35,7 @@ class Bash(Language):
 
 
 class Cpp(Language):
-    """Note :Pid is the first to run, so make import there
+    """ Note :Pid is the first to run, so make import there
     I don't want to implement include so let it to -1,
         then python send file content
     """
@@ -57,7 +58,7 @@ class Cpp(Language):
 
 
 class Java(Language):
-    """Java: compiled for jvm"""
+    """ Java: compiled for jvm """
     prompt_in = 'Ja [{:d}]: '
     print_string = 'System.out.println("{}");'
     run_file = """ // Import
@@ -85,7 +86,7 @@ class Java(Language):
 
 
 class Javascript(Language):
-    """Js script excutable with nodejs"""
+    """ Js script excutable with nodejs """
     prompt_in = 'Js [{:d}]: '
     print_string = 'console.log("{}");'
     run_file = 'eval("" + require("fs").readFileSync("{}"));'
@@ -96,7 +97,7 @@ class Javascript(Language):
 
 
 class Julia(Language):
-    """Julia: interpreted dynamic programming"""
+    """ Julia: interpreted dynamic programming """
     prompt_in = 'Jl [{:d}]: '
     print_string = 'println("{}")'
     run_file = 'include("{}")'
@@ -107,7 +108,7 @@ class Julia(Language):
 
 
 class Perl(Language):
-    """Perl: script"""
+    """ Perl: script """
     prompt_in = 'Pl [{:d}]: '
     print_string = 'print("{}")'
     run_file = 'my $_res = "{}"; $_res =~ s/\\.[^.]+$//; do $_res;'
@@ -118,7 +119,7 @@ class Perl(Language):
 
 
 class Python(Language):
-    """Python: script"""
+    """ Python: script """
     prompt_in = 'Py [{:d}]: '
     print_string = 'print("{}")'
     run_file = '%run "{}"'
@@ -128,8 +129,9 @@ class Python(Language):
     hostname = 'import socket; _res = socket.gethostname()'
 
 
+# pylint: disable=C0103  # Class name "R" no PascalCase naming style
 class R(Language):
-    """R: script"""
+    """ R: script """
     prompt_in = 'R [{:d}]: '
     print_string = 'print("{}")'
     run_file = 'source("{}")'
@@ -140,7 +142,7 @@ class R(Language):
 
 
 class Raku(Language):
-    """Raku: script (used to be Perl6)"""
+    """ Raku: script (used to be Perl6) """
     prompt_in = 'Ra [{:d}]: '
     print_string = 'say("{}");'
     run_file = '#% run {}'
@@ -151,7 +153,7 @@ class Raku(Language):
 
 
 class Ruby(Language):
-    """Ruby: script"""
+    """ Ruby: script """
     prompt_in = 'Rb [{:d}]: '
     print_string = 'print("{}")'
     run_file = 'load "{}"'
@@ -162,7 +164,7 @@ class Ruby(Language):
 
 
 class Rust(Language):
-    """Rust: compiled, strongly typed"""
+    """ Rust: compiled, strongly typed """
     prompt_in = 'Rs [{:d}]: '
     print_string = 'println!("{}");'
     run_file = '-1'
@@ -205,12 +207,12 @@ language_dict = {
 
 
 def list_languages():
-    """List coding languages implemented by module"""
+    """ List coding languages implemented by module """
     return language_dict.keys()
 
 
 def get_language(kernel_type):
-    """Get language class
+    """ Get language class
     Assert that language is in language_list (checked by caller)
     But still, let's return something
     """

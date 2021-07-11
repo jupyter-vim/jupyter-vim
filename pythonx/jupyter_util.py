@@ -12,12 +12,12 @@ from jupyter_core.paths import jupyter_runtime_dir
 import vim
 
 
-def is_integer(s):
+def is_integer(s_in):
     """Check if string represents an integer."""
-    s = str(s)
-    if s[0] in ('-', '+'):
-        return s[1:].isdigit()
-    return s.isdigit()
+    s_in = str(s_in)
+    if s_in[0] in ('-', '+'):
+        return s_in[1:].isdigit()
+    return s_in.isdigit()
 
 
 def echom(arg, style='None'):
@@ -100,6 +100,7 @@ def str_to_vim(obj):
     str
         Double-quoted string.
     """
+    # pylint: disable=undefined-variable  # unicode
     # Encode
     is_py3 = version_info[0] >= 3
     if is_py3:
@@ -107,7 +108,6 @@ def str_to_vim(obj):
             obj = obj.encode()
         obj = str(obj, 'utf-8')
     else:
-        # pylint: disable=undefined-variable
         obj = unicode(obj, 'utf-8')  # noqa: E0602
 
     # Vim cannot deal with zero bytes:
@@ -120,21 +120,21 @@ def str_to_vim(obj):
     return f'"{obj:s}"'
 
 
-def unquote_string(s):
+def unquote_string(s_in):
     """Remove single and double quotes from beginning and end of `s`."""
-    if isinstance(s, bytes):
-        s = s.decode()
-    if not isinstance(s, str):
-        s = str(s)
+    if isinstance(s_in, bytes):
+        s_in = s_in.decode()
+    if not isinstance(s_in, str):
+        s_in = str(s_in)
     for quote in ("'", '"'):
-        s = s.rstrip(quote).lstrip(quote)
-    return s
+        s_in = s_in.rstrip(quote).lstrip(quote)
+    return s_in
 
 
-def strip_color_escapes(s):
+def strip_color_escapes(s_in):
     """Remove ANSI color escape sequences from a string."""
     re_strip_ansi = re.compile(r'\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[mK]')
-    return re_strip_ansi.sub('', s)
+    return re_strip_ansi.sub('', s_in)
 
 
 def prettify_execute_intput(line_number, cmd, prompt_in):
@@ -173,8 +173,8 @@ def match_kernel_id(fpath):
     str
         Kernel id as a string.
     """
-    m = re.search(r'kernel-(.+)\.json', str(fpath))
-    return m[1] if m else None
+    m_kernel = re.search(r'kernel-(.+)\.json', str(fpath))
+    return m_kernel[1] if m_kernel else None
 
 
 def find_jupyter_kernel_ids():

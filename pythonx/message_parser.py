@@ -12,18 +12,16 @@ from time import sleep
 
 # Py module
 from jupyter_client import KernelManager
-import vim
-
 # Local
 from jupyter_util import echom, unquote_string, match_kernel_id, get_vim
-
 try:
     from queue import Queue, Empty
 except ImportError:
     from Queue import Queue, Empty
-
-# Local
 from language import list_languages
+
+# Process local
+import vim
 
 
 class VimMessenger():
@@ -96,8 +94,10 @@ class VimMessenger():
 
     def is_cell_separator(self, line):
         """Return True if given `line` is a cell separator."""
-        return any([bool(re.match(separation, line.strip()))
-                    for separation in self.cell_separators])
+        for separation in self.cell_separators:
+            if re.match(separation, line):
+                return True
+        return False
 
     def thread_echom(self, arg, **args):
         """Wrap echo async: put message to be echoed in a queue."""
@@ -184,6 +184,7 @@ class JupyterMessenger():
         # The json may be badly encoding especially if autoconnecting
         try:
             kernel_manager.load_connection_file()
+        # pylint: disable=broad-except
         except Exception:
             return False
         self.km_client = kernel_manager.client()
@@ -475,10 +476,10 @@ def parse_iopub_for_reply(msgs, line_number):
         if not content:
             continue
 
-        ec = int(content.get('execution_count', 0))
-        if not ec:
+        i_count = int(content.get('execution_count', 0))
+        if not i_count:
             continue
-        if line_number not in (-1, ec):
+        if line_number not in (-1, i_count):
             continue
 
         msg_type = msg.get('header', {}).get('msg_type', '')
