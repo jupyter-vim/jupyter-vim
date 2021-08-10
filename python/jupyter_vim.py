@@ -56,6 +56,7 @@ import re
 from jupyter_util import str_to_py, echom, is_integer, unquote_string, get_vim
 from jupyter_messenger import JupyterMessenger
 from monitor_console import Monitor
+from debugger import DAPProxy
 
 
 class JupyterVimSession():
@@ -72,6 +73,7 @@ class JupyterVimSession():
     """
     def __init__(self):
         self.kernel_client = JupyterMessenger()
+        self.dap_proxy = DAPProxy(self.kernel_client)
         self.monitor = None
 
     def if_connected(fct):
@@ -103,6 +105,7 @@ class JupyterVimSession():
             echom('Already connected to a kernel. Use :JupyterDisconnect to disconnect.', style='Error')
             return
         self.kernel_client.connect(kernel_type, filename)
+        self.dap_proxy.start()
 
     def disconnect_from_kernel(self):
         """Disconnect from the kernel client if connected.

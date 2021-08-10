@@ -10,6 +10,8 @@ function! jupyter#load#MakeStandardCommands() abort
     command! -buffer -nargs=0    JupyterSendCell        call jupyter#SendCell()
     command! -buffer -nargs=0    JupyterStartMonitor   call jupyter#StartMonitor()
     command! -buffer -nargs=0    JupyterStopMonitor   call jupyter#StopMonitor()
+    command! -buffer -nargs=0    JupyterStartDebugger   call jupyter#StartDebugger()
+    command! -buffer -nargs=0    JupyterStopDebugger   call jupyter#StopDebugger()
     command! -buffer -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
     command! -buffer -nargs=? -bang -complete=customlist,jupyter#CompleteTerminateKernel
         \ JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)

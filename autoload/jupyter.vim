@@ -178,6 +178,14 @@ function! jupyter#StopMonitor() abort
     python3 _jupyter_session.stop_monitor()
 endfunction
 
+function! jupyter#StartDebugger() abort
+    python3 _jupyter_session.start_debugger()
+endfunction
+
+function! jupyter#StopDebugger() abort
+    python3 _jupyter_session.stop_debugger()
+endfunction
+
 
 "-----------------------------------------------------------------------------
 "        Auxiliary Functions:
