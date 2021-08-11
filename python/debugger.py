@@ -9,7 +9,7 @@ class DAPProxy():
         self.vimspector_task = None
 
     def start(self):
-        self.server_task = asyncio.run_coroutine_threadsafe(self._start(), self.kernel_client.loop)
+        asyncio.run_coroutine_threadsafe(self._start(), self.kernel_client.loop)
 
     def stop(self):
         self.kernel_client.loop.call_soon_threadsafe(self._stop)
@@ -31,15 +31,16 @@ class DAPProxy():
         if self.vimspector_task:
             self.vimspector_task.cancel()
             self.vimspector_task = None
-        if self.server_task:
-            self.server_task.cancel()
-            self.server_task = None
 
     async def _accept_connection(self, reader, writer):
+        self.kernel_client.thread_echom('Vimspector connected.',
+                                        style='Question')
         self._writer = writer
         await asyncio.gather(self._listen_to_kernel('control', writer),
                              self._listen_to_kernel('iopub', writer),
                              self._listen_to_vimspector(reader))
+        self.kernel_client.thread_echom('Vimspector disconnected.',
+                                        style='Question')
 
     async def _listen_to_kernel(self, channel, writer):
         try:
@@ -50,15 +51,21 @@ class DAPProxy():
                 )
                 msg = await self.kernel_tasks[channel]
                 if msg['msg_type'].startswith('debug_'):
+                    # if self.recording == 'initialize':
+                    #     self.init_response.append(msg)
+                    # elif self.recording == 'attach':
+                    #     self.attach_response.append(msg)
                     await self._pass_to_vimspector(msg)
-        except Exception:
-            # The task was cancelled because we closed the debugger
+        except asyncio.CancelledError:
+            # The task was cancelled, probably because the self._stop()
+            # function was called.
             pass
 
     async def _pass_to_vimspector(self, msg):
         content = json.dumps(msg['content'])
-        msg = f'Content-Length: {len(content)}\r\n\r\n{content}'.encode('utf8')
-        self._writer.write(msg)
+        self._writer.write(
+            f'Content-Length: {len(content)}\r\n\r\n{content}\r\n'.encode('utf8')
+        )
         await self._writer.drain()
 
     async def _listen_to_vimspector(self, reader):
@@ -89,7 +96,12 @@ class DAPProxy():
 
                 # Pass the message along to the kernel
                 msg = self.kernel_client.km_client.session.msg('debug_request', body)
-                self.kernel_client.km_client.control_channel.send(msg)
-        except Exception:
-            # The task was cancelled because we closed the debugger
+                self.kernel_client.thread_send_msg('control', msg)
+        except asyncio.CancelledError:
             pass
+        except asyncio.exceptions.IncompleteReadError:
+            # This happens when vimspector disconnects
+            pass
+
+        # Vimspector disconnected. Stop listening to the kernel.
+        self._stop()
