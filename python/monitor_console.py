@@ -62,7 +62,6 @@ class Monitor():
         cur_win = vim.eval('win_getid()')
         term_win = vim.eval('bufwinid({})'.format(str(b_nb)))
         vim.command('call win_gotoid({})'.format(term_win))
-        vim.command('set modifiable')
 
         # Append mesage to jupyter terminal buffer
         while not self.line_queue.empty():
@@ -72,5 +71,4 @@ class Monitor():
                 buf.append(line)
 
         vim.command('normal! G')
-        vim.command('set nomodifiable')
         vim.command('call win_gotoid({})'.format(cur_win))
