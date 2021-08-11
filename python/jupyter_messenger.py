@@ -347,7 +347,7 @@ class JupyterMessenger():
             echom(arg, **args)
 
         #vim.command('redraw')
-        timer_interval = get_vim('g:jupyter_timer_interval', 2000)
+        timer_interval = get_vim('g:jupyter_timer_interval', 500)
         vim.command(f'call timer_start({timer_interval}, "jupyter#UpdateEchom")')
 
 
