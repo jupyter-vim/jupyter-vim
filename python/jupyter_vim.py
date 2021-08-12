@@ -44,6 +44,7 @@ except ImportError as e_import:
     raise ImportError('vim module only available within vim! The original ImportError: ' +
                       str(e_import)) from e_import
 
+
 # Standard
 import functools
 from os import kill, remove
@@ -185,6 +186,22 @@ class JupyterVimSession():
         if wipeout_buffer:
             vim.command('bwipeout __jupyter_monitor__')
 
+    def start_debugger(self, vimspector_session):
+        vimspector_session._StartWithConfiguration(
+            configuration={
+                'adapter': 'multi-session',
+                'configuration': {'request': 'attach'},
+                'breakpoints': {
+                    'exception': {
+                        'caught': 'N',
+                        'raised': 'N',
+                        'uncaught': 'Y'
+                    }
+                },
+            },
+            adapter={'host': 'localhost', 'port': '9000'}
+        )
+        
     # -----------------------------------------------------------------------------
     #        Communicate with Kernel
     # -----------------------------------------------------------------------------

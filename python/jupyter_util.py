@@ -196,3 +196,12 @@ def find_signals():
     signals = [v for v, k in signal.__dict__.items()
                if v.startswith('SIG') and not v.startswith('SIG_')]
     return sorted(signals)
+
+def has_vimspector():
+    """Check if vimspector is installed."""
+    try:
+        import vimspector
+        return True
+    except ImportError:
+        return False
+
