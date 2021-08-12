@@ -325,9 +325,6 @@ class JupyterMessenger():
 
     def timer_echom(self):
         """Call echom sync on all messages in queue."""
-        if self.echom_queue.empty():
-            return
-
         while not self.echom_queue.empty():
             (arg, args) = self.echom_queue.get_nowait()
             echom(arg, **args)
