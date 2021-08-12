@@ -190,8 +190,6 @@ nnoremap <buffer> <silent> <localleader>E :JupyterSendRange<CR>
 nmap     <buffer> <silent> <localleader>e <Plug>JupyterRunTextObj
 vmap     <buffer> <silent> <localleader>e <Plug>JupyterRunVisual
 
-nnoremap <buffer> <silent> <localleader>U :JupyterUpdateShell<CR>
-
 " Debugging maps
 nnoremap <buffer> <silent> <localleader>b :PythonSetBreak<CR>
 ```
