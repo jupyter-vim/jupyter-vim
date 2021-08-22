@@ -90,8 +90,8 @@ COMMANDS 					*jupyter-vim-commands*
 			connect to a `jupyter kernel`, but the console is
 			necessary to display any output from your python code!
 
-:JupyterDiconnect			         *jupyter-disconnect* *:JupyterDiconnect*
-			Diconnect from the currently connected kernel.
+:JupyterDisconnect			         *jupyter-disconnect* *:JupyterDisconnect*
+			Disconnect from the currently connected kernel.
 
 :JupyterCd [dir] 				*jupyter-cd* *:JupyterCd*
 			Change the working directory of the kernel to [dir].
