@@ -8,7 +8,7 @@
 "  Filetypes: bash, java, javascript, julia, perl, python, ruby
 "=============================================================================
 
-if exists('g:loaded_jupyter_vim') || !(has('pythonx') || has('python') || has('python3')) || &compatible
+if exists('g:loaded_jupyter_vim') || !has('python3') || &compatible
     finish
 endif
 
@@ -19,8 +19,7 @@ let g:jupyter_default_settings = {
     \ 'auto_connect': 0,
     \ 'cell_separators': ['##', '#%%', '# %%', '# <codecell>'],
     \ 'mapkeys': 1,
-    \ 'monitor_console': 0,
-    \ 'timer_intervals': [300, 600, 1000, 1500, 3000, 10000],
+    \ 'timer_interval': 500,
     \ 'verbose': 0
 \ }
 

@@ -5,7 +5,6 @@ Utility functions for use with jupyter_vim module.
 from pathlib import Path
 import re
 import signal
-from sys import version_info
 
 from jupyter_core.paths import jupyter_runtime_dir
 
@@ -31,13 +30,24 @@ def echom(arg, style='None'):
         vim highlighting style of message
     """
     try:
+        # Colorize
         vim.command(f"echohl {style}")
+
+        # Manage multiple line with multiple echom
         messages = arg.split('\n')
-        for msg in messages:
-            vim.command("echom \"{}\"".format(msg.replace('\"', '\\\"')))
+        for i_line, msg in enumerate(messages):
+            # Append prefix
+            prefix = ''
+            if i_line == 0 and style != 'None':
+                prefix = style + ': '
+
+            # Finally echom (with Vim API)
+            vim.command("echom \"{} {}\"".format(prefix, msg.replace('\"', '\\\"')))
+
+        # Stop colorize
         vim.command("echohl None")
     except vim.error:
-        print(f"-- {arg}")
+        print(f"Error: -- {arg}")
 
 
 def get_vim(name, default=None):
@@ -77,13 +87,9 @@ def str_to_py(obj):
     str
         An encoded python string.
     """
-    is_py3 = version_info[0] >= 3
     encoding = vim.eval('&encoding') or 'utf-8'
-    if is_py3 and isinstance(obj, bytes):
+    if isinstance(obj, bytes):
         obj = str(obj, encoding)
-    elif not is_py3 and isinstance(obj, str):
-        # pylint: disable=undefined-variable
-        obj = unicode(obj, encoding)  # noqa: E0602
     return obj
 
 
@@ -102,13 +108,9 @@ def str_to_vim(obj):
     """
     # pylint: disable=undefined-variable  # unicode
     # Encode
-    is_py3 = version_info[0] >= 3
-    if is_py3:
-        if not isinstance(obj, bytes):
-            obj = obj.encode()
-        obj = str(obj, 'utf-8')
-    else:
-        obj = unicode(obj, 'utf-8')  # noqa: E0602
+    if not isinstance(obj, bytes):
+        obj = obj.encode()
+    obj = str(obj, 'utf-8')
 
     # Vim cannot deal with zero bytes:
     obj = obj.replace('\0', '\\0')
