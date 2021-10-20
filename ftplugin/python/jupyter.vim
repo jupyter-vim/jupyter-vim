@@ -17,7 +17,7 @@ command! -buffer -nargs=? -complete=file
             \ PythonImportThisFile update | call jupyter#RunFile('-n', expand("%:p"))
 
 " Debugging commands
-command! -nargs=?   PythonSetBreak  call jupyter#PythonDbstop()
+command! -nargs=0   PythonSetBreak  call jupyter#PythonDbstop()
 
 "}}}--------------------------------------------------------------------------
 "        Key Mappings: {{{
