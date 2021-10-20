@@ -4,10 +4,10 @@ Feature to get a buffer with jupyter output
 
 # Standard
 import asyncio
+from queue import Queue
 
 # Local
 from jupyter_util import echom, unquote_string, str_to_vim, get_vim
-from queue import Queue
 
 # Process local
 import vim

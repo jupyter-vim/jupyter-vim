@@ -83,7 +83,7 @@ class JupyterVimSession():
         @functools.wraps(fct)
         def wrapper(self, *args, **kwargs):
             if not self.kernel_client.check_connection():
-                echom(f'python3 _jupyter_session.{fct.__name__}() needs a connected client. ',
+                echom(f'python3 _jupyter_session.{fct.__name__}() needs a connected client.',
                       style='Error')
                 return None
             return fct(self, *args, **kwargs)
@@ -265,7 +265,7 @@ class JupyterVimSession():
         cmd : str
             Lines of code to send to the kernel.
         """
-        msg_id = self.kernel_client.send(cmd)
+        msg_id = self.kernel_client.execute(cmd)
         return (cmd, msg_id)
 
     @if_connected
