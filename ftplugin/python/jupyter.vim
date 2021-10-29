@@ -10,6 +10,14 @@
 " User-specified flags for IPython's run file magic can be set per-buffer
 let b:ipython_run_flags = ''
 
+" Highlight jupyter cells (lines beginning with ##) such that it is easier to
+" see them
+fun! SetCellHighlighting()
+    syn match jupyterCell  "^##\([^#]\|$\).*$"
+    highlight jupyterCell  ctermfg=255 guifg=#eeeeee ctermbg=022 guibg=#005f00 cterm=bold gui=bold
+endfu
+autocmd bufenter * :call SetCellHighlighting()
+
 "}}}--------------------------------------------------------------------------
 "        Commands: {{{
 "-----------------------------------------------------------------------------
