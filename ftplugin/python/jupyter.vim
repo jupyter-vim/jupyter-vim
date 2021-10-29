@@ -13,7 +13,7 @@ let b:ipython_run_flags = ''
 "}}}--------------------------------------------------------------------------
 "        Commands: {{{
 "-----------------------------------------------------------------------------
-command! -buffer -nargs=0
+command! -buffer -nargs=?
             \ PythonImportThisFile update | call jupyter#RunFile('-n', expand("%:p"))
 
 " Debugging commands
