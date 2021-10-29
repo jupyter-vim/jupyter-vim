@@ -5,40 +5,16 @@
 "
 "  Description: Autoload vim functions for use in jupyter-vim plugin
 "
-"=============================================================================
-"        Python Initialization:
-"-----------------------------------------------------------------------------
-" Neovim doesn't have the pythonx command, so we define a new command Pythonx
-" that works for both vim and neovim.
-if has('pythonx')
-    command! -range -nargs=+ Pythonx <line1>,<line2>pythonx <args>
-elseif has('python3')
-    command! -range -nargs=+ Pythonx <line1>,<line2>python3 <args>
-elseif has('python')
-    command! -range -nargs=+ Pythonx <line1>,<line2>python <args>
-endif
-
-" Define Pyeval: python str -> vim variable
-function! Pyevalx(str) abort
-    if has('pythonx')
-        return pyxeval(a:str)
-    elseif has('python3')
-        return py3eval(a:str)
-    elseif has('python')
-        return pyeval(a:str)
-    endif
-endfunction
-
 " See ~/.vim/bundle/jedi-vim/autoload/jedi.vim for initialization routine
 function! s:init_python() abort
     let s:init_outcome = 0
     let init_lines = [
           \ '# Add path',
           \ 'import os; import sys; import vim',
-          \ 'vim_path, _ = os.path.split(vim.eval("expand(''<sfile>:p:h'')"))',
-          \ 'vim_pythonx_path = os.path.join(vim_path, "pythonx")',
-          \ 'if vim_pythonx_path not in sys.path:',
-          \ '    sys.path.append(vim_pythonx_path)',
+          \ 'plugin_path, _ = os.path.split(vim.eval("expand(''<sfile>:p:h'')"))',
+          \ 'plugin_python_path = os.path.join(plugin_path, "python")',
+          \ 'if plugin_python_path not in sys.path:',
+          \ '    sys.path.append(plugin_python_path)',
           \ '',
           \ '# Import',
           \ 'try:',
@@ -55,7 +31,7 @@ function! s:init_python() abort
 
     " Try running lines via python, which will set script variable
     try
-        execute 'Pythonx exec('''.escape(join(init_lines, '\n'), "'").''')'
+        execute 'python3 exec('''.escape(join(init_lines, '\n'), "'").''')'
     catch
         throw printf('[jupyter-vim] s:init_python: failed to run Python for initialization: %s', v:exception)
     endtry
@@ -102,14 +78,14 @@ call jupyter#init_python()
 
 function! jupyter#Connect(...) abort
     let l:kernel_file = a:0 > 0 ? a:1 : '*.json'
-    Pythonx _jupyter_session.connect_to_kernel(
+    python3 _jupyter_session.connect_to_kernel(
                 \ str_to_py(vim.current.buffer.vars['jupyter_kernel_type']),
                 \ filename=vim.eval('l:kernel_file'))
 endfunction
 
 function! jupyter#CompleteConnect(ArgLead, CmdLine, CursorPos) abort
     " Get kernel id from python
-    let l:kernel_ids = Pyevalx('find_jupyter_kernel_ids()')
+    let l:kernel_ids = py3eval('find_jupyter_kernel_ids()')
     " Filter id matching user arg
     call filter(l:kernel_ids, '-1 != match(v:val, a:ArgLead)')
     " Return list
@@ -117,7 +93,7 @@ function! jupyter#CompleteConnect(ArgLead, CmdLine, CursorPos) abort
 endfunction
 
 function! jupyter#Disconnect(...) abort
-    Pythonx _jupyter_session.disconnect_from_kernel()
+    python3 _jupyter_session.disconnect_from_kernel()
 endfunction
 
 function! jupyter#JupyterCd(...) abort 
@@ -131,29 +107,29 @@ function! jupyter#JupyterCd(...) abort
     " Expand (to get %)
     let l:dirname = expand(l:dirname)
     let l:dirname = escape(l:dirname, '"')
-    Pythonx _jupyter_session.change_directory(vim.eval('l:dirname'))
+    python3 _jupyter_session.change_directory(vim.eval('l:dirname'))
 endfunction
 
 function! jupyter#RunFile(...) abort
     " filename is the last argument on the command line
     let l:flags = (a:0 > 1) ? join(a:000[:-2], ' ') : ''
     let l:filename = a:0 ? a:000[-1] : expand('%:p')
-    Pythonx _jupyter_session.run_file(
+    python3 _jupyter_session.run_file(
                 \ flags=vim.eval('l:flags'),
                 \ filename=vim.eval('l:filename'))
 endfunction
 
 function! jupyter#SendCell() abort
-    Pythonx _jupyter_session.run_cell()
+    python3 _jupyter_session.run_cell()
 endfunction
 
 function! jupyter#SendCode(code) abort
     " NOTE: 'run_command' gives more checks than just raw 'send'
-    Pythonx _jupyter_session.run_command(vim.eval('a:code'))
+    python3 _jupyter_session.run_command(vim.eval('a:code'))
 endfunction
 
 function! jupyter#SendRange() range abort
-    execute a:firstline . ',' . a:lastline . 'Pythonx _jupyter_session.send_range()'
+    execute a:firstline . ',' . a:lastline . 'python3 _jupyter_session.send_range()'
 endfunction
 
 function! jupyter#SendCount(count) abort
@@ -182,21 +158,24 @@ function! jupyter#TerminateKernel(kill, ...) abort
     else
         let l:sig='SIGTERM'
     endif
-    execute 'Pythonx _jupyter_session.signal_kernel("'.l:sig.'")'
+    execute 'python3 _jupyter_session.signal_kernel("'.l:sig.'")'
 endfunction
 
 function! jupyter#CompleteTerminateKernel(ArgLead, CmdLine, CursorPos) abort
     " Get signals from Python
-    let l:signals = Pyevalx('find_signals()')
+    let l:signals = py3eval('find_signals()')
     " Filter signal with user arg
     call filter(l:signals, '-1 != match(v:val, a:ArgLead)')
     " Return list
     return l:signals
 endfunction
 
-function! jupyter#UpdateMonitor() abort
-    let g:jupyter_monitor_console = 1
-    Pythonx _jupyter_session.update_monitor_msgs()
+function! jupyter#StartMonitor() abort
+    python3 _jupyter_session.start_monitor()
+endfunction
+
+function! jupyter#StopMonitor() abort
+    python3 _jupyter_session.stop_monitor()
 endfunction
 
 
@@ -212,7 +191,7 @@ endfunction
 
 " Timer callback to fill jupyter console buffer
 function! jupyter#UpdateEchom(timer) abort
-    Pythonx _jupyter_session.vim_client.timer_echom()
+    python3 _jupyter_session.kernel_client.timer_echom()
 endfunction
 
 "=============================================================================

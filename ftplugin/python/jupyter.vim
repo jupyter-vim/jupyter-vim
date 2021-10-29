@@ -13,11 +13,11 @@ let b:ipython_run_flags = ''
 "}}}--------------------------------------------------------------------------
 "        Commands: {{{
 "-----------------------------------------------------------------------------
-command! -buffer -nargs=? -complete=file
+command! -buffer -nargs=?
             \ PythonImportThisFile update | call jupyter#RunFile('-n', expand("%:p"))
 
 " Debugging commands
-command! -nargs=0   PythonSetBreak  call jupyter#PythonDbstop()
+command! -nargs=0 PythonSetBreak  call jupyter#PythonDbstop()
 
 "}}}--------------------------------------------------------------------------
 "        Key Mappings: {{{

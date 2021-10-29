@@ -8,7 +8,8 @@ function! jupyter#load#MakeStandardCommands() abort
     command! -buffer -count      JupyterSendCount       call jupyter#SendCount(<count>)
     command! -buffer -range -bar JupyterSendRange       <line1>,<line2>call jupyter#SendRange()
     command! -buffer -nargs=0    JupyterSendCell        call jupyter#SendCell()
-    command! -buffer -nargs=0    JupyterUpdateMonitor   call jupyter#UpdateMonitor()
+    command! -buffer -nargs=0    JupyterStartMonitor   call jupyter#StartMonitor()
+    command! -buffer -nargs=0    JupyterStopMonitor   call jupyter#StopMonitor()
     command! -buffer -nargs=? -complete=dir  JupyterCd  call jupyter#JupyterCd(<f-args>)
     command! -buffer -nargs=? -bang -complete=customlist,jupyter#CompleteTerminateKernel
         \ JupyterTerminateKernel  call jupyter#TerminateKernel(<bang>0, <f-args>)
