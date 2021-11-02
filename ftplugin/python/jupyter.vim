@@ -17,7 +17,8 @@ command! -buffer -nargs=?
             \ PythonImportThisFile update | call jupyter#RunFile('-n', expand("%:p"))
 
 " Debugging commands
-command! -nargs=0 PythonSetBreak  call jupyter#PythonDbstop()
+command! -nargs=0   PythonSetBreak  call jupyter#PythonDbstop()
+command! -nargs=0   PythonStartDebugger  call jupyter#PythonStartDebugger()
 
 "}}}--------------------------------------------------------------------------
 "        Key Mappings: {{{
@@ -28,6 +29,7 @@ if exists('g:jupyter_mapkeys') && g:jupyter_mapkeys
 
     " Debugging maps
     nnoremap <buffer> <silent> <localleader>b :PythonSetBreak<CR>
+    nnoremap <buffer> <silent> <localleader>d :PythonStartDebugger<CR>
 endif
 "}}}
 
