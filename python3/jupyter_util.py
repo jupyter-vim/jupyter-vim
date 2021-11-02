@@ -30,13 +30,24 @@ def echom(arg, style='None'):
         vim highlighting style of message
     """
     try:
+        # Colorize
         vim.command(f"echohl {style}")
+
+        # Manage multiple line with multiple echom
         messages = arg.split('\n')
-        for msg in messages:
-            vim.command("echom \"{}\"".format(msg.replace('\"', '\\\"')))
+        for i_line, msg in enumerate(messages):
+            # Append prefix
+            prefix = ''
+            if i_line == 0 and style != 'None':
+                prefix = style + ': '
+
+            # Finally echom (with Vim API)
+            vim.command("echom \"{} {}\"".format(prefix, msg.replace('\"', '\\\"')))
+
+        # Stop colorize
         vim.command("echohl None")
     except vim.error:
-        print(f"-- {arg}")
+        print(f"Error: -- {arg}")
 
 
 def get_vim(name, default=None):

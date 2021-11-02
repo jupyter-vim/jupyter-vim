@@ -102,7 +102,7 @@ class JupyterMessenger():
         for channel in ['shell', 'iopub', 'control']:
             self.producers[channel] = self.loop.create_task(
                 self._listen_to_channel(channel))
-       
+
         await self.get_kernel_info()
         self.thread_echom(
             f'Connected to {self.kernel_info["kernel_type"]} kernel on '
@@ -133,7 +133,7 @@ class JupyterMessenger():
         channel : 'shell' | 'iopub' | 'control'
             The channel to listen on.
         """
-        while True: 
+        while True:
             if channel == 'shell':
                 msg = await self.km_client.shell_channel.get_msg()
             elif channel == 'iopub':
@@ -317,7 +317,7 @@ class JupyterMessenger():
         """
         # Check in
         if self.kernel_info['kernel_type'] not in list_languages():
-            self.echom(
+            self.thread_echom(
                 ('I don''t know how to get infos for a Jupyter kernel of type '
                  f'"{self.kernel_info["kernel_type"]}"'),
                 stlye='WarningMsg'
