@@ -12,11 +12,18 @@ let b:ipython_run_flags = ''
 
 " Highlight jupyter cells (lines beginning with ##) such that it is easier to
 " see them
-fun! SetCellHighlighting()
-    syn match jupyterCell  "^##\([^#]\|$\).*$"
-    highlight jupyterCell  ctermfg=255 guifg=#eeeeee ctermbg=022 guibg=#005f00 cterm=bold gui=bold
-endfu
-autocmd bufenter * :call SetCellHighlighting()
+if g:jupyter_highlight_cells
+    fun! SetCellHighlighting()
+        for cell_separator in g:jupyter_cell_separators
+            let regex_cell= "^" . cell_separator . "\\([^#]\\|$\\).*$"
+            let match_cmd = "syntax match JupyterCell \"" . regex_cell . "\"" 
+            let highlight_cmd = "highlight JupyterCell ctermfg=255 guifg=#eeeeee ctermbg=022 guibg=#005f00 cterm=bold gui=bold"
+            execute match_cmd
+            execute highlight_cmd
+        endfor
+    endfu
+    autocmd bufenter * :call SetCellHighlighting()
+endif
 
 "}}}--------------------------------------------------------------------------
 "        Commands: {{{
