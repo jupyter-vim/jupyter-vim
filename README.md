@@ -1,6 +1,6 @@
 # Jupyter-Vim
 
-A two-way integration between Vim and Jupyter. Develop code on a Jupyter notebooke without leaving the terminal. Send lines from Vim to a jupyter qtconsole. Have a MATLAB-like "cell-mode".
+A two-way integration between Vim and Jupyter. Develop code on a Jupyter notebook without leaving the terminal. Send lines from Vim to a jupyter qtconsole. Have a MATLAB-like "cell-mode".
 
 Currently Python and Julia kernels are supported, and more languages are on the way.
 
