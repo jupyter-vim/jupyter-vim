@@ -18,6 +18,7 @@ endif
 let g:jupyter_default_settings = {
     \ 'auto_connect': 0,
     \ 'cell_separators': ['##', '#%%', '# %%', '# <codecell>'],
+    \ 'highlight_cells': 1, 
     \ 'mapkeys': 1,
     \ 'timer_interval': 500,
     \ 'verbose': 0
