@@ -325,11 +325,12 @@ class JupyterMessenger():
 
     def timer_echom(self):
         """Call echom sync on all messages in queue."""
+        empty = self.echom_queue.empty()
         while not self.echom_queue.empty():
             (arg, args) = self.echom_queue.get_nowait()
             echom(arg, **args)
-
-        vim.command('redraw')
+        if not empty:
+            vim.command('redraw')
         timer_interval = get_vim('g:jupyter_timer_interval', 500)
         vim.command(f'call timer_start({timer_interval}, "jupyter#UpdateEchom")')
 
