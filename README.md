@@ -151,14 +151,14 @@ Now you need to uncomment and change the following config options to `True`.
 
 - qtconsole 
 
-Edit this following file: ~/.jupyter/jupyter_qtconsole_config.py
+Edit this following file: `~/.jupyter/jupyter_qtconsole_config.py`
 ```python
 c.ConsoleWidget.include_other_output = True
 ```
 
 - console
 
-Edit the following file: ~/.jupyter/jupyter_console_config.py
+Edit the following file: `~/.jupyter/jupyter_console_config.py`
 ```python
 c.ZMQTerminalInteractiveShell.include_other_output = True
 ```
