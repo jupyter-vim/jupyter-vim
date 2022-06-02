@@ -18,8 +18,10 @@ if g:jupyter_highlight_cells
             let regex_cell= "^" . cell_separator . "\\([^#]\\|$\\).*$"
             let match_cmd = "syntax match JupyterCell \"" . regex_cell . "\"" 
             let highlight_cmd = "highlight JupyterCell ctermfg=255 guifg=#eeeeee ctermbg=022 guibg=#005f00 cterm=bold gui=bold"
+            if !hlexists('JupyterCell')
+                execute highlight_cmd
+            endif
             execute match_cmd
-            execute highlight_cmd
         endfor
     endfu
     autocmd bufenter * :call SetCellHighlighting()
