@@ -268,6 +268,13 @@ string.
 The match starts at the beginning of line: hence the `.*` in the previous
 example
 
+`g:jupyter_highlight_cells`        		*g:jupyter_highlight_cells
+				  Boolean to toggle cell highlighting 
+Default: 1
+
+This option will use syntax highlighting in order to highlight the cells
+defined by g:jupyter_cell_separators if set to true. 
+
 `g:jupyter_mapkeys`   					*g:jupyter_mapkeys*
 Default: 1 					Map keys for python files
 
