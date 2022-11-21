@@ -215,7 +215,7 @@ class JupyterVimSession():
                 cmd = file_run.read()
 
         # Run it
-        return self.kernel_client.execute(cmd)
+        return self.kernel_client.execute(cmd, allow_stdin=False)
 
     @if_connected
     def change_directory(self, directory):
@@ -245,7 +245,7 @@ class JupyterVimSession():
         cmd : str
             Lines of code to send to the kernel.
         """
-        msg_id = self.kernel_client.execute(cmd)
+        msg_id = self.kernel_client.execute(cmd, allow_stdin=False)
         return (cmd, msg_id)
 
     @if_connected
@@ -270,7 +270,7 @@ class JupyterVimSession():
             params = flags or str_to_py(vim.current.buffer.vars['ipython_run_flags'])
         cmd = '{run_cmd} {params} "{filename}"'.format(
             run_cmd=run_cmd, params=params, filename=filename)
-        msg_id = self.kernel_client.execute(cmd)
+        msg_id = self.kernel_client.execute(cmd, allow_stdin=False)
         return (cmd, msg_id)
 
     @if_connected
@@ -281,7 +281,7 @@ class JupyterVimSession():
         """
         rang = vim.current.range
         lines = "\n".join(vim.current.buffer[rang.start:rang.end+1])
-        msg_id = self.kernel_client.execute(lines)
+        msg_id = self.kernel_client.execute(lines, allow_stdin=False)
         prompt = "range {:d}-{:d} ".format(rang.start+1, rang.end+1)
         return (prompt, msg_id)
 
@@ -334,6 +334,6 @@ class JupyterVimSession():
 
         # Execute cell
         lines = "\n".join(cur_buf[upper_bound:lower_bound+1])
-        msg_id = self.kernel_client.execute(lines)
+        msg_id = self.kernel_client.execute(lines, allow_stdin=False)
         prompt = "execute lines {:d}-{:d} ".format(upper_bound+1, lower_bound+1)
         return (prompt, msg_id)
