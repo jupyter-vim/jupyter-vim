@@ -10,6 +10,7 @@ import collections
 from textwrap import dedent
 from threading import Thread, Lock
 from queue import Empty, Queue
+import sys
 
 # Py module
 from jupyter_client import AsyncKernelManager, find_connection_file
@@ -42,6 +43,8 @@ class JupyterMessenger():
     def __init__(self):
         self.km_client = None      # KernelManager client
         self.background_thread = None
+        if sys.platform == 'win32':
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         self.loop = asyncio.new_event_loop()
         self.kernel_info = dict()  # Kernel information
         self.lang = get_language('')
