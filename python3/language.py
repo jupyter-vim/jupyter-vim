@@ -129,6 +129,20 @@ class Python(Language):
     hostname = 'import socket; _res = socket.gethostname()'
 
 
+class Coconut(Language):
+    """
+    Coconut: script 
+    Coconut, being a superset of the python language, requires no changes from the python class
+    """
+    prompt_in = 'Py [{:d}]: '
+    print_string = 'print("{}")'
+    run_file = '%run "{}"'
+    cd = '%cd "{}"'
+    pid = 'import os; _res = os.getpid()'
+    cwd = 'import os; _res = os.getcwd()'
+    hostname = 'import socket; _res = socket.gethostname()'
+
+
 # pylint: disable=C0103  # Class name "R" no PascalCase naming style
 class R(Language):
     """ R: script """
@@ -199,6 +213,7 @@ language_dict = {
     'julia': Julia,
     'perl': Perl,
     'python': Python,
+    'coconut': Coconut,
     'raku': Raku,
     'ruby': Ruby,
     'rust': Rust,
