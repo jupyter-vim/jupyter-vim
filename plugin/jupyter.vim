@@ -45,6 +45,7 @@ let s:language_dict = {
     \ 'raku': 'raku',
     \ 'ruby': 'ruby',
     \ 'rust': 'rust',
+    \ 'coconut': 'coconut',
     \ 'r': 'ir',
 \ }
 
