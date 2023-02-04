@@ -2,7 +2,7 @@
 
 A two-way integration between Vim and Jupyter. Develop code on a Jupyter notebook without leaving the terminal. Send lines from Vim to a jupyter qtconsole. Have a MATLAB-like "cell-mode".
 
-Currently supports the following kernels: C++, Java, JavaScript, Julia, Perl, Python, and Ruby. Find more information [here](https://github.com/jupyter-vim/jupyter-vim/wiki/Supported-kernel-languages)
+Currently supports the following kernels: Bash, C++, C, Java, Javascript, Julia, Perl, Raku, Python, Raku, Ruby, Rust, and R. Find more information [here](https://github.com/jupyter-vim/jupyter-vim/wiki/Supported-kernel-languages)
 
 [![Video demo](demo.png)](https://www.youtube.com/watch?v=h59cbg4HqpY)
 
