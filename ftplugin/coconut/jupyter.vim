@@ -13,4 +13,4 @@
 "
 "=============================================================================
 
-runtime! ftplugin/python/jupyter.vim
+runtime! <sfile>:h/../python/jupyter.vim
