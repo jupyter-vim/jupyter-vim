@@ -13,4 +13,4 @@
 "
 "=============================================================================
 
-runtime! <sfile>:h/../python/jupyter.vim
+source <sfile>:h/../python/jupyter.vim
