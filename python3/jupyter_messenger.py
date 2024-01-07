@@ -306,7 +306,7 @@ class JupyterMessenger():
             self.thread_echom(
                 ('I don''t know how to get infos for a Jupyter kernel of type '
                  f'"{self.kernel_info["kernel_type"]}"'),
-                stlye='WarningMsg'
+                style='WarningMsg'
             )
 
         # Fill kernel_info
