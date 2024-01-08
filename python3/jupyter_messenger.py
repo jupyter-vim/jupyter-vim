@@ -23,7 +23,7 @@ from language import list_languages, get_language
 import vim
 
 
-class JupyterMessenger():
+class JupyterMessenger:
     """Handle primitive messages to/from jupyter kernel.
 
     Attributes
@@ -40,14 +40,15 @@ class JupyterMessenger():
             'cwd' : str, the current working directory of the kernel.
             'hostname' : str, the hostname of the kernel.
     """
+
     def __init__(self):
-        self.km_client = None      # KernelManager client
+        self.km_client = None  # KernelManager client
         self.background_thread = None
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         self.loop = asyncio.new_event_loop()
         self.kernel_info = dict()  # Kernel information
-        self.lang = get_language('')
+        self.lang = get_language("")
 
         # Producers and consumers of each channel
         self.producers = dict()
@@ -56,7 +57,7 @@ class JupyterMessenger():
         # Message scheduled to be displayed using echom.
         self.echom_queue = Queue()
 
-    def connect(self, kernel_type, filename='kernel-*.json'):
+    def connect(self, kernel_type, filename="kernel-*.json"):
         """Connect to the kernel.
 
         Launches a background thread to deal with future communication with the
@@ -69,8 +70,8 @@ class JupyterMessenger():
         filename : str
             Filename of the kernel connection file.
         """
-        self.kernel_info['kernel_type'] = kernel_type
-        self.kernel_info['cfile_user'] = filename
+        self.kernel_info["kernel_type"] = kernel_type
+        self.kernel_info["cfile_user"] = filename
         self.lang = get_language(kernel_type)
 
         if not self.loop.is_running():
@@ -83,7 +84,7 @@ class JupyterMessenger():
         asyncio.run_coroutine_threadsafe(self._async_connect(filename), self.loop)
 
         # Start timer that periodically checks for echom messages to display
-        timer_interval = get_vim('g:jupyter_timer_interval', 500)
+        timer_interval = get_vim("g:jupyter_timer_interval", 500)
         vim.command(f'call timer_start({timer_interval}, "jupyter#UpdateEchom")')
 
     async def _async_connect(self, filename):
@@ -101,31 +102,34 @@ class JupyterMessenger():
         self.km_client = kernel_manager.client()
         self.km_client.start_channels()
 
-        for channel in ['shell', 'iopub', 'control']:
+        for channel in ["shell", "iopub", "control"]:
             self.producers[channel] = self.loop.create_task(
-                self._listen_to_channel(channel))
+                self._listen_to_channel(channel)
+            )
 
         await self.get_kernel_info()
-        self.thread_echom(
-            f'Connected to {self.kernel_info["kernel_type"]} kernel on '
-            f'{self.kernel_info["hostname"]}:{self.kernel_info["cwd"]}',
-            style='Question'
-        )
+        msg = f'Connected to {self.kernel_info["kernel_type"]} kernel'
+        if "hostname" in self.kernel_info:
+            msg += f' on {self.kernel_info["hostname"]}'
+        if "cwd" in self.kernel_info:
+            msg += f':{self.kernel_info["cwd"]}'
+        self.thread_echom(msg)
 
     def disconnect(self):
         """Disconnect silently from kernel and close channels."""
         if self.km_client:
             self.km_client.stop_channels()
             self.km_client = None
-        self.loop.call_soon_threadsafe(lambda: [task.cancel() for task in asyncio.all_tasks(self.loop.stop)])
+        self.loop.call_soon_threadsafe(
+            lambda: [task.cancel() for task in asyncio.all_tasks(self.loop.stop)]
+        )
         self.loop.call_soon_threadsafe(self.loop.stop)
         if self.background_thread and self.background_thread.is_alive():
             self.background_thread.join(1)
             self.background_thread = None
         self.kernel_info = dict()
-        self.lang = get_language('')
-        echom('Disconnected.', style='Directory')
-
+        self.lang = get_language("")
+        echom("Disconnected.", style="Directory")
 
     async def _listen_to_channel(self, channel):
         """Listen to a kernel channel and notify any consumers of messages.
@@ -136,14 +140,14 @@ class JupyterMessenger():
             The channel to listen on.
         """
         while True:
-            if channel == 'shell':
+            if channel == "shell":
                 msg = await self.km_client.shell_channel.get_msg()
-            elif channel == 'iopub':
+            elif channel == "iopub":
                 msg = await self.km_client.iopub_channel.get_msg()
-            elif channel == 'control':
+            elif channel == "control":
                 msg = await self.km_client.control_channel.get_msg()
             else:
-                raise ValueError(f'Unknown channel: {channel}')
+                raise ValueError(f"Unknown channel: {channel}")
 
             if channel in self.consumers:
                 waiting = self.consumers[channel]
@@ -194,7 +198,7 @@ class JupyterMessenger():
         """
         while True:
             msg = await self.get_next_msg(channel)
-            if msg['parent_header']['msg_id'] == msg_id:
+            if msg["parent_header"]["msg_id"] == msg_id:
                 return msg
 
     def check_connection(self):
@@ -240,10 +244,10 @@ class JupyterMessenger():
         """
         # Pre
         if not ismeta:
-            before = get_vim('b:jupyter_exec_before', '')
-            pre = get_vim('b:jupyter_exec_pre', '')
-            post = get_vim('b:jupyter_exec_post', '')
-            after = get_vim('b:jupyter_exec_after', '')
+            before = get_vim("b:jupyter_exec_before", "")
+            pre = get_vim("b:jupyter_exec_pre", "")
+            post = get_vim("b:jupyter_exec_post", "")
+            after = get_vim("b:jupyter_exec_after", "")
 
             # Craft new message
             if before:
@@ -273,16 +277,23 @@ class JupyterMessenger():
             Unquoted string of the message reply.
         """
         # Send message
-        msg_id = self.execute(code, ismeta=True, silent=True, user_expressions={'_res': '_res'})
-        reply = await self.get_reply(msg_id, 'shell')
+        msg_id = self.execute(
+            code, ismeta=True, silent=True, user_expressions={"_res": "_res"}
+        )
+        reply = await self.get_reply(msg_id, "shell")
 
         # Get _res from user expression
-        res = reply.get('content', {}).get('user_expressions', {}) \
-                   .get('_res', {}).get('data', {}).get('text/plain', -1)
+        res = (
+            reply.get("content", {})
+            .get("user_expressions", {})
+            .get("_res", {})
+            .get("data", {})
+            .get("text/plain", -1)
+        )
 
         # Try again parse messages
         if res == -1:
-            line_number = reply.get('content', {}).get('execution_count', -1)
+            line_number = reply.get("content", {}).get("execution_count", -1)
             msgs = await self.get_pending_msgs()
             res = parse_iopub_for_reply(msgs, line_number)
 
@@ -302,22 +313,26 @@ class JupyterMessenger():
             dict with keys: {'kernel_type', 'pid', 'cwd', 'hostname'}
         """
         # Check in
-        if self.kernel_info['kernel_type'] not in list_languages():
+        if self.kernel_info["kernel_type"] not in list_languages():
             self.thread_echom(
-                ('I don''t know how to get infos for a Jupyter kernel of type '
-                 f'"{self.kernel_info["kernel_type"]}"'),
-                style='WarningMsg'
+                (
+                    "I don't know how to get infos for a Jupyter kernel of type "
+                    f"{self.kernel_info['kernel_type']}"
+                ),
+                style="WarningMsg",
             )
 
         # Fill kernel_info
-        self.kernel_info.update({
-            'connection_file': self.kernel_info['cfile_user'],
-            'id': match_kernel_id(self.kernel_info['cfile_user']),
-            # Get from kernel info
-            'pid': await self.execute_and_get_reply(self.lang.pid),  # PID of kernel
-            'cwd': await self.execute_and_get_reply(self.lang.cwd),
-            'hostname': await self.execute_and_get_reply(self.lang.hostname),
-        })
+        self.kernel_info["connection_file"] = self.kernel_info["cfile_user"]
+        self.kernel_info["id"] = match_kernel_id(self.kernel_info["cfile_user"])
+        if self.lang.pid is not None:  # PID of kernel
+            self.kernel_info["pid"] = await self.execute_and_get_reply(self.lang.pid)
+        if self.lang.cwd is not None:
+            self.kernel_info["cwd"] = await self.execute_and_get_reply(self.lang.cwd)
+        if self.lang.hostname is not None:
+            self.kernel_info["hostname"] = await self.execute_and_get_reply(
+                self.lang.hostname
+            )
 
         # Return
         return self.kernel_info
@@ -333,8 +348,8 @@ class JupyterMessenger():
             (arg, args) = self.echom_queue.get_nowait()
             echom(arg, **args)
         if not empty:
-            vim.command('redraw')
-        timer_interval = get_vim('g:jupyter_timer_interval', 500)
+            vim.command("redraw")
+        timer_interval = get_vim("g:jupyter_timer_interval", 500)
         vim.command(f'call timer_start({timer_interval}, "jupyter#UpdateEchom")')
 
 
@@ -364,21 +379,21 @@ def parse_iopub_for_reply(msgs, line_number):
     # Parse all execute
     for msg in msgs:
         # Get the result of execution
-        content = msg.get('content', False)
+        content = msg.get("content", False)
         if not content:
             continue
 
-        i_count = int(content.get('execution_count', 0))
+        i_count = int(content.get("execution_count", 0))
         if not i_count:
             continue
         if line_number not in (-1, i_count):
             continue
 
-        msg_type = msg.get('header', {}).get('msg_type', '')
-        if msg_type not in ('execute_result', 'stream'):
+        msg_type = msg.get("header", {}).get("msg_type", "")
+        if msg_type not in ("execute_result", "stream"):
             continue
 
-        res = content.get('data', {}).get('text/plain', -1)
-        res = res if res != -1 else content.get('text', -1)
+        res = content.get("data", {}).get("text/plain", -1)
+        res = res if res != -1 else content.get("text", -1)
         break
     return res

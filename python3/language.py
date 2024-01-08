@@ -150,9 +150,9 @@ class R(Language):
     print_string = 'print("{}")'
     run_file = 'source("{}")'
     cd = 'setwd("{}")'
-    pid = 'Sys.getpid()'
-    cwd = 'getwd()'
-    hostname = 'Sys.info()[["nodename"]]'
+    pid = None
+    cwd = None
+    hostname = None
 
 
 class Raku(Language):
