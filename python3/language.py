@@ -218,6 +218,7 @@ language_dict = {
     'ruby': Ruby,
     'rust': Rust,
     'r': R,
+    'ir': R,
 }
 
 
