@@ -24,7 +24,10 @@ if g:jupyter_highlight_cells
             execute match_cmd
         endfor
     endfu
-    autocmd bufenter * :call SetCellHighlighting()
+    exe 'augroup jupyter_highlight_cell_' . bufnr()
+    exe '  au!'
+    exe '  autocmd BufEnter <buffer> call SetCellHighlighting()'
+    exe 'augroup END'
 endif
 
 "}}}--------------------------------------------------------------------------
