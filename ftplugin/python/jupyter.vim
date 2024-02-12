@@ -12,6 +12,9 @@ let b:ipython_run_flags = ''
 
 " Highlight jupyter cells (lines beginning with ##) such that it is easier to
 " see them
+if !exists("g:jupyter_highlight_cells")
+    let g:jupyter_highlight_cells=1
+endif
 if g:jupyter_highlight_cells
     fun! SetCellHighlighting()
         for cell_separator in g:jupyter_cell_separators
