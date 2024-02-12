@@ -106,11 +106,12 @@ class JupyterMessenger():
                 self._listen_to_channel(channel))
 
         await self.get_kernel_info()
-        self.thread_echom(
-            f'Connected to {self.kernel_info["kernel_type"]} kernel on '
-            f'{self.kernel_info["hostname"]}:{self.kernel_info["cwd"]}',
-            style='Question'
-        )
+        msg = f'Connected to {self.kernel_info["kernel_type"]} kernel'
+        if 'hostname' in self.kernel_info:
+            msg += f' on {self.kernel_info['hostname']}'
+        if 'cwd' in self.kernel_info:
+            msg += f':{self.kernel_info['cwd']}'
+        self.thread_echom(msg)
 
     def disconnect(self):
         """Disconnect silently from kernel and close channels."""
@@ -304,22 +305,21 @@ class JupyterMessenger():
         # Check in
         if self.kernel_info['kernel_type'] not in list_languages():
             self.thread_echom(
-                ('I don''t know how to get infos for a Jupyter kernel of type '
+                ("I don't know how to get infos for a Jupyter kernel of type "
                  f'"{self.kernel_info["kernel_type"]}"'),
                 style='WarningMsg'
             )
 
         # Fill kernel_info
-        self.kernel_info.update({
-            'connection_file': self.kernel_info['cfile_user'],
-            'id': match_kernel_id(self.kernel_info['cfile_user']),
-            # Get from kernel info
-            'pid': await self.execute_and_get_reply(self.lang.pid),  # PID of kernel
-            'cwd': await self.execute_and_get_reply(self.lang.cwd),
-            'hostname': await self.execute_and_get_reply(self.lang.hostname),
-        })
+        self.kernel_info["connection_file"] = self.kernel_info["cfile_user"]
+        self.kernel_info["id"] = match_kernel_id(self.kernel_info["cfile_user"])
+        if self.lang.pid is not None:  # PID of kernel
+            self.kernel_info["pid"] = await self.execute_and_get_reply(self.lang.pid)
+        if self.lang.cwd is not None:
+            self.kernel_info["cwd"] = await self.execute_and_get_reply(self.lang.cwd)
+        if self.lang.hostname is not None:
+            self.kernel_info["hostname"] = await self.execute_and_get_reply(self.lang.hostname)
 
-        # Return
         return self.kernel_info
 
     def thread_echom(self, arg, **args):

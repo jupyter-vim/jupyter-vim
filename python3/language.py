@@ -146,13 +146,13 @@ class Coconut(Language):
 # pylint: disable=C0103  # Class name "R" no PascalCase naming style
 class R(Language):
     """ R: script """
-    prompt_in = 'R [{:d}]: '
+    prompt_in = 'In [{:d}]: '
     print_string = 'print("{}")'
     run_file = 'source("{}")'
     cd = 'setwd("{}")'
-    pid = 'Sys.getpid()'
-    cwd = 'getwd()'
-    hostname = 'Sys.info()[["nodename"]]'
+    pid = None
+    cwd = None
+    hostname = None
 
 
 class Raku(Language):
@@ -218,6 +218,7 @@ language_dict = {
     'ruby': Ruby,
     'rust': Rust,
     'r': R,
+    'ir': R,
 }
 
 
