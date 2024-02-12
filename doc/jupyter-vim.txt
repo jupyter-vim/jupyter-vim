@@ -59,11 +59,15 @@ default it guesses the language of the kernel based on the filetype (see
 while in a *.py buffer will attempt a connection to a Python Jupyter kernel,
 whereas in a *.jl buffer it will attempt to connect to a Julia Jupyter kernel.
 
-Note that the connection process will hang for ~5 seconds if no kernel is
-available. This is why the option |g:jupyter_auto_connect| defaults to 0 (off)
--- otherwise opening *.py files would be very slow whenever a kernel is not
-running. This issue would be mitigated by an asynchronous connection process (a
-work in progress).
+When Vim is connected to the Jupyter kernel, code can be send over through
+various means. For example, making a visual selection and executing
+:JupyterSendRange (by default mapped to <localleader>e), or executing
+:JupyterSendFile to execute everything in the buffer. A MATLAB-like cell mode
+is also supported (see |:JupyterSendCell|).
+
+When the Vimspector (https://github.com/puremourning/vimspector) plugin is also
+installed, the :JupyterStartDebugger command (by default mapped to
+<localleader>d) can be used to attach the debugger to the running kernel.
 
 --------------------------------------------------------------------------------
 COMMANDS 					*jupyter-vim-commands*
@@ -92,7 +96,7 @@ COMMANDS 					*jupyter-vim-commands*
 			connect to a `jupyter kernel`, but the console is
 			necessary to display any output from your python code!
 
-:JupyterDiconnect			*jupyter-disconnect* *:JupyterDiconnect*
+:JupyterDisconnect			*jupyter-disconnect* *:JupyterDiconnect*
 			Diconnect from the currently connected kernel.
 
 :JupyterStartMonitor		*jupyter-start-monitor* *:JupyterStartMonitor*
@@ -176,6 +180,11 @@ Jupyter-vim has some commands specifically aimed at the IPython kernel.
 			The IPython "%run" magic handles stripping the
 			extension and running the `import` command.
 
+:PythonStartDebugger		*jupyter-start-debugger* *:PythonStartDebugger*
+			Start a Vimspector debug session and attach it to the kernel we are
+			currently connected to. Needs the Vimspector plugin installed to
+			work: https://github.com/puremourning/vimspector.
+
 --------------------------------------------------------------------------------
 MAPPINGS					*jupyter-vim-mappings*
 
@@ -188,8 +197,7 @@ MAPPINGS					*jupyter-vim-mappings*
 <localleader>e 		Execute vim text |objects|
 {Visual}<localleader>e  Execute the |visual| selection
 
-<localleader>b 		Insert a breakpoint at the current line
-			(python only, see |:PythonSetBreak).
+<localleader>d 		Attach the Vimspector debugger (see |:PythonStartDebugger).
 
 --------------------------------------------------------------------------------
 CONFIGURATION					*jupyter-vim-configuration*
@@ -280,6 +288,8 @@ Major changes include:
 	- jupyter-vim works with both Python and other kernels, and is
 	  restructured so that even more languages can be added in the future (no
 	  Python-specific stuff baked in).
+	- jupyter-vim works with vimspector to provide advanced debugging
+	  capabilities.
 	- The pseudo-terminal vim pane functionality has been repurposed as a debug
 	  channel only, since jupyter-qtconsole has the configuration option:
 		c.ConsoleWidget.include_other_output = True

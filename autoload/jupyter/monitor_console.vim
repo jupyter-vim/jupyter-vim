@@ -23,7 +23,7 @@ function! jupyter#monitor_console#OpenJupyterMonitor() abort
 
     " Make sure buffer is a scratch buffer before we write to it
     setlocal bufhidden=hide buftype=nofile
-    setlocal nobuflisted nonumber noswapfile nomodifiable
+    setlocal nobuflisted nonumber noswapfile
     execute 'setlocal syntax=' . win_syntax
 
     " Restore cursor at current window

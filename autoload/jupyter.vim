@@ -22,7 +22,7 @@ function! s:init_python() abort
           \ '    _jupyter_session = JupyterVimSession()',
           \
           \ '    # For direct calls',
-          \ '    from jupyter_util import str_to_py, find_jupyter_kernel_ids, find_signals',
+          \ '    from jupyter_util import str_to_py, find_jupyter_kernel_ids, find_signals, has_vimspector',
           \ 'except Exception as exc:',
           \ '    vim.bindeval("s:")["init_outcome"] = ("could not import jupyter_vim <- {0}: {1}".format(exc.__class__.__name__, exc))',
           \ 'else:',
@@ -178,6 +178,14 @@ function! jupyter#StopMonitor() abort
     python3 _jupyter_session.stop_monitor()
 endfunction
 
+function! jupyter#PythonStartDebugger() abort
+    if !py3eval("has_vimspector()")
+       echom 'Vimspector not installed.'
+       return
+    endif
+    call vimspector#Reset()  " creates _vimspector_session
+    python3 _jupyter_session.start_debugger(_vimspector_session)
+endfunction
 
 "-----------------------------------------------------------------------------
 "        Auxiliary Functions:

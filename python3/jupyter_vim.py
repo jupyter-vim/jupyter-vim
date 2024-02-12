@@ -44,6 +44,7 @@ except ImportError as e_import:
     raise ImportError('vim module only available within vim! The original ImportError: ' +
                       str(e_import)) from e_import
 
+
 # Standard
 import functools
 from os import kill, remove
@@ -56,6 +57,7 @@ import re
 from jupyter_util import str_to_py, echom, is_integer, unquote_string, get_vim
 from jupyter_messenger import JupyterMessenger
 from monitor_console import Monitor
+from debugger import DAPProxy
 
 
 class JupyterVimSession():
@@ -72,6 +74,7 @@ class JupyterVimSession():
     """
     def __init__(self):
         self.kernel_client = JupyterMessenger()
+        self.dap_proxy = DAPProxy(self.kernel_client)
         self.monitor = None
 
     def if_connected(fct):
@@ -103,6 +106,7 @@ class JupyterVimSession():
             echom('Already connected to a kernel. Use :JupyterDisconnect to disconnect.', style='Error')
             return
         self.kernel_client.connect(kernel_type, filename)
+        self.dap_proxy.start()
 
     def disconnect_from_kernel(self):
         """Disconnect from the kernel client if connected.
@@ -181,6 +185,22 @@ class JupyterVimSession():
         self.monitor = None
         if wipeout_buffer:
             vim.command('bwipeout __jupyter_monitor__')
+
+    def start_debugger(self, vimspector_session):
+        vimspector_session._StartWithConfiguration(
+            configuration={
+                'adapter': 'multi-session',
+                'configuration': {'request': 'attach'},
+                'breakpoints': {
+                    'exception': {
+                        'caught': 'N',
+                        'raised': 'N',
+                        'uncaught': 'Y'
+                    }
+                },
+            },
+            adapter={'host': 'localhost', 'port': '9000'}
+        )
 
     # -----------------------------------------------------------------------------
     #        Communicate with Kernel

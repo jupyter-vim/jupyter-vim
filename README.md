@@ -163,6 +163,13 @@ Edit the following file: `~/.jupyter/jupyter_console_config.py`
 c.ZMQTerminalInteractiveShell.include_other_output = True
 ```
 
+## Debug support
+
+This plugin can interface with the
+[Vimspector](https://github.com/puremourning/vimspector) plugin to provide
+debugging support. See its documentation on how to install it. Only the IPython
+kernel (ipykernel version 6.0.0 and up) currently supports debugging.
+
 ## Usage
 
 To begin a session:
@@ -176,8 +183,13 @@ In vim: `:JupyterConnect`
 Then, use `:JupyterRunFile`, or `:[range]JupyterSendRange` to execute lines of
 code!
 
-Code will be sent and executed as expected in the graphical `jupyter qtconsole`.
-However, in the console version `jupyter console`, the result will only show after you press the `Enter` key.
+Code will be sent and executed as expected in the graphical `jupyter
+qtconsole` or terminal `jupyter console`.
+
+Use `:PythonStartDebugger` to start a Vimspector debugging session and attach
+it to the running kernel. Use Vimspector to set breakpoints and execute code in
+the kernel (either by entering commands in the jupyter [qt]console or by
+sending over code with jupyter-vim) that hits a breakpoint.
 
 By default, the following keybindings are defined:
 ```vim
@@ -195,7 +207,7 @@ nmap     <buffer> <silent> <localleader>e <Plug>JupyterRunTextObj
 vmap     <buffer> <silent> <localleader>e <Plug>JupyterRunVisual
 
 " Debugging maps
-nnoremap <buffer> <silent> <localleader>b :PythonSetBreak<CR>
+nnoremap <buffer> <silent> <localleader>d :PythonStartDebugger<CR>
 ```
 
 Set `let g:jupyter_mapkeys = 0` in your `.vimrc` to prevent the default keybindings from being made.
