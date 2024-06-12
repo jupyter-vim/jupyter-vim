@@ -8,8 +8,8 @@ See: <http://jupyter-client.readthedocs.io/en/stable/api/client.html>
 import asyncio
 import collections
 from textwrap import dedent
-from threading import Thread
-from queue import Queue, Empty
+from threading import Thread, Lock
+from queue import Empty, Queue
 import sys
 
 # Py module
@@ -48,6 +48,7 @@ class JupyterMessenger():
         self.loop = asyncio.new_event_loop()
         self.kernel_info = dict()  # Kernel information
         self.lang = get_language('')
+        self.kernel_lock = Lock()
 
         # Producers and consumers of each channel
         self.producers = dict()
@@ -149,7 +150,22 @@ class JupyterMessenger():
                 waiting = self.consumers[channel]
                 while len(waiting) > 0:
                     future = waiting.pop()
-                    future.set_result(msg)
+                    # Futures can be done if a previous session has been
+                    # cancelled or has errored out.
+                    if not future.done():
+                        future.set_result(msg)
+
+    def thread_send_msg(self, channel, msg):
+        """Threadsafe sending of messages to the kernel."""
+        with self.kernel_lock:
+            if channel == 'iopub':
+                self.km_client.iopub_channel.send(msg)
+            elif channel == 'control':
+                self.km_client.control_channel.send(msg)
+            elif channel == 'shell':
+                self.km_client.shell_channel.send(msg)
+            else:
+                raise ValueError('Invalid channel.')
 
     async def get_next_msg(self, channel):
         """Listen to a channel for the next incoming message.
@@ -254,7 +270,8 @@ class JupyterMessenger():
         code = dedent(code)
 
         # Actually send execute_request
-        msg_id = self.km_client.execute(code, **kwargs)
+        with self.kernel_lock:
+            msg_id = self.km_client.execute(code, **kwargs)
 
         # Send after unless it is blank
         if not ismeta and after:
